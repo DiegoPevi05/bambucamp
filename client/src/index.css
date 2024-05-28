@@ -1,0 +1,31 @@
+@font-face{
+  font-family:'helveticaNeue-bold';
+  src:url(./assets/fonts/helveticaNeue-bold.otf) format('opentype');
+}
+
+@font-face{
+  font-family:'GothamRounded-Book';
+  src:url(./assets/fonts/GothamRounded-Book.otf) format('opentype');
+}
+
+
+@font-face{
+  font-family:'HelveticaNeue-Medium';
+  src:url(./assets/fonts/HelveticaNeue-Medium.ttf) format('truetype');
+}
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply font-primary;
+    @apply bg-white;
+    @apply text-primary;
+    scroll-behavior: smooth;
+  }
+}
+
+
