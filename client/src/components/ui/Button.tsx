@@ -4,11 +4,11 @@ import { Loader2 } from 'lucide-react'
 import { ButtonHTMLAttributes, FC } from 'react'
 
 export const buttonVariants = cva(
-  'active:scale-95 inline-flex items-center justify-center rounded-lg text-md transition-color focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:bg-gray-200 disabled:text-gray-500 font-primary',
+  'active:scale-95 inline-flex items-center justify-center text-md transition-color focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:bg-gray-200 disabled:text-gray-500 font-tertiary',
   {
     variants: {
       variant: {
-        default: 'bg-secondary text-white hover:bg-fourth focus:ring-fourth',
+        default: 'bg-primary text-white hover:bg-fourth focus:ring-fourth',
         dark: 'bg-primary text-white hover:bg-tertiary focus:ring-tertiary',
         ghost: 'bg-white border-2 text-primary border-primary hover:border-0 hover:bg-secondary hover:text-white focus:ring-secondary',
       },

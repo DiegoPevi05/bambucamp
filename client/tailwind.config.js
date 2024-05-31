@@ -21,6 +21,7 @@ export default {
       },
       backgroundImage: {
         'black-to-transparent': 'linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 50% , rgba(0, 0, 0, 0.01) 100%)',
+
       },
     },
   },
