@@ -11,7 +11,7 @@ const Home = () => {
     <div>
       <Navbar/>
       <div id="hero" className="relative w-full h-[100vh] flex flex-col justify-center items-center z-[20]">
-        {/*<video src={Banner} autoPlay loop  muted className="absolute top-0 left-0 w-full h-full object-cover"/>*/}
+        <video src={Banner} autoPlay loop  muted className="absolute top-0 left-0 w-full h-full object-cover"/>
         <motion.div 
           initial="hidden"
           animate="show"

@@ -37,6 +37,24 @@ export const fadeIn = (direction:string, type:string, delay:number, duration:num
   };
 };
 
+export const fadeOnly = (type:string, delay:number, duration:number) => {
+  return{
+    hidden: {
+      opacity: 0,
+    },
+    show: {
+      opacity: 1,
+      transition: {
+        type: type,
+        delay: delay,
+        duration: duration,
+        ease: "easeOut",
+      },
+    },
+  };
+}
+
+
 export const zoomIn = (delay:number, duration:number) => {
   return {
     hidden: {

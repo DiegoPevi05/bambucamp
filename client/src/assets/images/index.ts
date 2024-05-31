@@ -16,6 +16,20 @@ import GOLD_KULLAQ_4 from './tents/gold_kullaq/kullaq_4.jpg';
 import GOLD_KULLAQ_5 from './tents/gold_kullaq/kullaq_5.jpg';
 import GOLD_KULLAQ_6 from './tents/gold_kullaq/kullaq_6.jpg';
 
+import GOLD_SUMAQ_1 from './tents/gold_sumaq/sumaq_1.jpeg';
+import GOLD_SUMAQ_2 from './tents/gold_sumaq/sumaq_2.jpg';
+import GOLD_SUMAQ_3 from './tents/gold_sumaq/sumaq_3.jpg';
+import GOLD_SUMAQ_4 from './tents/gold_sumaq/sumaq_4.jpg';
+import GOLD_SUMAQ_5 from './tents/gold_sumaq/sumaq_5.jpg';
+import GOLD_SUMAQ_6 from './tents/gold_sumaq/sumaq_6.jpg';
+
+import GOLD_LLURAK_1 from './tents/suite_llurak/LLurak_1.jpeg';
+import GOLD_LLURAK_2 from './tents/suite_llurak/LLurak_2.jpg';
+import GOLD_LLURAK_3 from './tents/suite_llurak/LLurak_3.jpg';
+import GOLD_LLURAK_4 from './tents/suite_llurak/LLurak_4.jpg';
+import GOLD_LLURAK_5 from './tents/suite_llurak/LLurak_5.jpg';
+import GOLD_LLURAK_6 from './tents/suite_llurak/LLurak_6.jpg';
+
 
 export {
 	BG_HERO,
@@ -36,4 +50,19 @@ export {
 	GOLD_KULLAQ_4,
 	GOLD_KULLAQ_5,
 	GOLD_KULLAQ_6,
+
+	GOLD_SUMAQ_1,
+	GOLD_SUMAQ_2,
+	GOLD_SUMAQ_3,
+	GOLD_SUMAQ_4,
+	GOLD_SUMAQ_5,
+	GOLD_SUMAQ_6,
+
+	GOLD_LLURAK_1,
+	GOLD_LLURAK_2,
+	GOLD_LLURAK_3,
+	GOLD_LLURAK_4,
+	GOLD_LLURAK_5,
+	GOLD_LLURAK_6,
+
 }
