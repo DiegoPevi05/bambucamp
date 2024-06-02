@@ -2,9 +2,10 @@ import { cn } from '../../lib/utils'
 import { cva, VariantProps } from 'class-variance-authority'
 import { Loader2 } from 'lucide-react'
 import { ButtonHTMLAttributes, FC } from 'react'
+import { useState } from 'react'
 
 export const buttonVariants = cva(
-  'active:scale-95 inline-flex items-center justify-center text-md transition-color focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:bg-gray-200 disabled:text-gray-500 font-tertiary',
+  'active:scale-95 inline-flex items-center justify-center text-md transition-color focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:bg-gray-200 disabled:text-gray-500 font-tertiary group',
   {
     variants: {
       variant: {
@@ -37,8 +38,10 @@ const Button: FC<ButtonProps> = ({
   variant,
   isLoading,
   size,
+  rightIcon,
   ...props
 }) => {
+
   return (
     <button
       className={cn(buttonVariants({ variant, size, className }))}
@@ -46,6 +49,7 @@ const Button: FC<ButtonProps> = ({
       {...props}>
       {isLoading ? <Loader2 className='mr-2 text-secondary h-4 w-4 animate-spin' /> : null}
       {children}
+      {rightIcon ? <div className="transform transition-transform group-hover:translate-x-2 duration-300">{rightIcon}</div> : null}
     </button>
   )
 }

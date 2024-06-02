@@ -21,6 +21,9 @@ import {
   Beef,
 } from "lucide-react"
 import * as LucideIcons from 'lucide-react';
+import Button from "./ui/Button"
+import { useNavigate } from "react-router-dom"
+
 
 interface CarouselCardProps {
   data:TentIT
@@ -29,6 +32,7 @@ interface CarouselCardProps {
 }
 
 const CarouselCard = (props:CarouselCardProps) => {
+
   const {isSelected,data,handleSelect} = props;
 
   const selectCard = () => {
@@ -85,7 +89,7 @@ const CarouselImages = (props:carouselImagesProps) => {
       <div className="w-full h-auto flex flex-row gap-x-6 px-12 2xl:px-24 py-12 ">
         <AnimatePresence>
           {tents.map((tent,index)=>(
-            <CarouselCard key={tent.id} data={tent} isSelected={tent.id === selectedTentId} handleSelect={handleSelect}/>
+            <CarouselCard key={tent.id+"-"+index} data={tent} isSelected={tent.id === selectedTentId} handleSelect={handleSelect}/>
           ))}
         </AnimatePresence>
       </div>
@@ -110,6 +114,7 @@ const ServiceItem = ({iconName,label}:ServiceItemProps) => {
 
 const VerticalCarousel = () => {
 
+  const navigate = useNavigate();
   const [tents, setTents] = useState<TentIT[]>(tentsData)
   const [selectedTent, setSelectedTent] = useState<TentIT>(tentsData[0])
   const [selectedImage, setSelectedImage] = useState<number>(0);
@@ -119,13 +124,10 @@ const VerticalCarousel = () => {
     const previousIndex = tents.slice(0, selectedIndex).length;
     //add hidden class to all previousIndex cards
     const cards = document.querySelectorAll("[data-id-card]");
-    cards.forEach((card, index) => {
-      if(index < previousIndex) card.classList.add("hidden")
-    })
-    setSelectedTent(tents[selectedIndex]);
-    //const newTents = [...tents.slice(selectedIndex), ...tents.slice(0, selectedIndex)];
-    //setTents(newTents);
-    //setSelectedTent(newTents[0]);
+
+    const newTents = [...tents.slice(selectedIndex), ...tents.slice(0, selectedIndex)];
+    setTents(newTents);
+    setSelectedTent(newTents[0]);
   }
 
   const handleNextImage = () => {
@@ -137,6 +139,10 @@ const VerticalCarousel = () => {
     if(selectedImage === 0) return setSelectedImage(selectedTent.images.length-1)
     setSelectedImage(selectedImage-1)
   };
+
+  const goBooking = () => {
+    navigate("/booking")
+  }
 
 
   return (
@@ -196,6 +202,16 @@ const VerticalCarousel = () => {
                   { selectedTent.services.airconditioning && (<ServiceItem iconName={"AirVent"} label={"Air Conditioning"}/>) }
                   { selectedTent.services.grill && (<ServiceItem iconName={"Beef"} label={"Grill"}/>) }
                 </ul>
+              <div className="w-full h-auto flex flex-row justify-start items-center gap-x-4 mb-12">
+                <Button 
+                  variant="default" 
+                  size="default" 
+                  rightIcon={<ChevronRightIcon className="w-6 h-6 text-white ml-2 duration-300"/>}
+                  onClick={()=>goBooking()}
+                >
+                  Book Now
+                </Button>
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>

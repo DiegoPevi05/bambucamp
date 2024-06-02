@@ -86,7 +86,7 @@ const Calendar = ({ show, handleSelectedDate, containerDimensions }:{show:boolea
         animate="show"
         exit="hidden"
         variants={fadeIn("left","",0,0.5)}
-        className="absolute h-auto w-[400px] bg-white px-1 py-2 duration-800 transition-all transition-opacity" 
+        className="absolute h-auto w-[400px] bg-white px-1 py-2 duration-800 transition-all transition-opacity rounded-md" 
         style={{
           top: `${containerDimensions.height}px`,
           left: isCalendarOverflowing ? 'auto' : '0',
