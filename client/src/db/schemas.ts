@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+const formHomeSchema = z.object({
+  name: z.string().nonempty({ message: 'Name is required.' }),
+  email: z.string().nonempty({ message: 'Email is required.' }).email({ message: 'Email is not valid.' }),
+  title: z.string().nonempty({ message: 'Title is required.' }),
+  message: z.string().nonempty({ message: 'Message is required.' }),
+  saveinfo: z.boolean(),
+});
+
 const guestsSchema = z.object({
   adults: z.number().min(1, { message: "There must be at least one adult." }),
   kids: z.number().min(0, { message: "Number of kids cannot be negative." }),
@@ -15,4 +23,4 @@ const searchSchema = z.object({
   path: ["endDate"],
 });
 
-export { guestsSchema, searchSchema };
+export {formHomeSchema, guestsSchema, searchSchema };

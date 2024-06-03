@@ -5,11 +5,11 @@ import { ButtonHTMLAttributes, FC } from 'react'
 import { useState } from 'react'
 
 export const buttonVariants = cva(
-  'active:scale-95 inline-flex items-center justify-center text-md transition-color focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:bg-gray-200 disabled:text-gray-500 font-tertiary group',
+  'active:scale-95 inline-flex items-center justify-center text-md transition-color focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:bg-gray-200 disabled:text-gray-500 font-tertiary group rounded-lg shadow-2xl',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-white hover:bg-fourth focus:ring-fourth',
+        default: 'bg-tertiary text-white hover:bg-primary focus:ring-fourth',
         dark: 'bg-primary text-white hover:bg-tertiary focus:ring-tertiary',
         ghost: 'bg-white border-2 text-primary border-primary hover:border-0 hover:bg-secondary hover:text-white focus:ring-secondary',
       },

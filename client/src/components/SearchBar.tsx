@@ -1,5 +1,5 @@
 import  { useState, useRef, useEffect } from "react";
-import { MapPin, CalendarDays, User } from "lucide-react";
+import { MapPin, CalendarDays, User, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeIn } from "../lib/motions";
 import { SearchReservation } from "../db/actions";
@@ -22,7 +22,7 @@ const generateCalendar = (currentDate:Date, handleSelectedDate: (date: Date) => 
   // Add days from the previous month
   for (let i = startDayOfWeek; i > 0; i--) {
     calendarDays.push(
-      <span key={`prev-${i}`} className="bg-gray-100 flex items-center justify-center h-10 text-gray-400">
+      <span key={`prev-${i}`} className="bg-gray-100 flex items-center justify-center h-10 text-gray-400 rounded-xl">
         {totalDaysInPrevMonth - i + 1}
       </span>
     );
@@ -33,7 +33,7 @@ const generateCalendar = (currentDate:Date, handleSelectedDate: (date: Date) => 
     const currentIterationDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
     if(currentIterationDate < today){
       calendarDays.push(
-        <span key={`past-${i}`} className="bg-gray-100 flex items-center justify-center h-10 text-gray-400">
+        <span key={`past-${i}`} className="bg-gray-100 flex items-center justify-center h-10 text-gray-400 rounded-xl">
           {i}
         </span>
       );
@@ -41,7 +41,7 @@ const generateCalendar = (currentDate:Date, handleSelectedDate: (date: Date) => 
       calendarDays.push(
         <span key={`current-${i}`} 
           onClick={()=>handleSelectedDate(currentIterationDate)}
-          className={`cursor-pointer bg-white flex items-center justify-center h-10 hover:bg-primary hover:text-white duration-300 
+          className={`cursor-pointer bg-white text-secondary flex items-center justify-center h-10 hover:bg-secondary hover:text-white duration-300 rounded-xl 
           ${currentDate.getDate() === i  && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear() ? "border-2 border-slate-400": "" }`}>
           {i}
         </span>
@@ -53,7 +53,7 @@ const generateCalendar = (currentDate:Date, handleSelectedDate: (date: Date) => 
   const remainingDays = 42 - calendarDays.length; // 42 = 6 weeks * 7 days
   for (let i = 1; i <= remainingDays; i++) {
     calendarDays.push(
-      <span key={`next-${i}`} className="bg-gray-100 flex items-center justify-center h-10 text-gray-400">
+      <span key={`next-${i}`} className="bg-gray-100 flex items-center justify-center h-10 text-gray-400 rounded-xl">
         {i}
       </span>
     );
@@ -86,7 +86,7 @@ const Calendar = ({ show, handleSelectedDate, containerDimensions }:{show:boolea
         animate="show"
         exit="hidden"
         variants={fadeIn("left","",0,0.5)}
-        className="absolute h-auto w-[400px] bg-white px-1 py-2 duration-800 transition-all transition-opacity rounded-md" 
+        className="absolute h-auto w-[350px] w-[400px] bg-white duration-800 transition-all transition-opacity rounded-b-xl" 
         style={{
           top: `${containerDimensions.height}px`,
           left: isCalendarOverflowing ? 'auto' : '0',
@@ -98,7 +98,7 @@ const Calendar = ({ show, handleSelectedDate, containerDimensions }:{show:boolea
             <h1 className="text-slate-700">{currentDate.getMonth()+1 +"/"+ currentDate.getFullYear()}</h1>
             <button className="text-secondary hover:text-primary duration-300" onClick={handleNextMonth}>Next</button>
           </div>
-          <div className="grid grid-cols-7">
+          <div className="grid grid-cols-7 gap-2 p-2">
             {calendarDays}
           </div>
         </motion.div>
@@ -135,7 +135,7 @@ const DatePicker = ({ date, setDate, openBar, type, toggleBar }:{date:Date, setD
 
   return (
     <div ref={containerRef} className="relative w-full h-full">
-      <div className={`${openBar ? "after:absolute after:top-0 after:left-0 after:content-[''] after:w-full after:h-2 after:bg-primary":""} h-full w-full gap-x-4 flex flex-row justify-center items-center cursor-pointer`} onClick={toggleDatePicker}> 
+      <div className={`${openBar ? "after:absolute after:top-0 after:left-0 after:content-[''] after:w-full after:h-2 after:bg-secondary":""} text-secondary h-full w-full gap-x-4 flex flex-row justify-center items-center cursor-pointer`} onClick={toggleDatePicker}> 
         <CalendarDays />
         {selectedDate.toISOString().split("T")[0]}
       </div>
@@ -162,14 +162,14 @@ const InputGuestBar = ({guests, type,handleCount }: {guests:{adults:number, kids
 
   return(
     <div className="span-1 w-full h-full bg-white flex flex-row w-full h-full border-l-[1px] border-slate-200">
-      <div className="w-[80%] h-full flex flex-row justify-center items-center gap-x-4">
+      <div className="w-[80%] h-full flex flex-row justify-center items-center gap-x-4 text-secondary">
         <User/>
         <span>{currentCount}</span>
         <span>{type}</span>
       </div>
       <div className="w-[20%] h-full flex flex-col border-l-[1px] border-slate-200 divide-y">
-        <button className="w-full h-[50%] bg-white text-primary hover:bg-primary hover:text-white duration-300" onClick={IncrementConter}>+</button>
-        <button className="w-full h-[50%] bg-white text-primary hover:bg-primary hover:text-white duration-300" onClick={DecreaseCounter}>-</button>
+        <button className="w-full h-[50%] bg-white text-secondary hover:bg-secondary hover:text-white duration-300" onClick={IncrementConter}>+</button>
+        <button className="w-full h-[50%] bg-white text-secondary hover:bg-secondary hover:text-white duration-300" onClick={DecreaseCounter}>-</button>
       </div>
     </div>
 
@@ -208,7 +208,7 @@ const GuestPicker = ({openBar, containerRef, toggleBar, guests, setGuests}:
 
   return (
     <div className="relative w-full h-full">
-      <div className={`${openBar ? "after:absolute after:top-0 after:left-0 after:content-[''] after:w-full after:h-2 after:bg-primary":""} h-full w-full gap-x-4 flex flex-row justify-center items-center cursor-pointer`} onClick={toggleOpenGuestPicker}> 
+      <div className={`${openBar ? "after:absolute after:top-0 after:left-0 after:content-[''] after:w-full after:h-2 after:bg-secondary":""} h-full w-full gap-x-4 flex flex-row justify-center items-center cursor-pointer`} onClick={toggleOpenGuestPicker}> 
         <User/>
         {getTotalGuest()}
       </div>
@@ -219,7 +219,7 @@ const GuestPicker = ({openBar, containerRef, toggleBar, guests, setGuests}:
             animate="show"
             exit="hidden"
             variants={fadeIn("left","",0,0.5)}
-            className={`absolute z-[1000] bg-slate-50 grid grid-cols-3`}
+            className={`absolute z-[1000] bg-slate-50 grid grid-cols-3 `}
               style={{
                 top: `${containerDimensions.height}px`,
                 left: `${leftPosition}px`,
@@ -264,15 +264,20 @@ const SearchDatesBar = () => {
 
 
   return (
-    <div ref={containerRef} className="relative mt-24 w-[80%] h-[60px] bg-slate-50 z-[50] flex flex-row max-sm:flex-wrap">
-      <div className="max-sm:hidden relative flex flex-col w-full justify-center items-center after:absolute after:content-[''] after:top-0 after:left-0 after:w-full after:h-2 after:bg-primary">
+    <motion.div 
+      initial="hidden"
+      animate="show"
+      variants={fadeIn("up","",0.5,1)}
+      ref={containerRef} 
+      className="relative  mt-24 w-[100%] sm:w-[80%] h-[120px] sm:h-[180px] lg:h-[60px] bg-white z-[50] grid grid-cols-2 lg:grid-cols-5">
+      <div className="max-sm:hidden relative flex flex-col w-full justify-center items-center after:absolute after:content-[''] after:top-0 after:left-0 after:w-full after:h-2 after:bg-secondary">
         <span className="text-slate-700 flex flex-row gap-x-4"><MapPin /> Bambucamp</span>
       </div>
       <DatePicker openBar={ openBar['startDate']} type="startDate" toggleBar={toggleBar} date={startDate} setDate={setStartDate} />
       <DatePicker openBar={ openBar['endDate']} type="endDate" toggleBar={toggleBar} date={endDate} setDate={setEndDate} />
       <GuestPicker openBar={ openBar['guests']} toggleBar={toggleBar} guests={guests} setGuests={setGuests} containerRef={containerRef}/>
-      <button className="text-white w-full bg-fourth hover:bg-primary duration-300" onClick={handleSearchReservation}>Search</button>
-    </div>
+      <button className="bg-tertiary text-white w-full col-span-1 sm:col-span-2 lg:col-span-1 hover:bg-primary hover:text-white flex flex-row justify-center items-center gap-x-2 duration-300" onClick={handleSearchReservation}><Search/>Search</button>
+    </motion.div>
   );
 };
 

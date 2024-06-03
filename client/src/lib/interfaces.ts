@@ -18,3 +18,13 @@ export interface TentIT {
     grill: boolean;
   }
 }
+
+export interface ReviewIT {
+  id: number;
+  name: string;
+  title: string;
+  review: string;
+  stars: number;
+  date: string;
+  images: string[];
+}

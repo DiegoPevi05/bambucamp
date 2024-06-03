@@ -9,6 +9,9 @@ import TENT_PRIMARY from './tent.jpg';
 import TENT_SECONDARY from './tent_2.jpg';
 import TENT_THIRD from './tent_3.jpg';
 import TENT_FOURTH from './tent_4.jpg';
+import GOOGLE_ICON from './google.png';
+
+
 import GOLD_KULLAQ_1 from './tents/gold_kullaq/kullaq_1.jpeg';
 import GOLD_KULLAQ_2 from './tents/gold_kullaq/kullaq_2.jpg';
 import GOLD_KULLAQ_3 from './tents/gold_kullaq/kullaq_3.jpg';
@@ -39,6 +42,7 @@ export {
 	LOGO_PRIMARY,
 	LOGO_SECONDARY,
 	LOGO_THIRD,
+	GOOGLE_ICON,
 	TENT_PRIMARY,
 	TENT_SECONDARY,
 	TENT_THIRD,

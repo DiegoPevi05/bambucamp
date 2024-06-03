@@ -146,7 +146,7 @@ const VerticalCarousel = () => {
 
 
   return (
-    <div className="w-full h-full bg-white grid grid-cols-5 grid-rows-2 ">
+    <div className="w-full h-[100vh] bg-white grid grid-cols-5 grid-rows-2 ">
         <div className="relative col-span-2 row-span-2 w-full h-full">
           <AnimatePresence>
             <motion.img 
@@ -210,6 +210,15 @@ const VerticalCarousel = () => {
                   onClick={()=>goBooking()}
                 >
                   Book Now
+                </Button>
+
+                <Button 
+                  variant="dark" 
+                  size="default" 
+                  rightIcon={<ChevronRightIcon className="w-6 h-6 text-white ml-2 duration-300"/>}
+                  onClick={()=>goBooking()}
+                >
+                  Services
                 </Button>
               </div>
             </motion.div>
