@@ -1,3 +1,13 @@
+export interface PromotionIT {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+  link: string;
+  discount: number;
+  remaining: number;
+}
+
 export interface TentIT {
   id: number;
   header: string;
@@ -27,4 +37,5 @@ export interface ReviewIT {
   stars: number;
   date: string;
   images: string[];
+  profile_image: string;
 }

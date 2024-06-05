@@ -19,7 +19,7 @@ import {
 	GOLD_LLURAK_6,
 } from "../assets/images"
 
-import { TentIT, ReviewIT } from "./interfaces"
+import { TentIT, ReviewIT, PromotionIT } from "./interfaces"
 
 export const tentsData:TentIT[] = [
   {
@@ -189,15 +189,7 @@ export const reviewsData:ReviewIT[] = [
     review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
     stars: 4,
     date: "01-03-2024",
-    images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
-  },
-  {
-    id:1,
-    name: "Marco Antonio Venturo Cosme",
-    title: "Excelente experiencia",
-    review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
-    stars: 4,
-    date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
     images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
   },
   {
@@ -207,6 +199,7 @@ export const reviewsData:ReviewIT[] = [
     review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
     stars: 4,
     date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
     images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
   },
   {
@@ -216,6 +209,7 @@ export const reviewsData:ReviewIT[] = [
     review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
     stars: 4,
     date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
     images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
   },
   {
@@ -225,6 +219,7 @@ export const reviewsData:ReviewIT[] = [
     review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
     stars: 4,
     date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
     images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
   },
   {
@@ -234,6 +229,17 @@ export const reviewsData:ReviewIT[] = [
     review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
     stars: 4,
     date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
+    images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
+  },
+  {
+    id:5,
+    name: "Marco Antonio Venturo Cosme",
+    title: "Excelente experiencia",
+    review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
+    stars: 4,
+    date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
     images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
   },
   {
@@ -243,6 +249,7 @@ export const reviewsData:ReviewIT[] = [
     review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
     stars: 4,
     date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
     images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
   },
   {
@@ -252,7 +259,46 @@ export const reviewsData:ReviewIT[] = [
     review: "Un lugar muy bonito, tranquilo y relajante, excelente atención, tiene todas las comodidades, es un campamento de lujo, tiene piscina, puedes comprar bebidas, comida y snack, una experiencia muy bonita. Recomendado.",
     stars: 4,
     date: "01-03-2024",
+    profile_image: "https://ashallendesign.ams3.cdn.digitaloceanspaces.com/rMbsGOyK6i1KjNkbXff8qLohzM1nWQA8HNGwHF0J.png",
     images: [GOLD_KULLAQ_1,GOLD_KULLAQ_2,GOLD_KULLAQ_3]
   },
 ]
 
+export const promotionsData:PromotionIT[] = [
+  {
+    id: 1,
+    discount: 20,
+    title: "Promotion 1",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec purus feugiat, molestie ipsum et, consequat nibh. Etiam non.",
+    image: GOLD_KULLAQ_2,
+    link: "/promotion/1",
+    remaining: 5,
+  },
+  {
+    id: 2,
+    discount: 30,
+    title: "Promotion 2",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec purus feugiat, molestie ipsum et, consequat nibh. Etiam non.",
+    image: GOLD_KULLAQ_2,
+    link: "/promotion/1",
+    remaining: 5,
+  },
+  {
+    id: 3,
+    discount: 40,
+    title: "Promotion 3",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec purus feugiat, molestie ipsum et, consequat nibh. Etiam non.",
+    image: GOLD_KULLAQ_2,
+    link: "/promotion/1",
+    remaining: 10,
+  },
+  {
+    id: 4,
+    discount: 50,
+    title: "Promotion 4",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla nec purus feugiat, molestie ipsum et, consequat nibh. Etiam non.",
+    image: GOLD_KULLAQ_2,
+    link: "/promotion/1",
+    remaining: 100,
+  },
+]

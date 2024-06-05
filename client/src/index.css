@@ -32,3 +32,28 @@
   display: none;
 }
 
+@keyframes slide{
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.reviews{
+  display: flex;
+}
+
+.reviews-slide{
+  animation: slide 55s infinite linear;
+}
+
+.reviews-slide-card{
+  cursor: pointer;
+}
+
+.reviews:hover .reviews-slide{
+  animation-play-state: paused;
+}
+

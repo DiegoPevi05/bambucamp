@@ -11,7 +11,8 @@ const NavBarItem = ({children, index}:{children:string, index:number}) => {
   return (
     <motion.div 
       initial="hidden"
-      animate="show"
+      animate='show'
+      viewport={{ once: true }}
       variants={fadeIn("down","",1+0.1*index,1)}
       className="w-full h-[80px] flex flex-column justify-center items-center">
       <li className="text-secondary text-xl hover:scale-[1.05]  hover:text-white ease-in-out duration-300 transition-all cursor-pointer">{children}</li>
@@ -24,7 +25,8 @@ const NavBarItemMobile = ({children, index}:{children:string, index:number}) => 
 
     <motion.div 
       initial="hidden"
-      animate="show"
+      animate='show'
+      viewport={{ once: true }}
       variants={slideIn("right","",0.1*index,0.3)}
       className="w-full h-auto sm:h-[50px]"
     >
@@ -63,7 +65,8 @@ const Navbar = () => {
         {openSideBar && ( 
           <motion.div 
             initial="hidden"
-            animate="show"
+            whileInView='show'
+            viewport={{ once: true }}
             exit="hidden"
             variants={slideIn("right","",0,0.3)}
             className={`w-full h-[100vh] absolute top-0 left-0 right-0 bottom-0 z-[120] bg-secondary`}>
