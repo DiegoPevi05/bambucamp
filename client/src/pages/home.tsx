@@ -50,6 +50,40 @@ const Home = () => {
         </motion.div>
         <SearchDatesBar/>
       </div>
+      <div id="us" className="relative w-full h-auto bg-secondary flex flex-col justify-center items-center">
+        <div className="flex flex-col justify-center items-center gap-y-6 w-full max-w-7xl py-24 px-6 sm:px-12 lg:px-48">
+          <motion.h2 
+            initial="hidden"
+            whileInView='show'
+            viewport={{ once: true }}
+            variants={fadeIn("down","",0.3,1)}
+            className={`${styles.sectionHeadText} text-tertiary text-center`}>Welcome to Bambucamp Glamping</motion.h2>
+          <motion.img 
+            initial="hidden"
+            whileInView='show'
+            viewport={{ once: true }}
+            variants={fadeOnly("",0.5,1)}
+            className="w-[200px] h-[200px] object-cover rounded-full border-4 border-white"
+            src={TENT_SECONDARY} alt="tent"/>
+          <motion.p 
+            initial="hidden"
+            whileInView='show'
+            viewport={{ once: true }}
+            variants={fadeIn("down","",0.5,1)}
+            className="font-secondary text-white text-center">At Bambucamp Glamping, we offer a unique camping experience that combines the best of both worlds. Our luxury tents are equipped with all the amenities you need for a comfortable stay, while still allowing you to enjoy the great outdoors. Whether you're looking for a romantic getaway or a fun family vacation, we have the perfect accommodations for you. Book your stay with us today and experience the beauty of nature in style.</motion.p>
+          <motion.div 
+            initial="hidden"
+            whileInView='show'
+            viewport={{ once: true }}
+            variants={fadeIn("down","",0.8,1)}
+            className="flex flex-row max-sm:flex-wrap justify-center items-center max-sm:gap-4 sm:gap-x-4">
+            <Button variant="dark">Book now</Button>
+            <Button variant="default">See our Tents</Button>
+            <Button variant="dark">See our Services</Button>
+            <Button variant="ghost">Learn more</Button>
+          </motion.div>
+        </div>
+      </div>
 
       <div id="reviews" className="relative w-[100vw] h-auto overflow-hidden">
         <Reviews/>
@@ -78,7 +112,7 @@ const Home = () => {
           className="font-tertiary text-white bg-secondary text-lg sm:text-4xl">are over 50%</motion.p>
         </div>
 
-        <div className="w-full h-full mx-auto flex flex-row sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-12 max-lg:mt-12 max-sm:overflow-auto">
+        <div className="w-full h-auto sm:h-full mx-auto flex flex-row sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 max-lg:mt-12 max-sm:overflow-auto">
           {promotionsData.length > 1 && (
             promotionsData.map((promotion,index) => (
               <PromotionCard promotion={promotion} index={index}/>
@@ -106,7 +140,8 @@ const Home = () => {
             className={`${styles.sectionSubText} text-white`}>Here are some of the most frequently asked questions that we get from our customers</motion.h3>
           <motion.img 
             initial="hidden"
-            animate="show"
+            whileInView='show'
+            viewport={{ once: true }}
             variants={fadeIn("up","",0.5,1.5)}
             src={TENT_SVG} alt="tent" className="w-full lg:w-[80%] h-auto object-cover"/>
         </div>

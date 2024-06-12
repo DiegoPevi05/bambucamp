@@ -278,6 +278,7 @@ const SearchDatesBar = () => {
       <GuestPicker openBar={ openBar['guests']} toggleBar={toggleBar} guests={guests} setGuests={setGuests} containerRef={containerRef}/>
       <button className="bg-tertiary text-white w-full col-span-1 sm:col-span-2 lg:col-span-1 hover:bg-primary hover:text-white flex flex-row justify-center items-center gap-x-2 duration-300" onClick={handleSearchReservation}><Search/>Book</button>
     </motion.div>
+
   );
 };
 

@@ -86,8 +86,8 @@ const CarouselImages = (props:carouselImagesProps) => {
   const {tents,selectedTentId,handleSelect} = props;
 
   return (
-    <div className="w-full h-auto  flex flex-row justify-center items-center overflow-x-scroll no-scroll-bar">
-      <div className="w-full h-auto flex flex-row gap-x-6 px-12 2xl:px-24 py-12 ">
+    <div className="w-full h-full  flex flex-row justify-center items-center overflow-x-scroll no-scroll-bar">
+      <div className="w-full h-full flex flex-row gap-x-6 px-12 2xl:px-24 py-12 ">
         <AnimatePresence>
           {tents.map((tent,index)=>(
             <CarouselCard key={tent.id+"-"+index} data={tent} isSelected={tent.id === selectedTentId} handleSelect={handleSelect}/>
@@ -123,12 +123,6 @@ const VerticalCarousel = () => {
   const handleSelectTent = (id:number) => {
     const selectedIndex = tents.findIndex(tent => tent.id === id);
     const previousIndex = tents.slice(0, selectedIndex).length;
-    //add hidden class to all previousIndex cards
-    //const cards = document.querySelectorAll("[data-id-card]");
-
-    //const newTents = [...tents.slice(selectedIndex), ...tents.slice(0, selectedIndex)];
-    //setTents(newTents);
-    //setSelectedTent(newTents[0]);
     setSelectedTent(tents[selectedIndex]);
   }
 

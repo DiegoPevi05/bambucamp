@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar"
 import SearchDatesBar from "../components/SearchBar"
+import Button from "../components/ui/Button";
 
 const Booking = () => {
   return (
