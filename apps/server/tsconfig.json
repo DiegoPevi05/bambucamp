@@ -7,6 +7,11 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "baseUrl": "./src",
+    "rootDirs": ["./src", "../../packages/shared-types/src"],
+    "paths": {
+      "@bambucamp/shared-types": ["../../../packages/shared-types/src/index.ts"]
+    },
     "forceConsistentCasingInFileNames": true,
     "typeRoots": ["./node_modules/@types","./src/types"]
   },

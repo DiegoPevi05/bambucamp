@@ -1349,7 +1349,7 @@ const DashboardAdminReserves = () => {
                           </thead>
                           <tbody className="font-secondary text-xs xl:text-sm">
 
-                              {selectedReserve.promotions.map((item, index) => (
+                              {selectedReserve.promotions?.map((item, index) => (
                                 <tr key={"reserve_key_promotion_"+index} className="text-slate-400 "> 
                                     <td className="border border-slate-300 text-center">{index + 1}</td>
                                     <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)}`}</td>

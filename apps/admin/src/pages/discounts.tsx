@@ -325,7 +325,7 @@ const DashboardAdminDiscounts = () => {
 
                           <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                             <label htmlFor="expiredDate" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("discount.discount_code_expired_date")}</label>
-                            <input name="expiredDate" type="date" value={selectedDiscountCode.expiredDate.toISOString().split('T')[0]} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("discount.discount_code_expired_date")} readOnly/>
+                            <input name="expiredDate" type="date" value={selectedDiscountCode.expiredDate ? selectedDiscountCode.expiredDate.toISOString().split('T')[0] : ''} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("discount.discount_code_expired_date")} readOnly/>
                           </div>
 
                           <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
@@ -538,7 +538,7 @@ const DashboardAdminDiscounts = () => {
 
                           <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                             <label htmlFor="expiredDate" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("discount.discount_code_expired_date")}</label>
-                            <input name="expiredDate" type="date" value={selectedDiscountCode.expiredDate.toISOString().split('T')[0]}  onChange={(e)=>onChangeSelectedDiscountCode(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("discount.discount_code_expired_date")}/>
+                            <input name="expiredDate" type="date" value={selectedDiscountCode.expiredDate ? selectedDiscountCode.expiredDate.toISOString().split('T')[0] : ''}  onChange={(e)=>onChangeSelectedDiscountCode(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("discount.discount_code_expired_date")}/>
                             <div className="w-full h-6">
                               {errorMessages.expiredDate && (
                                 <motion.p 
