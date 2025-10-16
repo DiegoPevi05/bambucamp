@@ -1,92 +1,158 @@
 name: Deploy Admin
+
 on:
   push:
     branches:
       - main
     paths:
       - 'apps/admin/**'
+      - 'packages/shared-types/**'
       - '.github/workflows/deploy-admin.yml'
 
+concurrency:
+  group: deploy-admin
+  cancel-in-progress: true
+
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      admin-changed: ${{ steps.changes.outputs.admin }}
+      types-changed: ${{ steps.changes.outputs.types }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q "^apps/admin/"; then
+            echo "admin=true" >> $GITHUB_OUTPUT
+          else
+            echo "admin=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if git diff --name-only HEAD~1 HEAD | grep -q "^packages/shared-types/"; then
+            echo "types=true" >> $GITHUB_OUTPUT
+          else
+            echo "types=false" >> $GITHUB_OUTPUT
+          fi
+
   deploy:
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.admin-changed == 'true' ||
+      needs.detect-changes.outputs.types-changed == 'true'
     environment: go_daddy
     runs-on: ubuntu-latest
 
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      HOST: ${{ secrets.ADMIN_SERVER_IP }}
+      REMOTE_DIR: /var/www/bambucamp-admin
+
     steps:
-    - name: Initialize Deploy
-      env:
-        SLACK_MESSAGE: " * Initialize deploy of Bambucamp Admin :git:"
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "${SLACK_MESSAGE}"
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_MESSAGE}"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Initialize Deploy
+        env:
+          SLACK_OK: "🚀 Initialize deploy of *Bambucamp Admin* to Digital Ocean VPS"
+        run: |
+          set -euo pipefail
+          echo "${SLACK_OK}"
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+            || { echo "Slack notify failed (init). Continuing..."; }
 
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install dependencies
-      env:
-        SLACK_MESSAGE: " * Installing Dependencies :npm:"
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "${SLACK_MESSAGE}"
-        cd apps/admin
-        npm install
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_MESSAGE}"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Install dependencies
+        env:
+          SLACK_OK: "✅ Installing Dependencies completed"
+          SLACK_ERR: "❌ Installing Dependencies failed"
+        run: |
+          set -euo pipefail
+          echo "Installing dependencies..."
+          cd apps/admin
+          npm ci \
+            && curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+            || { curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
-    - name: Create .env file
-      run: |
-        cd apps/admin
-        echo VITE_BACKEND_URL=${{ secrets.VITE_BACKEND_URL }} >> .env
-        echo VITE_BACKEND_PUBLIC_URL=${{ secrets.VITE_BACKEND_PUBLIC_URL }} >> .env
-        echo VITE_ENVIRONMENT=${{ secrets.VITE_ENVIRONMENT }} >> .env
+      - name: Create .env file
+        env:
+          SLACK_OK: "✅ Created .env file"
+          SLACK_ERR: "❌ Failed creating .env file"
+        run: |
+          set -euo pipefail
+          cd apps/admin
+          {
+            echo VITE_BACKEND_URL=${{ secrets.VITE_BACKEND_URL }}
+            echo VITE_BACKEND_PUBLIC_URL=${{ secrets.VITE_BACKEND_PUBLIC_URL }}
+            echo VITE_ENVIRONMENT=${{ secrets.VITE_ENVIRONMENT }}
+          } >> .env \
+          && curl -X POST -H 'Content-type: application/json' \
+               --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+          || { curl -X POST -H 'Content-type: application/json' \
+               --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
-    - name: Build
-      env:
-        SLACK_MESSAGE: " * Building React App Dist Folder :vite:"
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "${SLACK_MESSAGE}"
-        cd apps/admin
-        npm run build
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_MESSAGE}"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Build
+        env:
+          SLACK_OK: "✅ Building React App (Vite) finished"
+          SLACK_ERR: "❌ Build failed"
+        run: |
+          set -euo pipefail
+          cd apps/admin
+          npm run build \
+            && curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+            || { curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
-    - name: Set up SSH key
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-    - name: Add host key to known hosts
-      env:
-        SLACK_MESSAGE: " * Set Connection to SSH Digital Ocean server :digital_ocean:"
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "${SLACK_MESSAGE}"
-        ssh-keyscan 104.236.199.84 >> ~/.ssh/known_hosts
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_MESSAGE}"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Add host key to known hosts
+        env:
+          SLACK_OK: "✅ SSH known_hosts configured for ${{ env.HOST }}"
+          SLACK_ERR: "❌ SSH known_hosts setup failed for ${{ env.HOST }}"
+        run: |
+          set -euo pipefail
+          ssh-keyscan "$HOST" >> ~/.ssh/known_hosts \
+            && curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+            || { curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
-    - name: Create the deployment directory if not exists
-      env:
-        SLACK_MESSAGE: " * Ensuring Deployment Directory Exists :file_folder:"
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "${SLACK_MESSAGE}"
-        ssh root@104.236.199.84 'mkdir -p /var/www/bambucamp-admin'
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_MESSAGE}"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Create the deployment directory if not exists
+        env:
+          SLACK_OK: "✅ Ensured deployment directory exists on server"
+          SLACK_ERR: "❌ Failed creating deployment directory on server"
+        run: |
+          set -euo pipefail
+          ssh root@"$HOST" "mkdir -p $REMOTE_DIR" \
+            && curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+            || { curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
-    - name: Deploy
-      env:
-        SLACK_MESSAGE: " * Admin App Deployed Successfully :react: :typescript:"
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "${SLACK_MESSAGE}"
-        scp -r apps/admin/dist/* root@104.236.199.84:/var/www/bambucamp-admin/
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_MESSAGE}"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Deploy (upload dist)
+        env:
+          SLACK_OK: "✅ Admin App Deployed Successfully :react: :typescript:"
+          SLACK_ERR: "❌ Deploy failed during upload"
+        run: |
+          set -euo pipefail
+          scp -r apps/admin/dist/* root@"$HOST":"$REMOTE_DIR"/ \
+            && curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+            || { curl -X POST -H 'Content-type: application/json' \
+                 --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
-    - name: Done
-      env:
-        SLACK_MESSAGE: " * Admin Deployed Successfully :nodejs:"
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      run: |
-        echo "${SLACK_MESSAGE}"
-        curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_MESSAGE}"'"}' ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Notify final failure
+        if: ${{ failure() }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"🚨 *Admin Deployment failed* — check the step above for the exact error."}' "$SLACK_WEBHOOK_URL"
