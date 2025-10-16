@@ -1,0 +1,270 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  CLIENT
+}
+
+model User {
+  id                          Int      @id @default(autoincrement())
+  email                       String   @unique
+  password                    String
+  role                        Role     @default(CLIENT)
+  firstName                   String
+  lastName                    String
+  phoneNumber                 String
+  document_type               String   @default("DNI")
+  document_id                 String   @default("null")
+  isDisabled                  Boolean  @default(false)
+  lastLogin                   DateTime?
+  lastPasswordChanged         DateTime?
+  emailVerified               Boolean  @default(false)
+  emailVerificationCode       String?
+  emailVerificationCodeExpiry DateTime?
+  passwordResetCode           String?
+  passwordResetCodeExpiry     DateTime?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt @default(now())
+  reserves                    Reserve[]
+  notifications               Notification[]
+}
+
+model Tent {
+  id                       Int             @id @default(autoincrement())
+  header                   String          @db.Text
+  title                    String          @db.Text
+  description              String          @db.Text
+  services                 String          @db.Text 
+  qtypeople                Int             @default(1)
+  qtykids                  Int             @default(0)
+  images                   String          @db.Text
+  price                    Float           @default(0)
+  status                   String          @default("ACTIVE") @db.Text
+  custom_price             String          @default("[]") @db.Text
+  additional_people_price  Float    @default(0)
+  max_additional_people    Int        @default(0)
+  max_kids                 Int             @default(1)
+  kids_bundle_price        Float         @default(0)
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt @default(now())
+}
+
+model Product {
+  id              Int             @id @default(autoincrement())
+  categoryId      Int
+  category        ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name            String          @db.Text
+  description     String          @db.Text
+  price           Float           @default(0)
+  stock           Int             @default(0)
+  images          String          @db.Text
+  status          String          @default("ACTIVE") @db.Text
+  custom_price    String          @default("[]") @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt @default(now())
+}
+
+model ProductCategory {
+  id            Int               @id @default(autoincrement())
+  name          String            @db.Text
+  products      Product[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt @default(now())
+}
+
+model Experience {
+  id              Int             @id @default(autoincrement())
+  categoryId      Int
+  category        ExperienceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  header          String          @db.Text
+  name            String          @db.Text
+  description     String          @db.Text
+  price           Float           @default(0)
+  duration        Float           @default(0)
+  images          String          @db.Text
+  limit_age       Int             @default(1)
+  qtypeople       Int             @default(1)
+  suggestions     String          @default("[]") @db.Text
+  status          String          @default("ACTIVE") @db.Text
+  custom_price    String          @default("[]") @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt @default(now())
+}
+
+model ExperienceCategory {
+  id              Int             @id @default(autoincrement())
+  name            String          @db.Text
+  experiences     Experience[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt @default(now())
+}
+
+model DiscountCode {
+  id              Int             @id @default(autoincrement())
+  code            String
+  expiredDate     DateTime        @default(now())
+  discount        Int             @default(0)
+  stock           Int             @default(1)
+  status          String          @default("ACTIVE") @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt @default(now())
+}
+
+enum ReserveStatus {
+  NOT_CONFIRMED
+  CONFIRMED
+  COMPLETE
+}
+
+enum PaymentStatus {
+  UNPAID 
+  PAID
+}
+
+model Reserve {
+  id                    Int               @id @default(autoincrement())
+  external_id           String
+  userId                Int
+  user                  User              @relation(fields: [userId], references: [id])
+  tents                 ReserveTent[]   
+  products              ReserveProduct[] 
+  experiences           ReserveExperience[]
+  eta                   DateTime?         
+  dateSale              DateTime          @default(now())
+  price_is_calculated   Boolean           @default(false)
+  discount_code_id      Int               @default(0)         
+  discount_code_name    String            
+  net_import            Float             @default(0)
+  discount              Int               @default(0)
+  gross_import          Float             @default(0)
+  canceled_reason       String            @db.Text
+  canceled_status       Boolean           @default(false)
+  payment_status        PaymentStatus     @default(UNPAID) 
+  reserve_status        ReserveStatus     @default(NOT_CONFIRMED)
+  createdAt                               DateTime @default(now())
+  updatedAt             DateTime          @updatedAt @default(now())
+}
+
+model ReserveTent {
+  id                      Int       @id @default(autoincrement())
+  reserveId               Int
+  idTent                  Int
+  name                    String    @db.Text
+  price                   Float     @default(0)
+  nights                  Int       @default(1)
+  dateFrom                 DateTime        
+  dateTo                  DateTime        
+  additional_people       Int       @default(0)
+  additional_people_price Float     @default(0)
+  kids                    Int       @default(0)
+  kids_price               Float    @default(0)
+  reserve                 Reserve   @relation(fields: [reserveId], references: [id], onDelete: Cascade)
+  confirmed               Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt @default(now())
+}
+
+model ReserveProduct {
+  id              Int       @id @default(autoincrement())
+  reserveId       Int
+  idProduct       Int
+  name            String    @db.Text
+  price           Float     @default(0)
+  quantity        Int       @default(1)
+  reserve         Reserve   @relation(fields: [reserveId], references: [id], onDelete: Cascade)
+  confirmed       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt @default(now())
+}
+
+model ReserveExperience {
+  id              Int       @id @default(autoincrement())
+  reserveId       Int
+  idExperience    Int
+  name            String    @db.Text
+  price           Float     @default(0)
+  quantity        Int       @default(1)
+  day             DateTime  @default(now())
+  reserve         Reserve   @relation(fields: [reserveId], references: [id], onDelete: Cascade)
+  confirmed       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt @default(now())
+}
+
+
+enum NotificationType {
+  SUCCESS
+  ERROR 
+  INFORMATION
+}
+
+enum NotificationTarget {
+  ADMIN
+  SUPERVISOR
+  USER
+}
+
+model Notification {
+  id                Int                @id @default(autoincrement())
+  title             String
+  preview           String
+  description       String             @db.Text
+  type              NotificationType   @default(INFORMATION)
+  date              DateTime           @default(now())
+  createdAt         DateTime           @default(now())
+  isRead            Boolean            @default(false)
+  userId            Int?               
+  userName          String?
+  user              User?              @relation(fields: [userId], references: [id])
+  target            NotificationTarget 
+  relatedEntityId   Int?               
+  relatedEntityType String?            
+  relatedEntityName String?
+}
+
+model ChatChannel {
+  id         String        @id @default(cuid())
+  messages   ChatMessage[]
+  lastActive DateTime      @default(now())
+}
+
+model ChatMessage {
+  id        String    @id @default(cuid())
+  user      String
+  username  String
+  user_type String
+  message   String
+  timestamp DateTime  @default(now())
+  channelId String
+  channel   ChatChannel @relation(fields: [channelId], references: [id])
+}
+
+
+model Review {
+  id                Int                @id @default(autoincrement())
+  name              String             @db.Text
+  title             String             @db.Text
+  review            String             @db.Text
+  stars             Int                @default(0)
+  day               DateTime           @default(now())
+  href              String?            @db.Text
+  profile_image_url String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt @default(now())
+}
+
+model Faq {
+  id                Int                @id @default(autoincrement())
+  question          String             @db.Text
+  answer            String             @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt @default(now())
+}

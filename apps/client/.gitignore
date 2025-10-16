@@ -1,0 +1,33 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+
+# --- Windows MOTW / ADS leftovers (from WSDL downloads) ---
+# If your tooling creates *files* with colon in the name (common in WSL/ext4)
+*:Zone.Identifier
+*:Zone.Identifier:*
+# If they appear as plain files without colon
+Zone.Identifier
+*.Zone.Identifier

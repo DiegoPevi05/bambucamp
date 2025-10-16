@@ -1,0 +1,579 @@
+:root {
+  --primary-color: #00AAA9;
+  --primary-color-light: #eab485;
+  --primary-color-dark: #146c73;
+  --danger-color: #f87171;
+  --white-color: #fff;
+}
+
+@font-face {
+  font-family: 'helveticaNeue-bold';
+  src: url(./assets/fonts/helveticaNeue-bold.otf) format('opentype');
+}
+
+@font-face {
+  font-family: 'GothamRounded-Book';
+  src: url(./assets/fonts/GothamRounded-Book.otf) format('opentype');
+}
+
+
+@font-face {
+  font-family: 'HelveticaNeue-Medium';
+  src: url(./assets/fonts/HelveticaNeue-Medium.ttf) format('truetype');
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply font-primary;
+    @apply bg-white;
+    @apply text-primary;
+    scroll-behavior: smooth;
+  }
+}
+
+
+.no-scroll-bar::-webkit-scrollbar {
+  display: none;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+  /* Width of the scrollbar */
+}
+
+/* Style the scrollbar thumb */
+::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color);
+  /* Color of the scrollbar handle */
+  border-radius: 8px;
+  /* Rounded corners */
+  border: 2px solid var(--primary-color);
+  /* Space around the handle */
+}
+
+/* Style the scrollbar on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color-dark);
+  border: 2px solid var(--primary-color-dark);
+  /* Darker color on hover */
+}
+
+
+.button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5em 1em;
+  overflow: hidden;
+  transition: color 0.3s ease;
+}
+
+.button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -145%;
+  bottom: 0;
+  width: 140%;
+  transform: skew(45deg);
+  transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1), right 0.4s cubic-bezier(0.3, 1, 0.8, 1);
+  z-index: 0;
+}
+
+.button:hover {
+  color: var(--white-color);
+}
+
+.button:hover::before {
+  right: 0;
+}
+
+.button span {
+  position: relative;
+  z-index: 1;
+}
+
+.button-primary {
+  background-color: var(--white-color);
+  color: var(--primary-color);
+  border-color: var(--white-color);
+}
+
+.button-primary:hover {
+  color: var(--white-color);
+  background-color: var(--primary-color);
+  transition: background-color 0.3s ease;
+}
+
+.button.button-primary::before {
+  background-color: var(--primary-color);
+}
+
+.button-dark {
+  background-color: var(--primary-color-dark);
+  color: var(--white-color);
+  border-color: var(--primary-color-dark);
+}
+
+.button-dark:hover {
+  color: var(--primary-color-dark);
+  background-color: var(--white-color);
+  transition: background-color 0.3s ease;
+}
+
+.button.button-dark::before {
+  background-color: var(--white-color);
+}
+
+.button-light {
+  background-color: var(--primary-color-light);
+  color: var(--white-color);
+  border-color: var(--white-color);
+}
+
+.button-light:hover {
+  color: var(--primary-color-light);
+  background-color: var(--white-color);
+  transition: background-color 0.3s ease;
+}
+
+.button.button-light::before {
+  background-color: var(--white-color);
+}
+
+.button-ghost {
+  background-color: var(--white-color);
+  color: var(--primary-color-dark);
+  border-color: var(--white-color);
+}
+
+.button-ghost:hover {
+  color: var(--white-color);
+  background-color: var(--primary-color-dark);
+  transition: background-color 0.3s ease;
+}
+
+.button.button-ghost::before {
+  background-color: var(--primary-color-dark);
+}
+
+.button-ghost-light {
+  background-color: var(--primary-color);
+  color: var(--white-color);
+  border-color: var(--primary-color);
+}
+
+.button-ghost-light:hover {
+  color: var(--primary-color);
+  background-color: var(--white-color);
+  transition: background-color 0.3s ease;
+}
+
+.button.button-ghost-light::before {
+  background-color: var(--white-color);
+}
+
+.button-danger {
+  background-color: var(--danger-color);
+  color: var(--white-color);
+  border-color: var(--danger-color);
+}
+
+.button-danger:hover {
+  color: var(--danger-color);
+  background-color: var(--white-color);
+  transition: background-color 0.3s ease;
+}
+
+.button.button-danger::before {
+  background-color: var(--white-color);
+}
+
+.input {
+  position: relative;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: color 0.3s ease;
+}
+
+.input::before {
+  content: ' ';
+  position: absolute;
+  top: 0;
+  right: -175%;
+  bottom: 0;
+  width: 140%;
+  transform: skew(45deg);
+  transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1), right 0.4s cubic-bezier(0.3, 1, 0.8, 1);
+  z-index: 0;
+}
+
+.input span {
+  position: relative;
+  z-index: 1;
+}
+
+.input:has(input:checked)::before {
+  right: -134%;
+  z-index: 2;
+}
+
+.input .checkIcon {
+  display: none;
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: auto;
+  height: auto;
+  border: none;
+  background: transparent;
+  color: transparent;
+  z-index: 4;
+  transition: color 0.3s ease;
+}
+
+.input:has(input:checked) .checkIcon {
+  display: block;
+}
+
+
+.input-primary span {
+  background-color: var(--primary-color);
+  color: var(--white-color);
+  border: 4px solid var(--primary-color);
+}
+
+.input-primary:hover span {
+  color: var(--primary-color);
+  background-color: var(--white-color);
+  transition: border 0.3s ease, background-color 0.3s ease;
+}
+
+
+.input-primary input:checked+span {
+  color: var(--primary-color);
+  background-color: var(--white-color);
+  transition: background-color 0.3s ease;
+}
+
+.input.input-primary::before {
+  background-color: var(--primary-color);
+}
+
+
+.input-primary:has(input:checked) .checkIcon {
+  color: var(--white-color);
+}
+
+
+.input-dark span {
+  background-color: var(--primary-color-dark);
+  color: var(--white-color);
+  border: 4px solid var(--primary-color-dark);
+}
+
+.input-dark:hover span {
+  color: var(--primary-color-dark);
+  background-color: var(--white-color);
+  transition: border 0.3s ease, background-color 0.3s ease;
+}
+
+
+.input-dark input:checked+span {
+  color: var(--primary-color-dark);
+  background-color: var(--white-color);
+  transition: background-color 0.3s ease;
+}
+
+.input.input-dark::before {
+  background-color: var(--primary-color-dark);
+}
+
+
+.input-dark:has(input:checked) .checkIcon {
+  color: var(--white-color);
+}
+
+
+.input-light span {
+  background-color: var(--primary-color-light);
+  color: var(--white-color);
+  border: 4px solid var(--primary-color-light);
+}
+
+.input-light:hover span {
+  color: var(--primary-color-light);
+  background-color: var(--white-color);
+  transition: border 0.3s ease, background-color 0.3s ease;
+}
+
+
+.input-light input:checked+span {
+  color: var(--primary-color-light);
+  background-color: var(--white-color);
+  transition: background-color 0.3s ease;
+}
+
+.input.input-light::before {
+  background-color: var(--primary-color-light);
+}
+
+
+.input-light:has(input:checked) .checkIcon {
+  color: var(--white-color);
+}
+
+
+
+.loader {
+  width: 124px;
+  aspect-ratio: 1.154;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  --c: no-repeat linear-gradient(var(--primary-color) 0 0);
+  background: var(--c), var(--c), var(--c), var(--c), var(--c);
+  background-size: 100% calc(100%/5 + 1px);
+  animation: l15 3s infinite;
+}
+
+@keyframes l15 {
+  0% {
+    background-position: 0 calc(-2*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4)
+  }
+
+  20% {
+    background-position: 0 calc(4*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4)
+  }
+
+  40% {
+    background-position: 0 calc(4*100%/4), 0 calc(3*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4)
+  }
+
+  60% {
+    background-position: 0 calc(4*100%/4), 0 calc(3*100%/4), 0 calc(2*100%/4), 0 calc(-2*100%/4), 0 calc(-2*100%/4)
+  }
+
+  80% {
+    background-position: 0 calc(4*100%/4), 0 calc(3*100%/4), 0 calc(2*100%/4), 0 calc(1*100%/4), 0 calc(-2*100%/4)
+  }
+
+  100% {
+    background-position: 0 calc(4*100%/4), 0 calc(3*100%/4), 0 calc(2*100%/4), 0 calc(1*100%/4), 0 calc(0*100%/4)
+  }
+}
+
+
+table td {
+  padding: 0.3rem 0.5rem;
+}
+
+
+
+
+@supports (-webkit-appearance: none) or (-moz-appearance: none) {
+  .checkbox-wrapper-13 input[type=checkbox] {
+    --active: var(--primary-color);
+    --active-inner: #fff;
+    --focus: 2px rgba(39, 94, 254, .3);
+    --border: var(--primary-color-light);
+    --border-hover: var(--primary-color-dark);
+    --background: #fff;
+    --disabled: #F6F8FF;
+    --disabled-inner: #E1E6F9;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    height: 21px;
+    outline: none;
+    display: inline-block;
+    vertical-align: top;
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+    border: 1px solid var(--bc, var(--border));
+    background: var(--b, var(--background));
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:after {
+    content: "";
+    display: block;
+    left: 0;
+    top: 0;
+    position: absolute;
+    transition: transform var(--d-t, 0.3s) var(--d-t-e, ease), opacity var(--d-o, 0.2s);
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:checked {
+    --b: var(--active);
+    --bc: var(--active);
+    --d-o: .3s;
+    --d-t: .6s;
+    --d-t-e: cubic-bezier(.2, .85, .32, 1.2);
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:disabled {
+    --b: var(--disabled);
+    cursor: not-allowed;
+    opacity: 0.9;
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:disabled:checked {
+    --b: var(--disabled-inner);
+    --bc: var(--border);
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:disabled+label {
+    cursor: not-allowed;
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:hover:not(:checked):not(:disabled) {
+    --bc: var(--border-hover);
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:focus {
+    box-shadow: 0 0 0 var(--focus);
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:not(.switch) {
+    width: 21px;
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:not(.switch):after {
+    opacity: var(--o, 0);
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:not(.switch):checked {
+    --o: 1;
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]+label {
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer;
+    margin-left: 4px;
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:not(.switch) {
+    border-radius: 7px;
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:not(.switch):after {
+    width: 5px;
+    height: 9px;
+    border: 2px solid var(--active-inner);
+    border-top: 0;
+    border-left: 0;
+    left: 7px;
+    top: 4px;
+    transform: rotate(var(--r, 20deg));
+  }
+
+  .checkbox-wrapper-13 input[type=checkbox]:not(.switch):checked {
+    --r: 43deg;
+  }
+}
+
+.checkbox-wrapper-13 * {
+  box-sizing: inherit;
+}
+
+.checkbox-wrapper-13 *:before,
+.checkbox-wrapper-13 *:after {
+  box-sizing: inherit;
+}
+
+
+
+.file-select {
+  position: relative;
+  display: inline-block;
+}
+
+.file-select::before {
+  background-color: var(--white-color);
+  color: var(--primary-color-dark);
+  border-radius: 12px;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  font-size: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  content: 'Agregar Imagen';
+  /* testo por defecto */
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  transition: transform 0.3s ease-in-out;
+}
+
+.file-select:hover::before {
+  transform: scale(1.05);
+  /* Allow the pseudo-element to respond to the hover */
+  box-shadow: 0 0 0.04em,
+    0 0.06em 0.16em -0.03em transparent inset,
+    0 0 0 0.07em rgba(0, 0, 0, 0.1) inset,
+    0 0 0 3.3px rgba(0, 170, 169, 0.55),
+    0 0 0 5px rgba(0, 170, 169, 0.3);
+}
+
+.file-select input[type="file"] {
+  opacity: 0;
+  width: 150px;
+  height: 150px;
+  display: inline-block;
+}
+
+
+#src-tent-image::before {
+  text-align: center;
+  content: 'Agregar Imagen \A +';
+  white-space: pre-wrap;
+  /* Allows the line break */
+}
+
+.image-selected {
+  width: 150px;
+  height: 150px;
+  border-radius: 12px;
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  transition: transform 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.delete-image-selected {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  color: var(--white-color);
+  border-radius: 100%;
+  background-color: var(--primary-color);
+}
+
+.image-selected:hover {
+  transform: scale(1.05);
+  /* Allow the pseudo-element to respond to the hover */
+  box-shadow: 0 0 0.04em,
+    0 0.06em 0.16em -0.03em transparent inset,
+    0 0 0 0.07em rgba(0, 0, 0, 0.1) inset,
+    0 0 0 3.3px rgba(0, 170, 169, 0.55),
+    0 0 0 5px rgba(0, 170, 169, 0.3);
+}
+
+.delete-image-selected:hover {
+  color: var(--white-color);
+  background-color: var(--primary-color-light);
+  transform: scale(1.05);
+}
