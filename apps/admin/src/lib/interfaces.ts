@@ -12,10 +12,10 @@ import type {
   AdminReserveTentDto,
   AdminReserveProductDto,
   AdminReserveExperienceDto,
-  AdminReservePromotionDto,
+  AdminReserveExtraItemDto,
   AdminCreateReserveProductDto,
   AdminCreateReserveExperienceDto,
-  AdminCreateReservePromotionDto,
+  AdminCreateReserveExtraItemDto,
   AdminReserve,
   AdminReserveFormData,
   ReserveFilters as SharedReserveFilters,
@@ -38,6 +38,7 @@ export type {
   DiscountCodeFormData,
   Promotion,
   PromotionFilters,
+  ExtraItem,
   NotificationDto,
   notifcationFilters,
   Review,
@@ -65,11 +66,11 @@ export type optionsReserve = OptionsReserve;
 export type ReserveTentDto = AdminReserveTentDto;
 export type ReserveProductDto = AdminReserveProductDto;
 export type ReserveExperienceDto = AdminReserveExperienceDto;
-export type ReservePromotionDto = AdminReservePromotionDto;
+export type ReserveExtraItemDto = AdminReserveExtraItemDto;
 
 export type createReserveProductDto = AdminCreateReserveProductDto;
 export type createReserveExperienceDto = AdminCreateReserveExperienceDto;
-export type createReservePromotionDto = AdminCreateReservePromotionDto;
+export type createReserveExtraItemDto = AdminCreateReserveExtraItemDto;
 
 export type Reserve = AdminReserve;
 export type ReserveFormData = AdminReserveFormData;

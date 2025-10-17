@@ -1,5 +1,5 @@
-import { PrismaClient, Reserve, ReserveTent, ReserveProduct, ReserveExperience, Tent, ReserveStatus, PaymentStatus} from "@prisma/client";
-import { ReserveDto, ReserveFilters, PaginatedReserve, ReserveTentDto, ReserveExperienceDto, ReserveProductDto, ReserveOptions, createReserveProductDto, createReserveExperienceDto } from "../dto/reserve";
+import { PrismaClient, Reserve, ReserveTent, ReserveProduct, ReserveExperience, ReserveExtraItem, Tent, ReserveStatus, PaymentStatus} from "@prisma/client";
+import { ReserveDto, ReserveFilters, PaginatedReserve, ReserveTentDto, ReserveExperienceDto, ReserveProductDto, ReserveExtraItemDto, ReserveOptions, createReserveProductDto, createReserveExperienceDto, createReserveExtraItemDto } from "../dto/reserve";
 import * as utils from "../lib/utils";
 import { NotFoundError } from "../middleware/errors";
 
@@ -12,6 +12,7 @@ export interface ExtendedReserve extends Reserve {
   tents: ReserveTent[];
   products: ReserveProduct[];
   experiences: ReserveExperience[];
+  extraItems: ReserveExtraItem[];
 }
 
 const prisma = new PrismaClient();
@@ -21,6 +22,7 @@ type ReserveWithRelations = Reserve & {
   tents: ReserveTent[];
   products: ReserveProduct[];
   experiences: ReserveExperience[];
+  extraItems: ReserveExtraItem[];
 };
 
 // Devuelve un ReserveDto con tentDB / productDB / experienceDB pegados
@@ -29,10 +31,15 @@ export async function enrichReserve(reserve: ReserveWithRelations): Promise<Rese
   const productIds = reserve.products.map(p => p.idProduct);
   const experienceIds = reserve.experiences.map(e => e.idExperience);
 
-  const [rawTentsDB, rawProductsDB, rawExperiencesDB] = await Promise.all([
+  const extraItemIds = reserve.extraItems
+    .map(extra => extra.extraItemId)
+    .filter((id): id is number => typeof id === 'number');
+
+  const [rawTentsDB, rawProductsDB, rawExperiencesDB, rawExtraItemsDB] = await Promise.all([
     tentIds.length ? prisma.tent.findMany({ where: { id: { in: tentIds } } }) : Promise.resolve([]),
     productIds.length ? prisma.product.findMany({ where: { id: { in: productIds } } }) : Promise.resolve([]),
     experienceIds.length ? prisma.experience.findMany({ where: { id: { in: experienceIds } } }) : Promise.resolve([]),
+    extraItemIds.length ? prisma.extraItem.findMany({ where: { id: { in: extraItemIds } } }) : Promise.resolve([]),
   ]);
 
   // Parseo directo (siempre string JSON válido)
@@ -57,6 +64,7 @@ export async function enrichReserve(reserve: ReserveWithRelations): Promise<Rese
   const tentMap = new Map(tentsDB.map(t => [t.id, t]));
   const productMap = new Map(productsDB.map(p => [p.id, p]));
   const experienceMap = new Map(experiencesDB.map(e => [e.id, e]));
+  const extraItemMap = new Map(rawExtraItemsDB.map(item => [item.id, item]));
 
   return {
     ...reserve,
@@ -71,6 +79,10 @@ export async function enrichReserve(reserve: ReserveWithRelations): Promise<Rese
     experiences: reserve.experiences.map(experience => ({
       ...experience,
       experienceDB: experienceMap.get(experience.idExperience),
+    })),
+    extraItems: reserve.extraItems.map(extraItem => ({
+      ...extraItem,
+      extraItemDB: extraItem.extraItemId ? extraItemMap.get(extraItem.extraItemId) : undefined,
     })),
   } as ReserveDto;
 }
@@ -249,49 +261,12 @@ export const getMyReserves = async (pagination: Pagination, userId?: number): Pr
       tents: true,
       products: true,
       experiences: true,
+      extraItems: true,
     },
   });
 
   const enrichedReserves = await Promise.all(
-    reserves.map(async (reserve) => {
-      const tentIds = reserve.tents.map((t) => t.idTent);
-      const productIds = reserve.products.map((p) => p.idProduct);
-      const experienceIds = reserve.experiences.map((e) => e.idExperience);
-
-      const tentsDB = await prisma.tent.findMany({
-        where: {
-          id: { in: tentIds },
-        },
-      });
-
-      const productsDB = await prisma.product.findMany({
-        where: {
-          id: { in: productIds },
-        },
-      });
-
-      const experiencesDB = await prisma.experience.findMany({
-        where: {
-          id: { in: experienceIds },
-        },
-      });
-
-      return {
-        ...reserve,
-        tents: reserve.tents.map((tent) => ({
-          ...tent,
-          tentDB: tentsDB.find((dbTent) => dbTent.id === tent.idTent),
-        })),
-        products: reserve.products.map((product) => ({
-          ...product,
-          productDB: productsDB.find((dbProduct) => dbProduct.id === product.idProduct),
-        })),
-        experiences: reserve.experiences.map((experience) => ({
-          ...experience,
-          experienceDB: experiencesDB.find((dbExperience) => dbExperience.id === experience.idExperience),
-        })),
-      };
-    })
+    reserves.map(reserve => enrichReserve(reserve as ReserveWithRelations))
   );
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -329,6 +304,12 @@ export const getAllReserveOptions = async (): Promise<ReserveOptions> => {
     },
   });
 
+  const extraItems = await prisma.extraItem.findMany({
+    where: {
+      status: 'ACTIVE'
+    },
+  });
+
   const discounts = await prisma.discountCode.findMany({
     where: {
       status: 'ACTIVE'
@@ -339,6 +320,7 @@ export const getAllReserveOptions = async (): Promise<ReserveOptions> => {
     tents,
     products,
     experiences,
+    extraItems,
     discounts
   }
 
@@ -354,6 +336,7 @@ export const getReserveDtoById = async (reserveId: number): Promise<ReserveDto |
       tents: true,
       products: true,
       experiences: true,
+      extraItems: true,
       user: true,
     }
   });
@@ -372,6 +355,9 @@ export const getReserveDtoById = async (reserveId: number): Promise<ReserveDto |
     })),
     experiences: reserve.experiences.map((experience) => ({
       ...experience,
+    })),
+    extraItems: reserve.extraItems.map((extraItem) => ({
+      ...extraItem,
     })),
   });
 
@@ -422,6 +408,7 @@ export const getAllReserves = async (filters: ReserveFilters, pagination: Pagina
       tents: true,
       products: true,
       experiences: true,
+      extraItems: true,
       user: true,
     },
     orderBy: {
@@ -429,26 +416,20 @@ export const getAllReserves = async (filters: ReserveFilters, pagination: Pagina
     },
   });
 
-  // Map over the reserves to ensure the data types match your DTO structure
-  const enrichedReserves = reserves.map((reserve) => ({
+  const enrichedReserves = await Promise.all(
+    reserves.map(reserve => enrichReserve(reserve as ReserveWithRelations))
+  );
+
+  const reservesWithUser = enrichedReserves.map((reserve, index) => ({
     ...reserve,
-    user_name: reserve.user.firstName,
-    user_email: reserve.user.email,
-    tents: reserve.tents.map((tent) => ({
-      ...tent,
-    })),
-    products: reserve.products.map((product) => ({
-      ...product,
-    })),
-    experiences: reserve.experiences.map((experience) => ({
-      ...experience,
-    })),
+    user_name: reserves[index].user.firstName,
+    user_email: reserves[index].user.email,
   }));
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return {
-    reserves: enrichedReserves,  // Return the enriched reserves
+    reserves: reservesWithUser,  // Return the enriched reserves
     totalPages,
     currentPage: page,
   };
@@ -518,6 +499,15 @@ export const createReserve = async (data: ReserveDto): Promise<ReserveDto | null
         confirmed,
       })),
     },
+    extraItems: {
+      create: (data.extraItems ?? []).map(extraItem => ({
+        extraItemId: extraItem.extraItemId ?? null,
+        name: extraItem.name,
+        price: extraItem.price,
+        quantity: extraItem.quantity,
+        confirmed,
+      })),
+    },
   };
 
   // Transacción: crear -> actualizar external_id -> leer con relaciones
@@ -536,6 +526,7 @@ export const createReserve = async (data: ReserveDto): Promise<ReserveDto | null
         tents: true,
         products: true,
         experiences: true,
+        extraItems: true,
       },
     });
 
@@ -655,6 +646,7 @@ export const upsertReserveDetails = async (
   tents: ReserveTentDto[],
   products: ReserveProductDto[],
   experiences: ReserveExperienceDto[],
+  extraItems: ReserveExtraItemDto[],
 ) => {
   // Delete existing tents associated with the reserve
   await prisma.reserveTent.deleteMany({
@@ -668,6 +660,11 @@ export const upsertReserveDetails = async (
 
   // Delete existing experiences associated with the reserve
   await prisma.reserveExperience.deleteMany({
+    where: { reserveId: idReserve },
+  });
+
+  // Delete existing extra items associated with the reserve
+  await prisma.reserveExtraItem.deleteMany({
     where: { reserveId: idReserve },
   });
 
@@ -711,6 +708,17 @@ export const upsertReserveDetails = async (
     })),
   });
 
+  // Create new extra items
+  await prisma.reserveExtraItem.createMany({
+    data: extraItems.map((extraItem) => ({
+      extraItemId: extraItem.extraItemId ?? null,
+      name: extraItem.name,
+      price: extraItem.price,
+      quantity: extraItem.quantity,
+      reserveId: idReserve,
+    })),
+  });
+
   // Optionally, return the updated reserve with related entities
   return await prisma.reserve.findUnique({
     where: { id: idReserve },
@@ -718,6 +726,7 @@ export const upsertReserveDetails = async (
       tents: true,
       products: true,
       experiences: true,
+      extraItems: true,
     },
   });
 };
@@ -749,6 +758,9 @@ export const confirmReserve = async (reserveId: number): Promise<void> => {
         updateMany: { data: { confirmed: true }, where: { reserveId } }
       },
       experiences: {
+        updateMany: { data: { confirmed: true }, where: { reserveId } }
+      },
+      extraItems: {
         updateMany: { data: { confirmed: true }, where: { reserveId } }
       },
     }

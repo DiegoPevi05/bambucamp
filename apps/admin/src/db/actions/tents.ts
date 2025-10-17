@@ -1,13 +1,13 @@
-import {toast} from 'sonner';
+import { toast } from 'sonner';
 import axios from 'axios';
 import { Tent, TentFilters, TentFormData } from '../../lib/interfaces';
 import { serializeTent } from '../serializer';
 import { serializeTentToDB } from '../serializer';
 
-export const getAllTents = async( token: string, page:Number, language:string, filters?:TentFilters ): Promise<{tents:Tent[], totalPages:Number ,currentPage:Number}|null> => {
+export const getAllTents = async (token: string, page: Number, language: string, filters?: TentFilters): Promise<{ tents: Tent[], totalPages: Number, currentPage: Number } | null> => {
 
-  let data:{ tents:Tent[],totalPages:Number,currentPage:Number } | null = null;
-  try{
+  let data: { tents: Tent[], totalPages: Number, currentPage: Number } | null = null;
+  try {
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
     params.append('page', page.toString());
@@ -27,18 +27,18 @@ export const getAllTents = async( token: string, page:Number, language:string, f
     const fetchTents = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
     data = {
       tents: fetchTents.data.tents.map((tent: any) => serializeTent(tent)),
       currentPage: parseInt(fetchTents.data.currentPage as string, 10),
-      totalPages:parseInt(fetchTents.data.totalPages as string, 10)
+      totalPages: parseInt(fetchTents.data.totalPages as string, 10)
     }
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -68,7 +68,7 @@ export const getAllTents = async( token: string, page:Number, language:string, f
 
 
 
-export const createTent = async (tent: TentFormData, token: string, language:string): Promise<boolean> => {
+export const createTent = async (tent: TentFormData, token: string, language: string): Promise<boolean> => {
   try {
 
     // Create a new FormData object
@@ -78,7 +78,7 @@ export const createTent = async (tent: TentFormData, token: string, language:str
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -113,16 +113,16 @@ export const createTent = async (tent: TentFormData, token: string, language:str
 };
 
 
-export const updateTent = async (userId:Number,tent: TentFormData, token: string, language:string): Promise<boolean> => {
+export const updateTent = async (userId: Number, tent: TentFormData, token: string, language: string): Promise<boolean> => {
   try {
     // Create a new FormData object
-    const formData = serializeTentToDB(tent,true);
+    const formData = serializeTentToDB(tent, true);
 
     const response = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/tents/${userId}`, formData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -157,13 +157,13 @@ export const updateTent = async (userId:Number,tent: TentFormData, token: string
 
 
 
-export const deleteTent = async(idTent:Number, token:string, language:string ):Promise<boolean> => {
+export const deleteTent = async (idTent: Number, token: string, language: string): Promise<boolean> => {
 
   try {
     const response = await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/tents/${idTent}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 

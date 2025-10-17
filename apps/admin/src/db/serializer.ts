@@ -1,4 +1,4 @@
-import { User, Tent, Product, TentFormData, ProductFormData, ProductCategory, ExperienceCategory, Experience, ExperienceFormData, DiscountCode, Promotion, PromotionFormData, optionsPromotion, optionsReserve, Reserve, NotificationDto, Faq, Review, ReserveTentDto, ReserveProductDto, ReserveExperienceDto, ReservePromotionDto, PublicProduct, PublicExperience } from "../lib/interfaces"
+import { User, Tent, Product, TentFormData, ProductFormData, ProductCategory, ExperienceCategory, Experience, ExperienceFormData, DiscountCode, Promotion, PromotionFormData, optionsPromotion, optionsReserve, Reserve, NotificationDto, Faq, Review, ReserveTentDto, ReserveProductDto, ReserveExperienceDto, ReserveExtraItemDto, PublicProduct, PublicExperience, ExtraItem } from "../lib/interfaces"
 import { convertStrToCurrentTimezoneDate } from "../lib/utils";
 
 export const serializeUser = (data: any): User | null => {
@@ -28,6 +28,15 @@ export const serializeUser = (data: any): User | null => {
 }
 
 const formatImagePaths = (images: string[]): string[] => {
+
+  if (!Array.isArray(images)) {
+    try {
+      images = typeof images === "string" ? JSON.parse(images) : [];
+    } catch {
+      images = [];
+    }
+  }
+
   return images.map(image => {
     image = image.replace(/\\/g, '/'); // Assign the result of replace to image
     image = image.replace("public", import.meta.env.VITE_BACKEND_PUBLIC_URL); // Same here
@@ -38,9 +47,15 @@ const formatImagePaths = (images: string[]): string[] => {
 export const serializeTent = (data: any): Tent | null => {
   let tent: Tent | null = null;
 
-  const transformedCustomPrice = data.custom_price ? JSON.parse(data.custom_price).map((item: any) => ({
-    ...item, dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom), dateTo: convertStrToCurrentTimezoneDate(item.dateTo)
-  })) : [];
+  const transformedCustomPrice =
+    (typeof data.custom_price === "string"
+      ? JSON.parse(data.custom_price)
+      : data.custom_price
+    )?.map((item: any) => ({
+      ...item,
+      dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom),
+      dateTo: convertStrToCurrentTimezoneDate(item.dateTo),
+    })) || [];
 
   tent = {
     id: data.id,
@@ -51,10 +66,10 @@ export const serializeTent = (data: any): Tent | null => {
     qtypeople: data.qtypeople || 0,
     qtykids: data.qtykids || 0,
     price: data.price || 0,
-    services: data.services ? JSON.parse(data.services) : {},
+    services: typeof data.services === "string" ? JSON.parse(data.services) : data.services,
     custom_price: transformedCustomPrice,
-    aditional_people_price: data.aditional_people_price,
-    max_aditional_people: data.max_aditional_people,
+    additional_people_price: data.additional_people_price,
+    max_additional_people: data.max_additional_people,
     status: data.status,
     createdAt: data.createdAt ? convertStrToCurrentTimezoneDate(data.createdAt) : data.createdAt,
     updatedAt: data.updatedAt ? convertStrToCurrentTimezoneDate(data.updatedAt) : data.updatedAt
@@ -74,8 +89,8 @@ export const serializeTentToDB = (tent: TentFormData, isEditable?: boolean) => {
   formData.append('header', tent.header);
   formData.append('qtypeople', tent.qtypeople.toString());
   formData.append('qtykids', tent.qtykids.toString());
-  formData.append('aditional_people_price', tent.aditional_people_price.toString());
-  formData.append('max_aditional_people', tent.max_aditional_people.toString());
+  formData.append('additional_people_price', tent.additional_people_price.toString());
+  formData.append('max_additional_people', tent.max_additional_people.toString());
   formData.append('price', tent.price.toString());
   formData.append('status', tent.status);
 
@@ -100,9 +115,15 @@ export const serializeTentToDB = (tent: TentFormData, isEditable?: boolean) => {
 export const serializeProduct = (data: any): Product | null => {
   let product: Product | null = null;
 
-  const transformedCustomPrice = data.custom_price ? JSON.parse(data.custom_price).map((item: any) => ({
-    ...item, dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom), dateTo: convertStrToCurrentTimezoneDate(item.dateTo)
-  })) : [];
+  const transformedCustomPrice =
+    (typeof data.custom_price === "string"
+      ? JSON.parse(data.custom_price)
+      : data.custom_price
+    )?.map((item: any) => ({
+      ...item,
+      dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom),
+      dateTo: convertStrToCurrentTimezoneDate(item.dateTo),
+    })) || [];
 
   product = {
     categoryId: data.categoryId,
@@ -202,9 +223,15 @@ export const serializeCategoryExperience = (data: any): ExperienceCategory | nul
 export const serializeExperience = (data: any): Experience | null => {
   let experience: Experience | null = null;
 
-  const transformedCustomPrice = data.custom_price ? JSON.parse(data.custom_price).map((item: any) => ({
-    ...item, dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom), dateTo: convertStrToCurrentTimezoneDate(item.dateTo)
-  })) : [];
+  const transformedCustomPrice =
+    (typeof data.custom_price === "string"
+      ? JSON.parse(data.custom_price)
+      : data.custom_price
+    )?.map((item: any) => ({
+      ...item,
+      dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom),
+      dateTo: convertStrToCurrentTimezoneDate(item.dateTo),
+    })) || [];
 
   experience = {
     categoryId: data.categoryId,
@@ -346,6 +373,22 @@ export const serializePromotion = (data: any): Promotion | null => {
   return promotion;
 }
 
+export const serializeExtraItem = (data: any): ExtraItem | null => {
+  if (!data) {
+    return null;
+  }
+
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description ?? '',
+    price: data.price ?? 0,
+    status: data.status,
+    createdAt: data.createdAt ? convertStrToCurrentTimezoneDate(data.createdAt) : data.createdAt,
+    updatedAt: data.updatedAt ? convertStrToCurrentTimezoneDate(data.updatedAt) : data.updatedAt,
+  };
+}
+
 
 export const serializePromotionToDB = (promotion: PromotionFormData, isEditable?: boolean) => {
 
@@ -388,7 +431,11 @@ export const serializeReserveOptions = (data: any): optionsReserve | null => {
 
   const transformedExperiences = data.experiences ? data.experiences.map((item: any) => (serializeExperience(item))) : [];
 
-  const transformedPromotions = data.promotions ? data.promotions.map((item: any) => (serializePromotion(item))) : [];
+  const transformedExtraItems = data.extraItems
+    ? data.extraItems
+      .map((item: any) => serializeExtraItem(item))
+      .filter((item): item is ExtraItem => item !== null)
+    : [];
 
   const transformedDiscounts = data.discounts ? data.discounts.map((item: any) => (serializeDiscountCode(item))) : [];
 
@@ -396,7 +443,7 @@ export const serializeReserveOptions = (data: any): optionsReserve | null => {
     tents: [], //transformedTents,
     products: transformedProducts,
     experiences: transformedExperiences,
-    promotions: transformedPromotions,
+    extraItems: transformedExtraItems,
     discounts: transformedDiscounts
   }
 
@@ -474,25 +521,19 @@ const serializeReserveExperience = (data: any): ReserveExperienceDto => {
   return reserveExperience;
 }
 
-const serializeReservePromotion = (data: any): ReservePromotionDto | null => {
-
-  let reservePromotion: ReservePromotionDto | null = null;
-
-  //const promotion_db_parsed = serializePro(data.experienceDB as Experience);
-
-  reservePromotion = {
-    id: data.id,
-    idPromotion: data.idPromotion,
-    name: data.name,
-    price: data.price || 0,
-    dateFrom: data.dateFrom ? convertStrToCurrentTimezoneDate(data.dateFrom) : data.dateFrom,
-    dateTo: data.dateTo ? convertStrToCurrentTimezoneDate(data.dateTo) : data.dateTo,
-    nights: data.nights || 0,
-    confirmed: data.confirmed,
-    //promotionDB: experience_db_parsed != null ?  experience_db_parsed : undefined
+const serializeReserveExtraItem = (data: any): ReserveExtraItemDto | null => {
+  if (!data) {
+    return null;
   }
 
-  return reservePromotion;
+  return {
+    id: data.id,
+    extraItemId: data.extraItemId ?? null,
+    name: data.name,
+    price: data.price || 0,
+    quantity: data.quantity || 0,
+    confirmed: data.confirmed,
+  };
 }
 
 export const serializeReserve = (data: any): Reserve | null => {
@@ -512,7 +553,7 @@ export const serializeReserve = (data: any): Reserve | null => {
     tents: data.tents ? data.tents.map((tent: any) => serializeReserveTent(tent)) : [],
     products: data.products ? data.products.map((product: any) => serializeReserveProduct(product)) : [],
     experiences: data.experiences ? data.experiences.map((experience: any) => serializeReserveExperience(experience)) : [],
-    promotions: data.promotions ? data.promotions.map((promotion: any) => serializeReservePromotion(promotion)) : [],
+    extraItems: data.extraItems ? data.extraItems.map((item: any) => serializeReserveExtraItem(item)).filter((item): item is ReserveExtraItemDto => item !== null) : [],
     discount_code_id: data.discount_code_id || 0,
     discount_code_name: data.discount_code_name,
     canceled_reason: data.canceled_reason,

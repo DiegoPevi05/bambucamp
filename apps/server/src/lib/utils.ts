@@ -115,6 +115,7 @@ export interface ReservePriceResult {
   tentsTotal: number;
   productsTotal: number;
   experiencesTotal: number;
+  extraItemsTotal: number;
 }
 
 export const calculatePrice = (basePrice: number, customPrices: string | null): number => {
@@ -386,6 +387,7 @@ export const calculateReservePrice = (
   tents: { tent: Tent; nights: number; additional_people: number; kids?: number }[],
   products: { product: Product; quantity: number }[],
   experiences: { experience: Experience; quantity: number }[],
+  extraItems: { price: number; quantity: number }[],
 ): ReservePriceResult => {
 
   const calculateTentsPrice = tents.reduce((acc, { tent, nights, additional_people, kids }) => {
@@ -404,11 +406,16 @@ export const calculateReservePrice = (
     return acc + (pricePerExperience * quantity);
   }, 0);
 
+  const calculateExtraItemsPrice = extraItems.reduce((acc, { price, quantity }) => (
+    acc + (price * quantity)
+  ), 0);
+
   return {
-    total: calculateTentsPrice + calculateProductsPrice + calculateExperiencesPrice,
+    total: calculateTentsPrice + calculateProductsPrice + calculateExperiencesPrice + calculateExtraItemsPrice,
     tentsTotal: calculateTentsPrice,
     productsTotal: calculateProductsPrice,
     experiencesTotal: calculateExperiencesPrice,
+    extraItemsTotal: calculateExtraItemsPrice,
   };
 };
 
