@@ -51,7 +51,7 @@ jobs:
 
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      HOST: ${{ secrets.ADMIN_SERVER_IP }}
+      HOST: ${{ secrets.VPS_SERVER_IP }}
       REMOTE_DIR: /var/www/bambucamp-admin
 
     steps:
