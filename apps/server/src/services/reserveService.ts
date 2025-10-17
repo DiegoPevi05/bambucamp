@@ -1,8 +1,9 @@
 import * as reserveRepository from '../repositories/ReserveRepository';
-import { PaginatedReserve, ReserveDto, ReserveEntityType, ReserveExperienceDto, ReserveFilters, ReserveFormDto, ReserveOptions, ReserveProductDto, ReserveTentDto, createReserveExperienceDto, createReserveProductDto } from "../dto/reserve";
+import { PaginatedReserve, ReserveDto, ReserveEntityType, ReserveExperienceDto, ReserveExtraItemDto, ReserveFilters, ReserveFormDto, ReserveOptions, ReserveProductDto, ReserveTentDto, createReserveExperienceDto, createReserveExtraItemDto, createReserveProductDto } from "../dto/reserve";
 import *  as userRepository from '../repositories/userRepository';
 import * as productService from './productService';
 import * as experienceService from './experienceService';
+import * as extraItemService from './extraItemService';
 import * as authService from './authService';
 import * as utils from '../lib/utils';
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../middleware/errors";
@@ -148,6 +149,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
     tents: [],
     experiences: [],
     products: [],
+    extraItems: [],
     price_is_calculated: data.price_is_calculated ?? true,
     discount_code_id: Number(data.discount_code_id ?? 0),
     discount_code_name: data.discount_code_name ?? "",
@@ -165,6 +167,28 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
     utils.getProducts(data.products),
     utils.getExperiences(data.experiences),
   ]);
+
+  const extraItemsInput = data.extraItems ?? [];
+  const extraItemIds = extraItemsInput
+    .map(item => item.extraItemId)
+    .filter((id): id is number => typeof id === 'number');
+
+  const extraItemsDb = extraItemIds.length
+    ? await extraItemService.getExtraItemsByIds(extraItemIds)
+    : [];
+
+  const extraItemMap = new Map(extraItemsDb.map(item => [item.id, item]));
+
+  const extraItemsInput = data.extraItems ?? [];
+  const extraItemIds = extraItemsInput
+    .map(item => item.extraItemId)
+    .filter((id): id is number => typeof id === 'number');
+
+  const extraItemsDb = extraItemIds.length
+    ? await extraItemService.getExtraItemsByIds(extraItemIds)
+    : [];
+
+  const extraItemMap = new Map(extraItemsDb.map(item => [item.id, item]));
 
   const tentsAvailable = await utils.checkAvailability(data.tents);
   if (!tentsAvailable) throw new BadRequestError("error.noTentsAvailable");
@@ -242,10 +266,36 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
     };
   });
 
+  const reserveExtraItems: ReserveExtraItemDto[] = extraItemsInput.map(extraItem => {
+    const extraItemDB = extraItem.extraItemId ? extraItemMap.get(extraItem.extraItemId) : undefined;
+
+    if (extraItem.extraItemId && !extraItemDB) {
+      throw new NotFoundError('error.noExtraItemFoundInDB');
+    }
+
+    const price = extraItemDB ? extraItemDB.price : extraItem.price;
+    const name = extraItemDB ? extraItemDB.name : extraItem.name;
+
+    const payload: ReserveExtraItemDto = {
+      id: extraItem.id,
+      extraItemId: extraItem.extraItemId ?? null,
+      name,
+      price,
+      quantity: extraItem.quantity,
+      confirmed: false,
+    };
+
+    reserveDto.extraItems = reserveDto.extraItems ?? [];
+    reserveDto.extraItems.push(payload);
+
+    return payload;
+  });
+
   const computedPrice = utils.calculateReservePrice(
     tentsWithQuantities,
     productsWithQuantities,
-    experiencesWithQuantities
+    experiencesWithQuantities,
+    reserveExtraItems.map(item => ({ price: item.price, quantity: item.quantity }))
   );
 
   if (reserveDto.price_is_calculated) {
@@ -359,6 +409,23 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     };
   });
 
+  const reserve_extraItems: ReserveExtraItemDto[] = extraItemsInput.map(extraItem => {
+    const extraItemDB = extraItem.extraItemId ? extraItemMap.get(extraItem.extraItemId) : undefined;
+
+    if (extraItem.extraItemId && !extraItemDB) {
+      throw new NotFoundError('error.noExtraItemFoundInDB');
+    }
+
+    return {
+      id: extraItem.id,
+      extraItemId: extraItem.extraItemId ?? null,
+      name: extraItemDB ? extraItemDB.name : extraItem.name,
+      price: extraItemDB ? extraItemDB.price : extraItem.price,
+      quantity: extraItem.quantity,
+      confirmed: false,
+    };
+  });
+
   const tentsWithQuantities = data.tents.map(t => {
     const tentDB = tentsDbMap.get(t.idTent)!;
     return {
@@ -382,7 +449,8 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
   const priceComputation = utils.calculateReservePrice(
     tentsWithQuantities,
     productsWithQuantities,
-    experiencesWithQuantities
+    experiencesWithQuantities,
+    reserve_extraItems.map(item => ({ price: item.price, quantity: item.quantity }))
   );
 
   if (data.price_is_calculated) {
@@ -412,7 +480,8 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     existingReserve.id,
     reserve_tents,
     reserve_products,
-    reserve_experiences
+    reserve_experiences,
+    reserve_extraItems
   );
 
   return await reserveRepository.updateReserve(id, existingReserve);

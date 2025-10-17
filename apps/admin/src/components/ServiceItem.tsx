@@ -38,10 +38,12 @@ interface ServiceItemProps {
 const ServiceItem = ({icon,size,color}:ServiceItemProps) => {
   const { t } = useTranslation();
 
-  const iconName = serviceIconMap[icon];
-  const label = t(serviceLabelMap[icon]);
+  const fallbackIcon: keyof typeof LucideIcons = 'HelpCircle';
+  const iconName = serviceIconMap[icon] ?? fallbackIcon;
+  const labelKey = serviceLabelMap[icon];
+  const label = labelKey ? t(labelKey) : icon;
   // @ts-ignore: Ignore TypeScript checking for IconComponent
-  const IconComponent = LucideIcons[iconName];
+  const IconComponent = (LucideIcons as Record<string, any>)[iconName] ?? LucideIcons[fallbackIcon];
 
   return(
     <li className= {`${size == "sm" ? 'text-[12px] gap-x-1' : 'text-[10px] sm:text-[14px] 2xl:text-lg gap-x-2' } ${color ?? "text-white"} font-secondary flex flex-row ` }>

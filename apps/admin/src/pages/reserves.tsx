@@ -1,16 +1,16 @@
 import Dashboard from "../components/ui/Dashboard";
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useMemo, useRef } from "react";
 import { Eye, Pen, X, ChevronLeft, ChevronRight, Calendar, CircleX,   FlameKindling, Tent, Pizza, Search, Plus, Disc, Receipt, User as UserIcon, UserPlus  } from "lucide-react";
 import Button from "../components/ui/Button";
 import {  formatDate, getCurrentCustomPrice,  calculatePrice, formatPrice, getReserveDates, formatDateToYYYYMMDD, getNumberOfNights } from "../lib/utils";
 import { getAllReserveOptions, getAllReserves, createReserve, updateReserve, deleteReserve, downloadBillForReserve, SearchAvailableTents } from "../db/actions/reserves";
 import { getAllUsers } from "../db/actions/users";
 import { useAuth } from "../contexts/AuthContext";
-import { UserFilters, Reserve, ReserveFilters, ReserveFormData, optionsReserve, ReserveTentDto, ReserveProductDto, ReserveExperienceDto, User, ReservePromotionDto } from "../lib/interfaces";
+import { UserFilters, Reserve, ReserveFilters, ReserveFormData, optionsReserve, ReserveTentDto, ReserveProductDto, ReserveExperienceDto, User, ReserveExtraItemDto } from "../lib/interfaces";
 import { AnimatePresence, motion } from "framer-motion";
 import {fadeIn} from "../lib/motions";
 import {  ZodError } from 'zod';
-import { ReserveExperienceItemFormDataSchema, ReserveFormDataSchema, ReserveProductItemFormDataSchema, ReservePromotionItemFormDataSchema, ReserveTentItemFormDataSchema } from "../db/schemas";
+import { ReserveExperienceItemFormDataSchema, ReserveFormDataSchema, ReserveProductItemFormDataSchema, ReserveExtraItemFormDataSchema, ReserveTentItemFormDataSchema } from "../db/schemas";
 import Modal from "../components/Modal";
 import {InputRadio} from "../components/ui/Input";
 import {useTranslation} from "react-i18next";
@@ -23,13 +23,13 @@ const DashboardAdminReserves = () => {
     const {t,i18n} = useTranslation();
     const { user } = useAuth();
     const [datasetReserves,setDataSetReserves] = useState<{reserves:Reserve[],totalPages:Number,currentPage:Number}>({reserves:[],totalPages:1,currentPage:1});
-    const [datasetReservesOptions, setDatasetReservesOptions] = useState<optionsReserve>({ tents:[], products:[], experiences:[], promotions:[], discounts:[] });
+    const [datasetReservesOptions, setDatasetReservesOptions] = useState<optionsReserve>({ tents:[], products:[], experiences:[], extraItems:[], discounts:[] });
     const [tents,setTents] = useState<ReserveTentDto[]>([]);
     const [products,setProducts] = useState<ReserveProductDto[]>([]);
     const [experiences,setExperiences] = useState<ReserveExperienceDto[]>([]);
-    const [promotions,setPromotions] = useState<ReservePromotionDto[]>([]);
+    const [extraItems,setExtraItems] = useState<ReserveExtraItemDto[]>([]);
 
-    const [openReserveOption,setOpenReserveOption] = useState<"tent"|"product"|"experience"|"promotion"|null>(null);
+    const [openReserveOption,setOpenReserveOption] = useState<"tent"|"product"|"experience"|"extraItem"|null>(null);
 
     const [currentView,setCurrentView] = useState<string>("LOADING");
 
@@ -61,7 +61,7 @@ const DashboardAdminReserves = () => {
     const [loadingForm, setLoadingForm] = useState<boolean>(false);
     const [tentItemTotalPrice, setTentItemTotalPrice] = useState<number>(0);
 
-    const [searchGlampingDates, setSearchGlampingDates] = useState<{
+  const [searchGlampingDates, setSearchGlampingDates] = useState<{
       date_from: Date;
       date_to: Date;
     }>({
@@ -95,27 +95,60 @@ const DashboardAdminReserves = () => {
 
   const [loadingGlampings,setLoadingGlampings] = useState(false);
 
+  const tentSearchCache = useRef<Map<string, optionsReserve["tents"]>>(new Map());
+
+  const tentSearchKey = useMemo(() => {
+    const fromKey = formatDateToYYYYMMDD(searchGlampingDates.date_from);
+    const toKey = formatDateToYYYYMMDD(searchGlampingDates.date_to);
+    return `${fromKey}_${toKey}_${i18n.language}`;
+  }, [searchGlampingDates.date_from, searchGlampingDates.date_to, i18n.language]);
+
+  useEffect(() => {
+    tentSearchCache.current.clear();
+  }, [user?.id]);
+
   useEffect(()=>{
 
-    const searchAvailableTentsHandler = async() => {
-      if(searchGlampingDates.date_from > searchGlampingDates.date_to){
-        toast.error(t("reserve.validations.start_date_before_end_date"))
-        return;
-      }
-      setLoadingGlampings(true);
-      if(user != null){
-        const tentsDB = await SearchAvailableTents(user.token,{dateFrom:searchGlampingDates.date_from, dateTo:searchGlampingDates.date_to }, i18n.language);
-        if(tentsDB != null){
-          setDatasetReservesOptions((prevOptions =>  ({...prevOptions, tents:tentsDB })));
+    let isCancelled = false;
 
+    if(searchGlampingDates.date_from > searchGlampingDates.date_to){
+      toast.error(t("reserve.validations.start_date_before_end_date"))
+      setLoadingGlampings(false);
+      return;
+    }
+
+    const cachedTents = tentSearchCache.current.get(tentSearchKey);
+    if(cachedTents){
+      setDatasetReservesOptions((prevOptions =>  ({...prevOptions, tents:cachedTents })));
+      setLoadingGlampings(false);
+      return;
+    }
+
+    const searchAvailableTentsHandler = async() => {
+      if(user != null){
+        setLoadingGlampings(true);
+        try {
+          const tentsDB = await SearchAvailableTents(user.token,{dateFrom:searchGlampingDates.date_from, dateTo:searchGlampingDates.date_to }, i18n.language);
+          if(!isCancelled && tentsDB != null){
+            tentSearchCache.current.set(tentSearchKey, tentsDB);
+            setDatasetReservesOptions((prevOptions =>  ({...prevOptions, tents:tentsDB })));
+
+          }
+        } finally {
+          if(!isCancelled){
+            setLoadingGlampings(false);
+          }
         }
       }
-      setLoadingGlampings(false);
     }
 
     searchAvailableTentsHandler();
 
-  },[searchGlampingDates, i18n.language])
+    return () => {
+      isCancelled = true;
+    }
+
+  },[tentSearchKey, user, searchGlampingDates.date_from, searchGlampingDates.date_to, i18n.language])
 
     const getTentItemFormData = ():{idTent:number, aditionalPeople:number, aditionalPeoplePrice:number, dateFrom:Date, dateTo:Date, no_custom_price:boolean}|null => {
       const container = document.getElementById("modal_reserve_items") as HTMLFormElement;
@@ -288,37 +321,50 @@ const DashboardAdminReserves = () => {
 
     }
 
-    const [promotionItemTotalPrice, setPromotionItemTotalPrice] = useState<number>(0);
+    const [extraItemTotalPrice, setExtraItemTotalPrice] = useState<number>(0);
 
-    const getPromotionItemFormData = ():{idPromotion:number, dateFrom:Date, dateTo:Date}|null => {
+    const getExtraItemFormData = ():{extraItemId:number|null, name:string, price:number, quantity:number}|null => {
       const container = document.getElementById("modal_reserve_items") as HTMLFormElement;
 
-      const idPromotionInput  = container.querySelector(`select[name="reserve_promotion_option_id"]`) as HTMLSelectElement;
-      const dateFromInput = container.querySelector(`input[name="reserve_promotion_option_date_from"]`) as HTMLInputElement;
-      const dateToInput = container.querySelector(`input[name="reserve_promotion_option_date_to"]`) as HTMLInputElement;
+      const idInput  = container.querySelector(`select[name="reserve_extra_item_option_id"]`) as HTMLSelectElement;
+      const nameInput = container.querySelector(`input[name="reserve_extra_item_option_name"]`) as HTMLInputElement;
+      const priceInput = container.querySelector(`input[name="reserve_extra_item_option_price"]`) as HTMLInputElement;
+      const quantityInput = container.querySelector(`input[name="reserve_extra_item_option_quantity"]`) as HTMLInputElement;
 
-      if(idPromotionInput == undefined || dateFromInput == undefined || dateToInput == undefined ){
+      if(!idInput || !nameInput || !priceInput || !quantityInput){
         return null;
       }
 
-      const idPromotion = Number(idPromotionInput.value);
-      const dateFrom = new Date(dateFromInput.value);
-      const dateTo = new Date(dateToInput.value);
+      const extraItemId = idInput.value ? Number(idInput.value) : null;
+      let name = nameInput.value;
+      let price = Number(priceInput.value);
+      const quantity = Number(quantityInput.value);
+
+      const selectedExtraItem = extraItemId ? datasetReservesOptions.extraItems.find((item)=> item.id === extraItemId) : undefined;
+
+      if(selectedExtraItem){
+        name = selectedExtraItem.name;
+        price = selectedExtraItem.price ?? price;
+        nameInput.value = selectedExtraItem.name;
+        priceInput.value = selectedExtraItem.price?.toString() ?? priceInput.value;
+      }
 
       setErrorMessages({});
 
       try {
 
-        ReservePromotionItemFormDataSchema.parse({ 
-          reserve_promotion_option_id:idPromotion,
-          reserve_promotion_option_date_from:dateFrom,
-          reserve_promotion_option_date_to:dateTo,
+        ReserveExtraItemFormDataSchema.parse({
+          reserve_extra_item_option_id: extraItemId,
+          reserve_extra_item_option_name: name,
+          reserve_extra_item_option_price: price,
+          reserve_extra_item_option_quantity: quantity,
         });
 
         return {
-          idPromotion,
-          dateFrom,
-          dateTo
+          extraItemId,
+          name,
+          price,
+          quantity
         }
 
       } catch (error) {
@@ -369,21 +415,17 @@ const DashboardAdminReserves = () => {
       }
     } 
 
-    const calculatePromotionItemPrice = () => {
+    const calculateExtraItemPrice = () => {
 
-      const currentItem = getPromotionItemFormData();
+      const currentItem = getExtraItemFormData();
 
       if (currentItem == null) {
-        setExperienceItemTotalPrice(0);
+        setExtraItemTotalPrice(0);
         return;
       }
 
-      const data = datasetReservesOptions.promotions.find((i)=> i.id == currentItem.idPromotion);
-
-      if(data){
-        setPromotionItemTotalPrice(data.grossImport);
-      }
-    } 
+      setExtraItemTotalPrice(currentItem.price * currentItem.quantity);
+    }
 
 
     const handleAddReserveOption = (type:string) => {
@@ -456,30 +498,26 @@ const DashboardAdminReserves = () => {
           setExperiences([...experiences, newExperienceOption]);
         }
 
-      }else if (type == "promotion"){
+      }else if (type == "extraItem"){
 
-        const currentItem = getPromotionItemFormData();
+        const currentItem = getExtraItemFormData();
 
         if (currentItem == null) {
           return;
         }
 
-        data = datasetReservesOptions.promotions.find((i)=> i.id == currentItem.idPromotion);
+        const extraItemData = currentItem.extraItemId ? datasetReservesOptions.extraItems.find((i)=> i.id == currentItem.extraItemId) : undefined;
 
-        if(data){
-          const newPromotionOption: ReservePromotionDto = { 
-            idPromotion:currentItem.idPromotion , 
-            name: data.title , 
-            price:data.grossImport,
-            nights: getNumberOfNights(currentItem.dateFrom, currentItem.dateTo) , 
-            dateFrom:currentItem.dateFrom,
-            dateTo:currentItem.dateTo,
-            confirmed:true
-          };
-          setPromotions([...promotions, newPromotionOption]);
-        }
+        const newExtraItemOption: ReserveExtraItemDto = {
+          extraItemId: currentItem.extraItemId ?? null,
+          name: extraItemData ? extraItemData.name : currentItem.name,
+          price: extraItemData ? extraItemData.price ?? currentItem.price : currentItem.price,
+          quantity: currentItem.quantity,
+          confirmed: true
+        };
+        setExtraItems([...extraItems, newExtraItemOption]);
 
-      } 
+      }
       setOpenReserveOption(null);
 
     };
@@ -492,8 +530,8 @@ const DashboardAdminReserves = () => {
         setProducts(products.filter((_, i) => i !== index));
       } else if (type === "experience") {
         setExperiences(experiences.filter((_, i) => i !== index));
-      } else if (type === "promotion") {
-        setPromotions(promotions.filter((_, i) => i !== index));
+      } else if (type === "extraItem") {
+        setExtraItems(extraItems.filter((_, i) => i !== index));
       }
     };
 
@@ -524,8 +562,8 @@ const DashboardAdminReserves = () => {
         let net_import = 0;
 
         // Sum prices for tents
-        if (promotions && promotions.length > 0) {
-          gross_import += promotions.reduce((sum, item) => sum + (1 * item.price), 0);
+        if (extraItems && extraItems.length > 0) {
+          gross_import += extraItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
         }
 
         // Sum prices for tents
@@ -556,7 +594,7 @@ const DashboardAdminReserves = () => {
         }
 
 
-    },[promotions,tents,experiences,products,discountCode])
+    },[extraItems,tents,experiences,products,discountCode])
 
 
     const validateFields = (formname:string): ReserveFormData |null => {
@@ -601,7 +639,7 @@ const DashboardAdminReserves = () => {
             tents, 
             products,
             experiences ,
-            promotions , 
+            extraItems , 
             discount_code_id:totals.discount_code_id,
             discount_code_name:totals.discount_code_name,
             gross_import:totals.gross_import,
@@ -623,7 +661,7 @@ const DashboardAdminReserves = () => {
             tents,
             products,
             experiences,
-            promotions,
+            extraItems,
             price_is_calculated:true,
             discount_code_id:totals.discount_code_id,
             discount_code_name:totals.discount_code_name,
@@ -895,7 +933,7 @@ const DashboardAdminReserves = () => {
                           </div>
                         </div>
                     <div className="w-full xl:w-auto h-auto flex flex-row justify-end items-start gap-y-4 gap-x-4 max-xl:mt-4">
-                          <Button onClick={()=>{setCurrentView("A"); setTents([]); setProducts([]); setExperiences([]);setErrorMessages({})}} size="sm" variant="dark" effect="default" className="min-w-[300px]" isRound={true}>Agregar Reserva <Calendar/></Button>
+                          <Button onClick={()=>{setCurrentView("A"); setTents([]); setProducts([]); setExperiences([]); setExtraItems([]); setErrorMessages({})}} size="sm" variant="dark" effect="default" className="min-w-[300px]" isRound={true}>Agregar Reserva <Calendar/></Button>
                         </div>
                     </div>
                     <table className="h-full w-full shadow-xl rounded-xl text-center p-4">
@@ -938,8 +976,8 @@ const DashboardAdminReserves = () => {
                                         <td className="h-full max-xl:hidden">{reserveItem.createdAt != undefined && reserveItem.createdAt != null ? formatDate(reserveItem.createdAt) : t("reserve.none")}</td>
                                         <td className="h-full flex flex-col items-center justify-center">
                                           <div className="w-full h-auto flex flex-row flex-wrap gap-x-2">
-                                            <button onClick={()=>{setSelectedReserve(reserveItem);  setTents(reserveItem.tents); setProducts(reserveItem.products); setExperiences(reserveItem.experiences);setUserType('old'); setCurrentView("V")}} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Eye className="h-5 w-5"/></button>
-                                            <button  onClick={()=>{setSelectedReserve(reserveItem); setTents(reserveItem.tents); setProducts(reserveItem.products); setExperiences(reserveItem.experiences);setUserType('old'); setCurrentView("E"); setErrorMessages({}) }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Pen className="h-5 w-5"/></button>
+                                            <button onClick={()=>{setSelectedReserve(reserveItem);  setTents(reserveItem.tents); setProducts(reserveItem.products); setExperiences(reserveItem.experiences); setExtraItems(reserveItem.extraItems ?? []); setUserType('old'); setCurrentView("V")}} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Eye className="h-5 w-5"/></button>
+                                            <button  onClick={()=>{setSelectedReserve(reserveItem); setTents(reserveItem.tents); setProducts(reserveItem.products); setExperiences(reserveItem.experiences); setExtraItems(reserveItem.extraItems ?? []); setUserType('old'); setCurrentView("E"); setErrorMessages({}) }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Pen className="h-5 w-5"/></button>
                                             <button onClick={()=>{setOpenDeleteModal(true),setSelectedReserve(reserveItem)}} className="border rounded-md hover:bg-red-400 hover:text-white duration-300 active:scale-75 p-1"><X className="h-5 w-5"/></button>
                                           </div>
                                         </td>
@@ -1003,13 +1041,13 @@ const DashboardAdminReserves = () => {
                           checked={openReserveOption === "experience"}
                           readOnly
                         />
-                        <InputRadio  
-                          className="w-auto" 
-                          onClick={()=>{setOpenReserveOption("promotion")}} 
-                          name="category" 
-                          placeholder={t("reserve.promotions")} 
+                        <InputRadio
+                          className="w-auto"
+                          onClick={()=>{setOpenReserveOption("extraItem")}}
+                          name="category"
+                          placeholder={t("reserve.extraItems")}
                           rightIcon={<Disc/>}
-                          checked={openReserveOption === "promotion"}
+                          checked={openReserveOption === "extraItem"}
                           readOnly
                         />
                       </div>
@@ -1030,7 +1068,7 @@ const DashboardAdminReserves = () => {
                             <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
                               <label className="text-secondary">{t("reserve.to")}:</label>
                               <div className="w-full  sm:p-2 border-b-2  border-b-secondary">
-                                <DatePicker openBar={openCalendar['date_to']} type="date_to" section="add_tent" toggleBar={toggleBar} date={searchGlampingDates.date_from} setDate={updateDateToHandler} />
+                                <DatePicker openBar={openCalendar['date_to']} type="date_to" section="add_tent" toggleBar={toggleBar} date={searchGlampingDates.date_to} setDate={updateDateToHandler} />
                               </div>
                             </div>
                         </div>
@@ -1227,72 +1265,49 @@ const DashboardAdminReserves = () => {
 
                   )}
 
-                  {openReserveOption == "promotion" && (
-                    
+                  {openReserveOption == "extraItem" && (
+
                     <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden mt-6 gap-y-2 sm:gap-y-2">
 
                       <div className="flex flex-col justify-start items-start gap-x-6 w-[100%] h-auto gap-y-2 sm:gap-y-1">
-                        <label htmlFor="reserve_promotion_option_id" className="font-primary text-secondary text-xs sm:text-lg h-3 sm:h-6">{t("reserve.promotion")}</label>
-                          <select onChange={()=>calculatePromotionItemPrice()} name="reserve_promotion_option_id" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
-                              { datasetReservesOptions.promotions.map((promotion,index) => {
-                                return(
-                                  <option key={index} value={promotion.id}>{`${t("reserve.promotion_name")}: ${promotion.title} | ${t("reserve.price")}: ${formatPrice(promotion.grossImport)} | ${t("reserve.price_of_day")}: ${promotion.discount}%`}</option>
-                                  )
-                              })}
+                        <label htmlFor="reserve_extra_item_option_id" className="font-primary text-secondary text-xs sm:text-lg h-3 sm:h-6">{t("reserve.extra_item_select")}</label>
+                          <select onChange={()=>calculateExtraItemPrice()} name="reserve_extra_item_option_id" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
+                              <option value="">{t("reserve.extra_item_custom")}</option>
+                              { datasetReservesOptions.extraItems.map((extraItem,index) => (
+                                <option key={index} value={extraItem.id}>{`${extraItem.name} | ${t("reserve.price")}: ${formatPrice(extraItem.price ?? 0)}`}</option>
+                              ))}
                           </select>
                           <div className="w-full h-6">
-                            {errorMessages.reserve_promotion_option_id && (
-                              <motion.p 
+                            {errorMessages.reserve_extra_item_option_id && (
+                              <motion.p
                                 initial="hidden"
                                 animate="show"
                                 exit="hidden"
                                 variants={fadeIn("up","", 0, 1)}
                                 className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                {t(errorMessages.reserve_promotion_option_id)}
+                                {t(errorMessages.reserve_extra_item_option_id)}
                               </motion.p>
                             )}
                           </div>
                       </div>
-                      <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                          <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                            <label htmlFor="reserve_promotion_option_date_from" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.from")}</label>
-                            <input onChange={()=>calculatePromotionItemPrice()} name="reserve_promotion_option_date_from" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.from")}/>
-
-                            <div className="w-full h-6">
-                              {errorMessages.reserve_promotion_option_date_from && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.reserve_promotion_option_date_from)}
-                                </motion.p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                            <label htmlFor="reserve_promotion_option_date_to" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.from")}</label>
-                            <input onChange={()=>calculatePromotionItemPrice()} name="reserve_promotion_option_date_to" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.to")}/>
-                            <div className="w-full h-6">
-                              {errorMessages.reserve_promotion_option_date_to && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.reserve_promotion_option_date_to)}
-                                </motion.p>
-                              )}
-                            </div>
-                          </div>
+                      <div className="flex flex-col lg:flex-row justify-start items-start w-full h-auto overflow-hidden my-1 gap-x-6 gap-y-2">
+                        <div className="flex flex-col justify-start items-start w-full h-auto gap-y-2 sm:gap-y-1">
+                          <label htmlFor="reserve_extra_item_option_name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.extra_item_name")}</label>
+                          <input name="reserve_extra_item_option_name" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.extra_item_name")} />
+                        </div>
+                        <div className="flex flex-col justify-start items-start w-full h-auto gap-y-2 sm:gap-y-1">
+                          <label htmlFor="reserve_extra_item_option_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.extra_item_price")}</label>
+                          <input onChange={()=>calculateExtraItemPrice()} name="reserve_extra_item_option_price" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.extra_item_price")}/>
+                        </div>
+                        <div className="flex flex-col justify-start items-start w-full h-auto gap-y-2 sm:gap-y-1">
+                          <label htmlFor="reserve_extra_item_option_quantity" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.extra_item_quantity")}</label>
+                          <input onChange={()=>calculateExtraItemPrice()} name="reserve_extra_item_option_quantity" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.extra_item_quantity")}/>
+                        </div>
                       </div>
                       <div className="w-full h-auto flex flex-row justify-end">
-                        <span className="text-2xl">{formatPrice(promotionItemTotalPrice)}</span>
+                        <span className="text-2xl">{formatPrice(extraItemTotalPrice)}</span>
                       </div>
-                      <Button onClick={()=>handleAddReserveOption("promotion")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-auto ml-auto mt-auto">{t("reserve.add_promotion_reserve")}</Button>
+                      <Button onClick={()=>handleAddReserveOption("extraItem")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-auto ml-auto mt-auto">{t("reserve.add_extra_item_reserve")}</Button>
                     </div>
 
                   )}
@@ -1349,20 +1364,20 @@ const DashboardAdminReserves = () => {
                           </thead>
                           <tbody className="font-secondary text-xs xl:text-sm">
 
-                              {selectedReserve.promotions?.map((item, index) => (
-                                <tr key={"reserve_key_promotion_"+index} className="text-slate-400 "> 
+                              {selectedReserve.extraItems?.map((item, index) => (
+                                <tr key={"reserve_key_extra_item_"+index} className="text-slate-400 ">
                                     <td className="border border-slate-300 text-center">{index + 1}</td>
-                                    <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)}`}</td>
+                                    <td className="border border-slate-300 text-left">{item.name}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
-                                    <td className="border border-slate-300 text-center">{"1"}</td>
-                                    <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
+                                    <td className="border border-slate-300 text-center">{item.quantity}</td>
+                                    <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                                 </tr>
                               ))}
 
                               {selectedReserve.tents.map((item, index) => (
-                                <tr key={"reserve_key_tent_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + index + 1}</td> 
+                                <tr key={"reserve_key_tent_"+index} className="text-slate-400 ">
+                                    <td className="border border-slate-300 text-center">{(selectedReserve.extraItems?.length ?? 0) + index + 1}</td>
                                   <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)} ${item.aditionalPeople > 0 ? `| ADP:${item.aditionalPeople} ADPP: ${formatPrice(item.aditionalPeoplePrice ?? 0)}` : "" }`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price + (item.aditionalPeople * (item.aditionalPeoplePrice ?? 0)))}</td>
@@ -1372,8 +1387,8 @@ const DashboardAdminReserves = () => {
                               ))}
 
                               {selectedReserve.experiences.map((item, index) => (
-                                <tr key={"reserve_key_experience_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + tents.length + index + 1}</td>
+                                <tr key={"reserve_key_experience_"+index} className="text-slate-400 ">
+                                    <td className="border border-slate-300 text-center">{(selectedReserve.extraItems?.length ?? 0) + (selectedReserve.tents?.length ?? 0) + index + 1}</td>
                                     <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.day_of_experience")} ${formatDateToYYYYMMDD(item.day)}`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
@@ -1383,8 +1398,8 @@ const DashboardAdminReserves = () => {
                               ))}
 
                               {selectedReserve.products.map((item, index) => (
-                                <tr key={"reserve_key_product_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + tents.length + experiences.length + index + 1}</td>
+                                <tr key={"reserve_key_product_"+index} className="text-slate-400 ">
+                                    <td className="border border-slate-300 text-center">{(selectedReserve.extraItems?.length ?? 0) + (selectedReserve.tents?.length ?? 0) + (selectedReserve.experiences?.length ?? 0) + index + 1}</td>
                                   <td className="border border-slate-300 text-left">{`${item.name}`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
@@ -1669,21 +1684,21 @@ const DashboardAdminReserves = () => {
                           </thead>
                           <tbody className="font-secondary text-xs xl:text-sm">
 
-                              {promotions.map((item, index) => (
-                                <tr key={"reserve_key_promotion_"+index} className="text-slate-400 "> 
+                              {extraItems.map((item, index) => (
+                                <tr key={"reserve_key_extra_item_"+index} className="text-slate-400 ">
                                     <td className="border border-slate-300 text-center">{index + 1}</td>
-                                    <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)}`}</td>
+                                    <td className="border border-slate-300 text-left">{item.name}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
-                                    <td className="border border-slate-300 text-center">{"1"}</td>
-                                    <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
-                                    <td className="border border-slate-300 text-center">{<button onClick={()=>handleRemoveReserveOption(index,"promotion")} className="h-auto w-auto hover:text-tertiary"><CircleX/></button>}</td>
+                                    <td className="border border-slate-300 text-center">{item.quantity}</td>
+                                    <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
+                                    <td className="border border-slate-300 text-center">{<button onClick={()=>handleRemoveReserveOption(index,"extraItem")} className="h-auto w-auto hover:text-tertiary"><CircleX/></button>}</td>
                                 </tr>
                               ))}
 
                               {tents.map((item, index) => (
                                 <tr key={"reserve_key_tent_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + index + 1}</td> 
+                                    <td className="border border-slate-300 text-center">{extraItems.length + index + 1}</td> 
                                   <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)} ${item.aditionalPeople > 0 ? `| ADP:${item.aditionalPeople} ADPP: ${formatPrice(item.aditionalPeoplePrice ?? 0)}` : "" }`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price + (item.aditionalPeople * (item.aditionalPeoplePrice ?? 0)))}</td>
@@ -1695,7 +1710,7 @@ const DashboardAdminReserves = () => {
 
                               {experiences.map((item, index) => (
                                 <tr key={"reserve_key_experience_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + tents.length + index + 1}</td>
+                                    <td className="border border-slate-300 text-center">{extraItems.length + tents.length + index + 1}</td>
                                     <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.day_of_experience")} ${formatDateToYYYYMMDD(item.day)}`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
@@ -1707,7 +1722,7 @@ const DashboardAdminReserves = () => {
 
                               {products.map((item, index) => (
                                 <tr key={"reserve_key_product_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + tents.length + experiences.length + index + 1}</td>
+                                    <td className="border border-slate-300 text-center">{extraItems.length + tents.length + experiences.length + index + 1}</td>
                                   <td className="border border-slate-300 text-left">{`${item.name}`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
@@ -2068,21 +2083,21 @@ const DashboardAdminReserves = () => {
                           </thead>
                           <tbody className="font-secondary text-xs xl:text-sm">
 
-                              {promotions.map((item, index) => (
-                                <tr key={"reserve_key_promotion_"+index} className="text-slate-400 "> 
+                              {extraItems.map((item, index) => (
+                                <tr key={"reserve_key_extra_item_"+index} className="text-slate-400 ">
                                     <td className="border border-slate-300 text-center">{index + 1}</td>
-                                    <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)}`}</td>
+                                    <td className="border border-slate-300 text-left">{item.name}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
-                                    <td className="border border-slate-300 text-center">{"1"}</td>
-                                    <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
-                                    <td className="border border-slate-300 text-center">{<button onClick={()=>handleRemoveReserveOption(index,"promotion")} className="h-auto w-auto hover:text-tertiary"><CircleX/></button>}</td>
+                                    <td className="border border-slate-300 text-center">{item.quantity}</td>
+                                    <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
+                                    <td className="border border-slate-300 text-center">{<button onClick={()=>handleRemoveReserveOption(index,"extraItem")} className="h-auto w-auto hover:text-tertiary"><CircleX/></button>}</td>
                                 </tr>
                               ))}
 
                               {tents.map((item, index) => (
                                 <tr key={"reserve_key_tent_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + index + 1}</td> 
+                                    <td className="border border-slate-300 text-center">{extraItems.length + index + 1}</td> 
                                   <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)} ${item.aditionalPeople > 0 ? `| ADP:${item.aditionalPeople} ADPP: ${formatPrice(item.aditionalPeoplePrice ?? 0)}` : "" }`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price + (item.aditionalPeople * (item.aditionalPeoplePrice ?? 0)))}</td>
@@ -2094,7 +2109,7 @@ const DashboardAdminReserves = () => {
 
                               {experiences.map((item, index) => (
                                 <tr key={"reserve_key_experience_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + tents.length + index + 1}</td>
+                                    <td className="border border-slate-300 text-center">{extraItems.length + tents.length + index + 1}</td>
                                     <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.day_of_experience")} ${formatDateToYYYYMMDD(item.day)}`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
@@ -2106,7 +2121,7 @@ const DashboardAdminReserves = () => {
 
                               {products.map((item, index) => (
                                 <tr key={"reserve_key_product_"+index} className="text-slate-400 "> 
-                                    <td className="border border-slate-300 text-center">{promotions.length + tents.length + experiences.length + index + 1}</td>
+                                    <td className="border border-slate-300 text-center">{extraItems.length + tents.length + experiences.length + index + 1}</td>
                                   <td className="border border-slate-300 text-left">{`${item.name}`}</td>
                                     <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                                     <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>

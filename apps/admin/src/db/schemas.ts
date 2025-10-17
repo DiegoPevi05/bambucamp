@@ -178,13 +178,11 @@ const ReserveExperienceDtoSchema = z.object({
   day: z.date(),
 });
 
-const ReservePromotionDtoSchema = z.object({
-  idPromotion: z.number().positive({ message: "reserve.validations.id_required"}),
+const ReserveExtraItemDtoSchema = z.object({
+  extraItemId: z.number().nonnegative({ message: "reserve.validations.id_required" }).nullable().optional(),
   name: z.string().nonempty({ message: "reserve.validations.name_required"}),
-  price: z.number().positive({ message: "reserve.validations.price_positive"}),
-  nights: z.number().positive({ message: "reserve.validations.nights_positive"}),
-  dateFrom: z.date(),
-  dateTo: z.date(),
+  price: z.number().nonnegative({ message: "reserve.validations.price_positive"}),
+  quantity: z.number().positive({ message: "reserve.validations.quantity_positive"}),
 });
 
 const ReserveFormDataSchema = z.object({
@@ -193,7 +191,7 @@ const ReserveFormDataSchema = z.object({
   tents: z.array(ReserveTentDtoSchema).default([]),
   products: z.array(ReserveProductDtoSchema).default([]),
   experiences: z.array(ReserveExperienceDtoSchema).default([]),
-  promotions: z.array(ReservePromotionDtoSchema).default([]),
+  extraItems: z.array(ReserveExtraItemDtoSchema).default([]),
   discount_code_id: z.number().nonnegative({ message: "reserve.validations.discount_code_id_nonnegative" }).optional(),
   discount_code_name: z.string().optional(),
   gross_import: z.number().positive({ message: "reserve.validations.gross_import_positive" }),
@@ -259,14 +257,12 @@ const ReserveTentItemFormDataSchema = z.object({
   path: ["reserve_tent_option_aditional_people"], // Error will point to this field
 });
 
-const ReservePromotionItemFormDataSchema = z.object({
-  reserve_promotion_option_id: z.number().positive({ message: "reserve.validations.id_required" }),
-  reserve_promotion_option_date_from: z.date({ message: "reserve.validations.date_from_required" }),
-  reserve_promotion_option_date_to: z.date({ message: "reserve.validations.date_to_required" }),
-}).refine((data) => data.reserve_promotion_option_date_from < data.reserve_promotion_option_date_to, {
-  message: "reserve.validations.date_from_less_than_date_to",
-  path: ["reserve_promotion_option_date_from"],
-})
+const ReserveExtraItemFormDataSchema = z.object({
+  reserve_extra_item_option_id: z.number().nonnegative({ message: "reserve.validations.id_required" }).nullable().optional(),
+  reserve_extra_item_option_name: z.string().nonempty({ message: "reserve.validations.name_required" }),
+  reserve_extra_item_option_price: z.number().nonnegative({ message: "reserve.validations.price_positive" }),
+  reserve_extra_item_option_quantity: z.number().positive({ message: "reserve.validations.quantity_positive" }),
+});
 
 
 const ReserveExperienceItemFormDataSchema = z.object({
@@ -281,4 +277,4 @@ const ReserveProductItemFormDataSchema = z.object({
 })
 
 
-export { signInSchema, createUserSchema, editUserSchema, TentSchema, ProductSchema, ExperienceSchema, DiscountCodeSchema, PromotionSchema, ReserveFormDataSchema, ReviewSchema, FaqSchema ,ReserveTentItemFormDataSchema, ReserveProductItemFormDataSchema, ReserveExperienceItemFormDataSchema, ReservePromotionItemFormDataSchema};
+export { signInSchema, createUserSchema, editUserSchema, TentSchema, ProductSchema, ExperienceSchema, DiscountCodeSchema, PromotionSchema, ReserveFormDataSchema, ReviewSchema, FaqSchema ,ReserveTentItemFormDataSchema, ReserveProductItemFormDataSchema, ReserveExperienceItemFormDataSchema, ReserveExtraItemFormDataSchema};
