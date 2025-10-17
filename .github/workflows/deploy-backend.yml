@@ -119,8 +119,9 @@ jobs:
             set -euo pipefail
             mkdir -p "'"$REMOTE_DIR"'"
             if [ ! -d "'"$REMOTE_DIR/.git"'" ]; then
-              git clone --sparse "'"$REPO_URL"'" "'"$REMOTE_DIR"'"
+              git clone --filter=blob:none --sparse "'"$REPO_URL"'" "'"$REMOTE_DIR"'"
               cd "'"$REMOTE_DIR"'"
+              git sparse-checkout init --cone
               git sparse-checkout set apps/server packages/shared-types
             else
               cd "'"$REMOTE_DIR"'"
@@ -128,8 +129,10 @@ jobs:
               git reset --hard origin/main
             fi
           ' \
-          && curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
-          || { curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
+          && curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+          || { curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
       - name: Ensure /public/images directory exists
         env:
