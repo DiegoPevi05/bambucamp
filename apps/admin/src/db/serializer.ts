@@ -28,6 +28,15 @@ export const serializeUser = (data: any): User | null => {
 }
 
 const formatImagePaths = (images: string[]): string[] => {
+
+  if (!Array.isArray(images)) {
+    try {
+      images = typeof images === "string" ? JSON.parse(images) : [];
+    } catch {
+      images = [];
+    }
+  }
+
   return images.map(image => {
     image = image.replace(/\\/g, '/'); // Assign the result of replace to image
     image = image.replace("public", import.meta.env.VITE_BACKEND_PUBLIC_URL); // Same here
@@ -38,9 +47,15 @@ const formatImagePaths = (images: string[]): string[] => {
 export const serializeTent = (data: any): Tent | null => {
   let tent: Tent | null = null;
 
-  const transformedCustomPrice = data.custom_price ? JSON.parse(data.custom_price).map((item: any) => ({
-    ...item, dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom), dateTo: convertStrToCurrentTimezoneDate(item.dateTo)
-  })) : [];
+  const transformedCustomPrice =
+    (typeof data.custom_price === "string"
+      ? JSON.parse(data.custom_price)
+      : data.custom_price
+    )?.map((item: any) => ({
+      ...item,
+      dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom),
+      dateTo: convertStrToCurrentTimezoneDate(item.dateTo),
+    })) || [];
 
   tent = {
     id: data.id,
@@ -51,10 +66,10 @@ export const serializeTent = (data: any): Tent | null => {
     qtypeople: data.qtypeople || 0,
     qtykids: data.qtykids || 0,
     price: data.price || 0,
-    services: data.services ? JSON.parse(data.services) : {},
+    services: typeof data.services === "string" ? JSON.parse(data.services) : data.services,
     custom_price: transformedCustomPrice,
-    aditional_people_price: data.aditional_people_price,
-    max_aditional_people: data.max_aditional_people,
+    additional_people_price: data.additional_people_price,
+    max_additional_people: data.max_additional_people,
     status: data.status,
     createdAt: data.createdAt ? convertStrToCurrentTimezoneDate(data.createdAt) : data.createdAt,
     updatedAt: data.updatedAt ? convertStrToCurrentTimezoneDate(data.updatedAt) : data.updatedAt
@@ -74,8 +89,8 @@ export const serializeTentToDB = (tent: TentFormData, isEditable?: boolean) => {
   formData.append('header', tent.header);
   formData.append('qtypeople', tent.qtypeople.toString());
   formData.append('qtykids', tent.qtykids.toString());
-  formData.append('aditional_people_price', tent.aditional_people_price.toString());
-  formData.append('max_aditional_people', tent.max_aditional_people.toString());
+  formData.append('additional_people_price', tent.additional_people_price.toString());
+  formData.append('max_additional_people', tent.max_additional_people.toString());
   formData.append('price', tent.price.toString());
   formData.append('status', tent.status);
 
@@ -100,9 +115,15 @@ export const serializeTentToDB = (tent: TentFormData, isEditable?: boolean) => {
 export const serializeProduct = (data: any): Product | null => {
   let product: Product | null = null;
 
-  const transformedCustomPrice = data.custom_price ? JSON.parse(data.custom_price).map((item: any) => ({
-    ...item, dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom), dateTo: convertStrToCurrentTimezoneDate(item.dateTo)
-  })) : [];
+  const transformedCustomPrice =
+    (typeof data.custom_price === "string"
+      ? JSON.parse(data.custom_price)
+      : data.custom_price
+    )?.map((item: any) => ({
+      ...item,
+      dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom),
+      dateTo: convertStrToCurrentTimezoneDate(item.dateTo),
+    })) || [];
 
   product = {
     categoryId: data.categoryId,
@@ -202,9 +223,15 @@ export const serializeCategoryExperience = (data: any): ExperienceCategory | nul
 export const serializeExperience = (data: any): Experience | null => {
   let experience: Experience | null = null;
 
-  const transformedCustomPrice = data.custom_price ? JSON.parse(data.custom_price).map((item: any) => ({
-    ...item, dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom), dateTo: convertStrToCurrentTimezoneDate(item.dateTo)
-  })) : [];
+  const transformedCustomPrice =
+    (typeof data.custom_price === "string"
+      ? JSON.parse(data.custom_price)
+      : data.custom_price
+    )?.map((item: any) => ({
+      ...item,
+      dateFrom: convertStrToCurrentTimezoneDate(item.dateFrom),
+      dateTo: convertStrToCurrentTimezoneDate(item.dateTo),
+    })) || [];
 
   experience = {
     categoryId: data.categoryId,

@@ -179,17 +179,6 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
 
   const extraItemMap = new Map(extraItemsDb.map(item => [item.id, item]));
 
-  const extraItemsInput = data.extraItems ?? [];
-  const extraItemIds = extraItemsInput
-    .map(item => item.extraItemId)
-    .filter((id): id is number => typeof id === 'number');
-
-  const extraItemsDb = extraItemIds.length
-    ? await extraItemService.getExtraItemsByIds(extraItemIds)
-    : [];
-
-  const extraItemMap = new Map(extraItemsDb.map(item => [item.id, item]));
-
   const tentsAvailable = await utils.checkAvailability(data.tents);
   if (!tentsAvailable) throw new BadRequestError("error.noTentsAvailable");
 

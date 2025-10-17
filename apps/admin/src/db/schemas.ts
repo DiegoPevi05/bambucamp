@@ -46,8 +46,8 @@ const TentSchema = z.object({
   images: z.array(imageFileSchema).default([]),
   qtypeople: z.number().min(1, { message: 'glamping.validations.qtypeople_min' }),
   qtykids: z.number().nonnegative({ message: 'glamping.validations.qtykids_positive' }),
-  aditional_people_price:z.number(),
-  max_aditional_people:z.number(),
+  additional_people_price: z.number(),
+  max_additional_people: z.number(),
   price: z.number().positive({ message: 'glamping.validations.price_positive' }),
   services: z.object({
     wifi: z.boolean(),
@@ -70,7 +70,7 @@ const TentSchema = z.object({
 });
 
 const ProductSchema = z.object({
-  categoryId:z.number().positive({ message:'product.validations.product_category_id_invalid' }),
+  categoryId: z.number().positive({ message: 'product.validations.product_category_id_invalid' }),
   name: z.string().nonempty({ message: 'product.validations.name_required' }),
   description: z.string().nonempty({ message: 'product.validations.description_required' }),
   existing_images: z.array(z.string()).default([]),
@@ -85,7 +85,7 @@ const ProductSchema = z.object({
 });
 
 const ExperienceSchema = z.object({
-  categoryId:z.number().positive({ message:'experience.validations.experience_category_id_invalid' }),
+  categoryId: z.number().positive({ message: 'experience.validations.experience_category_id_invalid' }),
   header: z.string().nonempty({ message: 'experience.validations.header_required' }),
   name: z.string().nonempty({ message: 'experience.validations.name_required' }),
   description: z.string().nonempty({ message: 'experience.validations.description_required' }),
@@ -95,7 +95,7 @@ const ExperienceSchema = z.object({
   limit_age: z.number().min(1, { message: 'experience.validations.limit_age_min' }),
   qtypeople: z.number().min(1, { message: 'experience.validations.qtypeople_min' }),
   suggestions: z.array(z.string()).default([]),
-  price: z.number().min(0,{ message: 'experience.validations.price_min' }),
+  price: z.number().min(0, { message: 'experience.validations.price_min' }),
   custom_price: z.array(CustomPriceSchema),
   status: z.string().nonempty({ message: 'experience.validations.status_required' }),
 }).refine(data => data.existing_images.length > 0 || data.images.length > 0, {
@@ -105,7 +105,7 @@ const ExperienceSchema = z.object({
 
 const DiscountCodeSchema = z.object({
   code: z.string().nonempty({ message: 'discount.validations.code_required' }),
-  discount: z.number().min(1, { message: 'discount.validations.discount_min' }).max(100,{ message: 'discount.validations.discount_max' }),
+  discount: z.number().min(1, { message: 'discount.validations.discount_min' }).max(100, { message: 'discount.validations.discount_max' }),
   stock: z.number().min(1, { message: 'discount.validations.stock_min' }),
   expiredDate: z.date(),
   status: z.string().nonempty({ message: 'discount.validations.status_required' }),
@@ -113,22 +113,22 @@ const DiscountCodeSchema = z.object({
 
 const TentPromotion = z.object({
   idTent: z.number().positive({ message: 'promotion.validations.tent_id_positive' }),
-  name: z.string().nonempty({message:'promotion.validations.tent_name_required'}),
-  nights:z.number().positive({ message: 'promotion.validations.tent_quantity_positive' }),
+  name: z.string().nonempty({ message: 'promotion.validations.tent_name_required' }),
+  nights: z.number().positive({ message: 'promotion.validations.tent_quantity_positive' }),
   price: z.number().positive({ message: 'promotion.validations.tent_price_positive' })
 });
 
 const ProductPromotion = z.object({
   idProduct: z.number().positive({ message: 'promotion.validations.product_id_positive' }),
-  name: z.string().nonempty({message:'promotion.validations.product_name_required'}),
-  quantity:z.number().positive({ message: 'promotion.validations.product_quantity_positive' }),
+  name: z.string().nonempty({ message: 'promotion.validations.product_name_required' }),
+  quantity: z.number().positive({ message: 'promotion.validations.product_quantity_positive' }),
   price: z.number().positive({ message: 'promotion.validations.product_price_positive' })
 });
 
 const ExperiencePromotion = z.object({
   idExperience: z.number().positive({ message: 'promotion.validations.experience_id_positive' }),
-  name: z.string().nonempty({message:'promotion.validations.experience_name_required'}),
-  quantity:z.number().positive({ message: 'promotion.validations.experience_quantity_positive' }),
+  name: z.string().nonempty({ message: 'promotion.validations.experience_name_required' }),
+  quantity: z.number().positive({ message: 'promotion.validations.experience_quantity_positive' }),
   price: z.number().positive({ message: 'promotion.validations.experience_price_positive' })
 });
 
@@ -158,31 +158,31 @@ const ReserveTentDtoSchema = z.object({
   name: z.string().nonempty({ message: 'reserve.validations.name_required' }),
   price: z.number().positive({ message: 'reserve.validations.price_positive' }),
   nights: z.number().positive({ message: 'reserve.validations.quantity_positive' }),
-  dateFrom:z.date(),
-  dateTo:z.date(),
-  aditionalPeople:z.number().nonnegative({message: "reserve.validations.aditional_people_positive"}).optional()
+  dateFrom: z.date(),
+  dateTo: z.date(),
+  aditionalPeople: z.number().nonnegative({ message: "reserve.validations.aditional_people_positive" }).optional()
 });
 
 const ReserveProductDtoSchema = z.object({
-  idProduct: z.number().positive({ message: "reserve.validations.id_required"}),
-  name: z.string().nonempty({ message: "reserve.validations.name_required"}),
-  price: z.number().positive({ message: "reserve.validations.price_positive"}),
-  quantity: z.number().positive({ message: "reserve.validations.quantity_positive"})
+  idProduct: z.number().positive({ message: "reserve.validations.id_required" }),
+  name: z.string().nonempty({ message: "reserve.validations.name_required" }),
+  price: z.number().positive({ message: "reserve.validations.price_positive" }),
+  quantity: z.number().positive({ message: "reserve.validations.quantity_positive" })
 });
 
 const ReserveExperienceDtoSchema = z.object({
-  idExperience: z.number().positive({ message: "reserve.validations.id_required"}),
-  name: z.string().nonempty({ message: "reserve.validations.name_required"}),
-  price: z.number().positive({ message: "reserve.validations.price_positive"}),
-  quantity: z.number().positive({ message: "reserve.validations.quantity_positive"}),
+  idExperience: z.number().positive({ message: "reserve.validations.id_required" }),
+  name: z.string().nonempty({ message: "reserve.validations.name_required" }),
+  price: z.number().positive({ message: "reserve.validations.price_positive" }),
+  quantity: z.number().positive({ message: "reserve.validations.quantity_positive" }),
   day: z.date(),
 });
 
 const ReserveExtraItemDtoSchema = z.object({
   extraItemId: z.number().nonnegative({ message: "reserve.validations.id_required" }).nullable().optional(),
-  name: z.string().nonempty({ message: "reserve.validations.name_required"}),
-  price: z.number().nonnegative({ message: "reserve.validations.price_positive"}),
-  quantity: z.number().positive({ message: "reserve.validations.quantity_positive"}),
+  name: z.string().nonempty({ message: "reserve.validations.name_required" }),
+  price: z.number().nonnegative({ message: "reserve.validations.price_positive" }),
+  quantity: z.number().positive({ message: "reserve.validations.quantity_positive" }),
 });
 
 const ReserveFormDataSchema = z.object({
@@ -214,7 +214,7 @@ const ReserveFormDataSchema = z.object({
       "lastname",
       "cellphone"
     ];
-    
+
     requiredFields.forEach((field) => {
       if (!(data as any)[field]) {
         ctx.addIssue({
@@ -232,8 +232,8 @@ const ReviewSchema = z.object({
   name: z.string().nonempty({ message: 'review.validations.name_required' }),
   title: z.string().nonempty({ message: 'review.validations.title_required' }),
   review: z.string().nonempty({ message: 'review.validations.review_required' }),
-  stars: z.number().nonnegative({ message: 'review.validations.stars_required' }).min(1,{message:"review.validations.stars_minimum"}).max(5,{message:"review.validations.stars_maximum"}),
-  day:z.date({message:"review.validations.date_required"}),
+  stars: z.number().nonnegative({ message: 'review.validations.stars_required' }).min(1, { message: "review.validations.stars_minimum" }).max(5, { message: "review.validations.stars_maximum" }),
+  day: z.date({ message: "review.validations.date_required" }),
   href: z.string().nullable(),
   profile_image_url: z.string().nullable(),
 });
@@ -268,13 +268,13 @@ const ReserveExtraItemFormDataSchema = z.object({
 const ReserveExperienceItemFormDataSchema = z.object({
   reserve_experience_option_id: z.number().positive({ message: "reserve.validations.id_required" }),
   reserve_experience_option_day: z.date(),
-  reserve_experience_option_quantity: z.number().min(1,{ message: "reserve.validations.quantity_min" }),
+  reserve_experience_option_quantity: z.number().min(1, { message: "reserve.validations.quantity_min" }),
 })
 
 const ReserveProductItemFormDataSchema = z.object({
   reserve_product_option_id: z.number().positive({ message: "reserve.validations.id_required" }),
-  reserve_product_option_quantity: z.number().min(1,{ message: "reserve.validations.quantity_min" }),
+  reserve_product_option_quantity: z.number().min(1, { message: "reserve.validations.quantity_min" }),
 })
 
 
-export { signInSchema, createUserSchema, editUserSchema, TentSchema, ProductSchema, ExperienceSchema, DiscountCodeSchema, PromotionSchema, ReserveFormDataSchema, ReviewSchema, FaqSchema ,ReserveTentItemFormDataSchema, ReserveProductItemFormDataSchema, ReserveExperienceItemFormDataSchema, ReserveExtraItemFormDataSchema};
+export { signInSchema, createUserSchema, editUserSchema, TentSchema, ProductSchema, ExperienceSchema, DiscountCodeSchema, PromotionSchema, ReserveFormDataSchema, ReviewSchema, FaqSchema, ReserveTentItemFormDataSchema, ReserveProductItemFormDataSchema, ReserveExperienceItemFormDataSchema, ReserveExtraItemFormDataSchema };

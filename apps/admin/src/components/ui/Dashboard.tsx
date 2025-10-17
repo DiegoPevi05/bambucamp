@@ -1,12 +1,12 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import Button from "./Button";
 import { ISOLOGO } from "../../assets/images";
-import {  AnimatePresence } from "framer-motion";
-import { CalendarCheck, User, MessageSquare, DoorClosed, Pizza, FlameKindling, Percent, Disc, Tent, AlignJustify, Quote, Home, BarChartHorizontalIcon   } from "lucide-react"
-import {useAuth} from "../../contexts/AuthContext";
+import { AnimatePresence } from "framer-motion";
+import { CalendarCheck, User, MessageSquare, DoorClosed, Pizza, FlameKindling, Percent, Disc, Tent, AlignJustify, Quote, Home, BarChartHorizontalIcon } from "lucide-react"
+import { useAuth } from "../../contexts/AuthContext";
 import DropDownListAccount from "../DropDownListAccount";
-import {useNavigate} from "react-router-dom";
-import {useTranslation} from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import LanguageDropDownList from "../LanguageSelector";
 
 
@@ -43,7 +43,7 @@ const DashboardButtons: DashboardButtonDataProps[] = [
     "section": "experiences"
   },
   {
-    "title":"discount.plural",
+    "title": "discount.plural",
     "icon": <Percent />,
     "section": "discounts"
   },
@@ -69,10 +69,10 @@ const DashboardButtons: DashboardButtonDataProps[] = [
   },
 ];
 
-interface DashboardButtonDataProps{
-  title:string;
-  icon:React.ReactNode;
-  section:string;
+interface DashboardButtonDataProps {
+  title: string;
+  icon: React.ReactNode;
+  section: string;
 }
 
 interface DashboardButtonProps {
@@ -100,14 +100,14 @@ const DashboardButton = ({ title, icon, onClick }: DashboardButtonProps) => {
 };
 
 
-const Dashboard = ({children}:{children:React.ReactNode}) => {
+const Dashboard = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
-  const {t} = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [openNavbar,setOpenNavbar] = useState<boolean>(false);
+  const [openNavbar, setOpenNavbar] = useState<boolean>(false);
 
-  const goToSubRoute = (route:string) => {
+  const goToSubRoute = (route: string) => {
     navigate(`/${route}`);
   };
 
@@ -116,11 +116,11 @@ const Dashboard = ({children}:{children:React.ReactNode}) => {
       <div className="flex flex-col xl:flex-row gap-4 sm:px-4 2xl:p-4 h-auto h-full w-full">
         <div className={`${openNavbar ? "max-2xl:left-[0px]" : "max-sm:-left-[100%] max-2xl:left-[-400px]"} bg-white p-4 2xl:rounded-lg 2xl:shadow-lg 2xl:border-2 border-gray-200 max-2xl:fixed  max-2xl:h-screen max-sm:w-screen max-2xl:w-[400px] 2xl:h-full 2xl:w-[15%] flex flex-col items-start gap-y-4 duration-300 max-2xl:z-[100]`}>
           <div className="w-full h-auto flex flex-row justify-between items-center">
-            <button className="2xl:hidden h-12 w-12 flex items-center justify-center text-secondary rounded-xl active:scale-95 active:bg-white active:text-secondary active:border active:border-secondary" onClick={()=>setOpenNavbar((prev)=> !prev)} ><AlignJustify className=""/></button>
-            <LanguageDropDownList variant="dark"/>
+            <button className="2xl:hidden h-12 w-12 flex items-center justify-center text-secondary rounded-xl active:scale-95 active:bg-white active:text-secondary active:border active:border-secondary" onClick={() => setOpenNavbar((prev) => !prev)} ><AlignJustify className="" /></button>
+            <LanguageDropDownList variant="dark" />
           </div>
           <a href="/" className="hover:cursor-pointer hover:scale-[1.05] transition-all duration-300 rounded-full bg-white w-[80px] sm:w-[125px] h-[80px] sm:h-[125px] flex items-center justify-center  mx-auto">
-            <img src={ISOLOGO} alt="logo" className="w-[40px] sm:w-[80px] h-[40px] sm:h-[80px]"/>
+            <img src={ISOLOGO} alt="logo" className="w-[40px] sm:w-[80px] h-[40px] sm:h-[80px]" />
           </a>
 
           {DashboardButtons.map((button, index) => (
@@ -128,7 +128,7 @@ const Dashboard = ({children}:{children:React.ReactNode}) => {
               key={index}
               title={t(button.title)}
               icon={button.icon}
-              onClick={()=>goToSubRoute(button.section)}
+              onClick={() => goToSubRoute(button.section)}
             />
           ))}
           <Button
@@ -138,11 +138,11 @@ const Dashboard = ({children}:{children:React.ReactNode}) => {
             isRound={true}
             onClick={logout}
           >
-            {<DoorClosed/>}
+            {<DoorClosed />}
             <span>{t("auth.log_out")}</span>
           </Button>
         </div>
-        <div 
+        <div
           className="
           w-full 2xl:w-[85%] h-full
           flex flex-col
@@ -151,7 +151,7 @@ const Dashboard = ({children}:{children:React.ReactNode}) => {
           max-2xl:py-4
           px-2
           2xl:px-4">
-          <div 
+          <div
             className="
             w-full h-20 2xl:h-[10%]
             bg-white 
@@ -165,13 +165,13 @@ const Dashboard = ({children}:{children:React.ReactNode}) => {
             justify-between 
             items-center">
             <div className="flex flex-row items-center justify-center gap-x-4 max-sm:ml-4">
-              <button className="2xl:hidden h-full w-12 flex items-center justify-center text-secondary rounded-xl active:scale-95 active:bg-white active:text-secondary active:border active:border-secondary" onClick={()=>setOpenNavbar((prev)=> !prev)} ><AlignJustify className=""/></button>
+              <button className="2xl:hidden h-full w-12 flex items-center justify-center text-secondary rounded-xl active:scale-95 active:bg-white active:text-secondary active:border active:border-secondary" onClick={() => setOpenNavbar((prev) => !prev)} ><AlignJustify className="" /></button>
               <div className="flex gap-x-4 items-start flex-col">
                 <h1 className="text-sm sm:text-lg text-secondary">{t("common.welcome")} {user?.firstName}{" "}{user?.lastName}</h1>
-                <p className="font-secondary text-[10px] sm:text-[14px] text-tertiary">{t("common.subheader")}<a href="https://www.bambucamp.com.pe" target="_blank" className="hover:underline">www.bambucamp.com.pe</a></p>
+                <p className="font-secondary text-[10px] sm:text-[14px] text-tertiary">{t("common.subheader")}<a href="https://www.bambucamp.com" target="_blank" className="hover:underline">www.bambucamp.com</a></p>
               </div>
             </div>
-            <DropDownListAccount user={user} variant="dark"/>
+            <DropDownListAccount user={user} variant="dark" />
           </div>
           <AnimatePresence>
             {children}

@@ -157,8 +157,8 @@ export interface AdminTent {
   price: number;
   services: TentServices;
   custom_price: CustomPriceRange[];
-  aditional_people_price: number;
-  max_aditional_people: number;
+  additional_people_price: number;
+  max_additional_people: number;
   status: string;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -201,8 +201,8 @@ export interface TentFormData<TImage = unknown> {
   qtypeople: number;
   qtykids: number;
   price: number;
-  aditional_people_price: number;
-  max_aditional_people: number;
+  additional_people_price: number;
+  max_additional_people: number;
   custom_price: string;
   status: string;
   existing_images?: string;
@@ -649,7 +649,7 @@ export interface ClientReserveExtraItemDto {
   extraItemDB?: ExtraItem;
 }
 
-export interface AdminReserveExtraItemDto extends ClientReserveExtraItemDto {}
+export interface AdminReserveExtraItemDto extends ClientReserveExtraItemDto { }
 
 export interface ServerReserveExtraItemDto<TExtraItem = unknown> {
   id?: number;
