@@ -199,6 +199,11 @@ jobs:
           ssh bambucamp@"$HOST" '
             set -euo pipefail
             cd "'"$REMOTE_DIR/packages/shared-types"'"
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
             npx tsc
           ' \
           && curl -X POST -H 'Content-type: application/json' \
