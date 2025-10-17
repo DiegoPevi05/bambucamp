@@ -32,6 +32,7 @@ export const searchAvailableTents = async (dateFromInput: string, dateToInput: s
 
     let tentPublic: PublicTent = {
       ...tent,
+      services: JSON.parse(tent.services ? tent.services : '{}'),
       images: JSON.parse(tent.images ? tent.images : '[]'),
       custom_price: calculatePrice(tent.price, tent.custom_price)
     }
@@ -111,7 +112,7 @@ export const getReserveById = async (id: number) => {
   return await reserveRepository.getReserveById(id);
 };
 
-export const createReserveByUser = async (data: ReserveFormDto, language: string):Promise<{external_id:string, gross_import:number}> => {
+export const createReserveByUser = async (data: ReserveFormDto, language: string): Promise<{ external_id: string, gross_import: number }> => {
 
   data.price_is_calculated = true;
   data.payment_status = PaymentStatus.UNPAID;
@@ -262,7 +263,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
       data.discount_code_id,
       data.discount
     );
-    reserveDto.gross_import = data.gross_import;
+    reserveDto.gross_import = Number(data.gross_import ?? 0);
     reserveDto.net_import = netImport;
     reserveDto.discount = discount;
     reserveDto.discount_code_name = discount_name ?? "";

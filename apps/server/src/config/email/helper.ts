@@ -14,11 +14,11 @@ const escapeHtmlAttr = (s: string) =>
     .replace(/>/g, "&gt;");
 
 // Generic replacer for ALL placeholders using a single pass + global regex
-const replaceAllPlaceholders = (tpl: string, data: Record<string, string>) => {
+const replaceAllPlaceholders = (tpl: string, data: Record<string, string | number>) => {
   const keys = Object.keys(data).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   if (keys.length === 0) return tpl;
   const re = new RegExp(`{{(${keys.join("|")})}}`, "g");
-  return tpl.replace(re, (_, key) => data[key]);
+  return tpl.replace(re, (_, key) => String(data[key]));
 };
 
 const formatImagePath = (image: string, variant: ImageVariant = 'normal'): string => {
@@ -45,17 +45,17 @@ export const generateTemplate = (language: string, opts: TemplateOpts = {}): Tem
   // Hidden preheader (only if provided)
   const preheader_block = preheaderText
     ? [
-        // visible to inbox preview, hidden in email body
-        `<div style="display:none!important;visibility:hidden;mso-hide:all;`,
-        `font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;color:transparent;">`,
-        `${escapeHtmlAttr(preheaderText)}`,
-        `</div>`,
-        // spacer to keep menu links from leaking into preview
-        `<div style="display:none!important;visibility:hidden;mso-hide:all;`,
-        `font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;color:transparent;">`,
-        `&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;`,
-        `</div>`
-      ].join("")
+      // visible to inbox preview, hidden in email body
+      `<div style="display:none!important;visibility:hidden;mso-hide:all;`,
+      `font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;color:transparent;">`,
+      `${escapeHtmlAttr(preheaderText)}`,
+      `</div>`,
+      // spacer to keep menu links from leaking into preview
+      `<div style="display:none!important;visibility:hidden;mso-hide:all;`,
+      `font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;color:transparent;">`,
+      `&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;`,
+      `</div>`
+    ].join("")
     : "";
 
   const data_email = {
@@ -407,57 +407,57 @@ export const generateNewReservationTemplateUser = (
   const i18n =
     language === "es"
       ? {
-          title: "Gracias por realizar tu reserva",
-          greeting_message: `Hola ${firstName}, tu reserva se encuentra en proceso. Sigue los pasos para confirmar tu reserva.`,
-          deposit_title: "Depósito del 50%",
-          deposit_instructions: `Realiza un depósito del 50% del total por cualquiera de los métodos abajo. Luego, envía tu comprobante a ${RESERVAS_EMAIL} indicando tu nombre, apellido y el correo con el que realizaste la reserva. Si prefieres, también puedes enviarlo por WhatsApp.`,
-          payment_methods_title: "Métodos de pago",
-          payment_methods_intro: "Puedes pagar por QR (Plin) o por transferencia bancaria.",
-          qr_title: "Plin (QR)",
-          qr_badge: "QR seguro",
-          payment_qr_alt: "Código QR de pago",
-          qr_note: "Escanea el código con tu app bancaria o Plin.",
-          account_holder_label: "Titular",
-          bank_title: "Transferencia bancaria",
-          bank_badge: "BBVA",
-          bank_account_label: "Cuenta",
-          bank_cci_label: "CCI",
-          bank_holder_label: "Titular",
-          send_receipt_note_prefix: "Envía el comprobante a",
-          send_receipt_or: "o por",
-          reserve_label: "RESERVA",
-          experiences_label: "Experiencias",
-          products_label: "Productos",
-          subtotal_label: "SubTotal",
-          discount_label: "Descuento",
-          total_label: "Total",
-        }
+        title: "Gracias por realizar tu reserva",
+        greeting_message: `Hola ${firstName}, tu reserva se encuentra en proceso. Sigue los pasos para confirmar tu reserva.`,
+        deposit_title: "Depósito del 50%",
+        deposit_instructions: `Realiza un depósito del 50% del total por cualquiera de los métodos abajo. Luego, envía tu comprobante a ${RESERVAS_EMAIL} indicando tu nombre, apellido y el correo con el que realizaste la reserva. Si prefieres, también puedes enviarlo por WhatsApp.`,
+        payment_methods_title: "Métodos de pago",
+        payment_methods_intro: "Puedes pagar por QR (Plin) o por transferencia bancaria.",
+        qr_title: "Plin (QR)",
+        qr_badge: "QR seguro",
+        payment_qr_alt: "Código QR de pago",
+        qr_note: "Escanea el código con tu app bancaria o Plin.",
+        account_holder_label: "Titular",
+        bank_title: "Transferencia bancaria",
+        bank_badge: "BBVA",
+        bank_account_label: "Cuenta",
+        bank_cci_label: "CCI",
+        bank_holder_label: "Titular",
+        send_receipt_note_prefix: "Envía el comprobante a",
+        send_receipt_or: "o por",
+        reserve_label: "RESERVA",
+        experiences_label: "Experiencias",
+        products_label: "Productos",
+        subtotal_label: "SubTotal",
+        discount_label: "Descuento",
+        total_label: "Total",
+      }
       : {
-          title: "Thanks for your reservation",
-          greeting_message: `Hi ${firstName}, your reservation is in process. Please follow the steps below to confirm it.`,
-          deposit_title: "50% Deposit",
-          deposit_instructions: `Make a 50% deposit using any of the methods below. Then email your receipt to ${RESERVAS_EMAIL} including your first name, last name, and the email you used to book. You may also send it via WhatsApp.`,
-          payment_methods_title: "Payment methods",
-          payment_methods_intro: "You can pay using QR (Plin) or bank transfer.",
-          qr_title: "Plin (QR)",
-          qr_badge: "Secure QR",
-          payment_qr_alt: "Payment QR code",
-          qr_note: "Scan this code with your banking app or Plin.",
-          account_holder_label: "Account holder",
-          bank_title: "Bank transfer",
-          bank_badge: "BBVA",
-          bank_account_label: "Account",
-          bank_cci_label: "CCI (interbank code)",
-          bank_holder_label: "Account holder",
-          send_receipt_note_prefix: "Send the receipt to",
-          send_receipt_or: "or via",
-          reserve_label: "RESERVE",
-          experiences_label: "Experiences",
-          products_label: "Products",
-          subtotal_label: "SubTotal",
-          discount_label: "Discount",
-          total_label: "Total",
-        };
+        title: "Thanks for your reservation",
+        greeting_message: `Hi ${firstName}, your reservation is in process. Please follow the steps below to confirm it.`,
+        deposit_title: "50% Deposit",
+        deposit_instructions: `Make a 50% deposit using any of the methods below. Then email your receipt to ${RESERVAS_EMAIL} including your first name, last name, and the email you used to book. You may also send it via WhatsApp.`,
+        payment_methods_title: "Payment methods",
+        payment_methods_intro: "You can pay using QR (Plin) or bank transfer.",
+        qr_title: "Plin (QR)",
+        qr_badge: "Secure QR",
+        payment_qr_alt: "Payment QR code",
+        qr_note: "Scan this code with your banking app or Plin.",
+        account_holder_label: "Account holder",
+        bank_title: "Bank transfer",
+        bank_badge: "BBVA",
+        bank_account_label: "Account",
+        bank_cci_label: "CCI (interbank code)",
+        bank_holder_label: "Account holder",
+        send_receipt_note_prefix: "Send the receipt to",
+        send_receipt_or: "or via",
+        reserve_label: "RESERVE",
+        experiences_label: "Experiences",
+        products_label: "Products",
+        subtotal_label: "SubTotal",
+        discount_label: "Discount",
+        total_label: "Total",
+      };
 
   // Load template
   const templatePath = path.join(__dirname, `templates/new-reserve.html`);
@@ -736,21 +736,21 @@ export const generateReservationTemplate = (
   const labels =
     language === "es"
       ? {
-          reserve_label: "RESERVA",
-          experiences_label: "Experiencias",
-          products_label: "Productos",
-          subtotal_label: "SubTotal",
-          discount_label: "Descuento",
-          total_label: "Total",
-        }
+        reserve_label: "RESERVA",
+        experiences_label: "Experiencias",
+        products_label: "Productos",
+        subtotal_label: "SubTotal",
+        discount_label: "Descuento",
+        total_label: "Total",
+      }
       : {
-          reserve_label: "RESERVE",
-          experiences_label: "Experiences",
-          products_label: "Products",
-          subtotal_label: "SubTotal",
-          discount_label: "Discount",
-          total_label: "Total",
-        };
+        reserve_label: "RESERVE",
+        experiences_label: "Experiences",
+        products_label: "Products",
+        subtotal_label: "SubTotal",
+        discount_label: "Discount",
+        total_label: "Total",
+      };
 
   // One-pass replacement
   const data = {

@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "build:shared": "cd packages/shared-types && npx tsc",
+    "dev:server": "npm run build:shared && cd apps/server && npm run dev",
+    "dev:client": "npm run build:shared && cd apps/client && npm run dev",
+    "dev:admin": "npm run build:shared && cd apps/admin && npm run dev",
+    "dev:all": "npm run build:shared && concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:admin\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

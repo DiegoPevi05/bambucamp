@@ -13,6 +13,7 @@ export const getAllPublicTents = async () => {
 
     let tentPublic: PublicTent = {
       ...tent,
+      services: JSON.parse(tent.services ? tent.services : '{}'),
       images: JSON.parse(tent.images ? tent.images : '[]'),
       custom_price: calculatePrice(tent.price, tent.custom_price)
     }

@@ -251,7 +251,7 @@ export const countUnconfirmedItems = (reserve: Reserve): number  => {
   });
 
   // Count unconfirmed promotions
-  reserve.promotions.forEach((promotion) => {
+  reserve.promotions?.forEach((promotion) => {
     if (!promotion.confirmed) {
       unconfirmedCount++;
     }

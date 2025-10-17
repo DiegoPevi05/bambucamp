@@ -1,125 +1,47 @@
-import { Experience, PaymentStatus, Tent, Product, ReserveStatus } from '@prisma/client';
-import { TentDto } from './tent';
-import { ProductPublicDto } from './product';
-import { ExperiencePublicDto } from './experience';
-import { DiscountCodeDto } from './discountcode';
+import type { Experience, PaymentStatus, Product, ReserveStatus, Tent } from '@prisma/client';
+import type {
+  BaseCreateReserveProductDto,
+  BaseReserve,
+  BaseReserveForm,
+  PaginatedReserveResponse,
+  ReserveOptions as SharedReserveOptions,
+  ReserveFilters as SharedReserveFilters,
+  ServerReserveExperienceDto,
+  ServerReserveProductDto,
+  ServerReserveTentDto,
+} from '@bambucamp/shared-types';
 
-export enum ReserveEntityType {
-  RESERVE = 'RESERVE',
-  TENT = 'TENT',
-  PRODUCT = 'PRODUCT',
-  EXPERIENCE = 'EXPERIENCE'
-}
+export { ReserveEntityType } from '@bambucamp/shared-types';
 
-export interface ReserveTentDto {
-  id?: number;
-  idTent: number;
-  name: string;
-  price: number;
-  nights: number;
-  dateFrom: Date;
-  dateTo: Date;
-  confirmed: boolean;
-  additional_people: number;
-  additional_people_price: number;
-  kids: number;
-  kids_price: number;
-  tentDB?: Tent;
-}
+export type ReserveTentDto = ServerReserveTentDto<Tent>;
+export type ReserveProductDto = ServerReserveProductDto<Product>;
+export type ReserveExperienceDto = ServerReserveExperienceDto<Experience>;
 
-export interface ReserveProductDto {
-  id?: number;
-  idProduct: number;
-  name: string;
-  price: number;
-  quantity: number;
-  confirmed: boolean;
-  productDB?: Product;
-}
+export type createReserveProductDto = BaseCreateReserveProductDto<ReserveProductDto>;
+export type createReserveExperienceDto = BaseCreateReserveProductDto<ReserveExperienceDto>;
 
-export interface createReserveProductDto extends ReserveProductDto {
-  reserveId: number;
-}
+export type ReserveOptions = SharedReserveOptions;
+export type ReserveFilters = SharedReserveFilters<Date, PaymentStatus>;
 
-export interface ReserveExperienceDto {
-  id?: number;
-  idExperience: number;
-  name: string;
-  price: number;
-  quantity: number;
-  day: Date;
-  confirmed: boolean;
-  experienceDB?: Experience;
-}
+export type ReserveDto = BaseReserve<
+  ReserveTentDto,
+  ReserveProductDto,
+  ReserveExperienceDto,
+  undefined,
+  PaymentStatus,
+  ReserveStatus
+>;
 
-export interface createReserveExperienceDto extends ReserveExperienceDto {
-  reserveId: number;
-}
-
-export interface ReserveOptions {
-  tents?: TentDto[];
-  products?: ProductPublicDto[];
-  experiences?: ExperiencePublicDto[];
-  discounts?: DiscountCodeDto[];
-}
-
-export interface ReserveDto {
-  id?: number;
+export type ReserveFormDto = BaseReserveForm<
+  ReserveTentDto,
+  ReserveProductDto,
+  ReserveExperienceDto,
+  undefined,
+  PaymentStatus,
+  ReserveStatus
+> & {
   userId: number;
-  user_name?: string;
-  user_email?: string;
   external_id: string;
-  tents: ReserveTentDto[];
-  products: ReserveProductDto[];
-  experiences: ReserveExperienceDto[];
-  dateSale: Date;
-  eta?: Date | null;
-  price_is_calculated: boolean;
-  discount_code_id: number;
-  discount_code_name: string;
-  net_import: number;
-  discount: number;
-  gross_import: number;
-  canceled_reason: string;
-  canceled_status: boolean;
-  payment_status: PaymentStatus;
-  reserve_status: ReserveStatus;
-}
+};
 
-export interface ReserveFormDto {
-  userId: number;
-  user_email?: string,
-  user_firstname?: string;
-  user_lastname?: string;
-  user_phone_number?: string;
-  user_document_type?: string;
-  user_document_id?: string;
-  eta?: Date;
-  external_id: string;
-  tents: ReserveTentDto[];
-  products: ReserveProductDto[];
-  experiences: ReserveExperienceDto[];
-  price_is_calculated: boolean;
-  discount_code_id: number;
-  discount_code_name: string;
-  net_import: number;
-  discount: number;
-  gross_import: number;
-  canceled_reason: string;
-  canceled_status: boolean;
-  payment_status: PaymentStatus;
-  reserve_status: ReserveStatus;
-}
-
-export interface ReserveFilters {
-  dateFrom?: Date;
-  dateTo?: Date;
-  payment_status?: PaymentStatus;
-}
-
-export interface PaginatedReserve {
-  reserves: ReserveDto[];
-  totalPages: number;
-  currentPage: number;
-}
-
+export type PaginatedReserve = PaginatedReserveResponse<ReserveDto>;

@@ -1,0 +1,10 @@
+node_modules
+
+dist
+# --- Windows MOTW / ADS leftovers (from WSDL downloads) ---
+# If your tooling creates *files* with colon in the name (common in WSL/ext4)
+*:Zone.Identifier
+*:Zone.Identifier:*
+# If they appear as plain files without colon
+Zone.Identifier
+*.Zone.Identifier
