@@ -150,9 +150,11 @@ jobs:
           SLACK_ERR: "❌ Failed uploading .env to server"
         run: |
           set -euo pipefail
-          scp .env bambucamp@"$HOST":"$REMOTE_DIR"/apps/server/.env
-          && curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
-          || { curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
+          scp .env bambucamp@"$HOST":"$REMOTE_DIR"/apps/server/.env \
+            && curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+            || { curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
       - name: Install dependencies
         env:
