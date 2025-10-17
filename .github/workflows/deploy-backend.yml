@@ -182,8 +182,10 @@ jobs:
             npx prisma generate
             npx prisma migrate deploy
           ' \
-          && curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
-          || { curl -X POST -H 'Content-type: application/json' --data '{"text":"'"${SLACK_ERR:"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
+          && curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
+          || { curl -X POST -H 'Content-type: application/json' \
+              --data '{"text":"'"${SLACK_ERR}"'"}' "$SLACK_WEBHOOK_URL"; exit 1; }
 
       - name: Build shared-types
         env:
