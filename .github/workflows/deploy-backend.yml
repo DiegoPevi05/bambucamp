@@ -8,6 +8,7 @@ on:
       - 'apps/server/**'
       - 'packages/shared-types/**'
       - '.github/workflows/deploy-backend.yml'
+    workflow_dispatch:
 
 concurrency:
   group: deploy-backend

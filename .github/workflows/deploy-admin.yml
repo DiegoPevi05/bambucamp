@@ -8,6 +8,7 @@ on:
       - 'apps/admin/**'
       - 'packages/shared-types/**'
       - '.github/workflows/deploy-admin.yml'
+    workflow_dispatch:
 
 concurrency:
   group: deploy-admin
