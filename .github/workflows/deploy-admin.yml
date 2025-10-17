@@ -135,7 +135,7 @@ jobs:
           SLACK_ERR: "❌ Failed creating deployment directory on server"
         run: |
           set -euo pipefail
-          ssh root@"$HOST" "mkdir -p $REMOTE_DIR" \
+          ssh bambucamp@"$HOST" "mkdir -p $REMOTE_DIR" \
             && curl -X POST -H 'Content-type: application/json' \
                  --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
             || { curl -X POST -H 'Content-type: application/json' \
@@ -147,7 +147,7 @@ jobs:
           SLACK_ERR: "❌ Deploy failed during upload"
         run: |
           set -euo pipefail
-          scp -r apps/admin/dist/* root@"$HOST":"$REMOTE_DIR"/ \
+          scp -r apps/admin/dist/* bambucamp@"$HOST":"$REMOTE_DIR"/ \
             && curl -X POST -H 'Content-type: application/json' \
                  --data '{"text":"'"${SLACK_OK}"'"}' "$SLACK_WEBHOOK_URL" \
             || { curl -X POST -H 'Content-type: application/json' \
