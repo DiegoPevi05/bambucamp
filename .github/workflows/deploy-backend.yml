@@ -8,7 +8,7 @@ on:
       - 'apps/server/**'
       - 'packages/shared-types/**'
       - '.github/workflows/deploy-backend.yml'
-    workflow_dispatch:
+  workflow_dispatch:
 
 concurrency:
   group: deploy-backend
@@ -43,6 +43,7 @@ jobs:
   deploy:
     needs: detect-changes
     if: |
+      github.event_name == 'workflow_dispatch' ||
       needs.detect-changes.outputs.backend-changed == 'true' ||
       needs.detect-changes.outputs.types-changed == 'true'
     environment: go_daddy
