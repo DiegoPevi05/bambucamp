@@ -137,10 +137,8 @@ export interface PublicTent {
   price: number;
   services: TentServices;
   custom_price: number;
-  additional_people: number;
   additional_people_price: number;
   max_additional_people: number;
-  kids: number;
   max_kids: number;
   kids_bundle_price: number;
   status: string;
@@ -186,7 +184,7 @@ export interface TentDto {
 
 export interface PublicTentDto extends Omit<TentDto, 'custom_price'> {
   id: number;
-  custom_price?: number;
+  custom_price?: number | string;
 }
 
 export interface TentFilters {
@@ -663,8 +661,8 @@ export interface BaseReserve<
   TPaymentStatus = PaymentStatusValue,
   TReserveStatus = ReserveStatusValue
 > {
-  id: number;
-  external_id: number | string;
+  id?: number;
+  external_id: string;
   userId: number;
   user_name?: string;
   user_email?: string;
@@ -684,8 +682,8 @@ export interface BaseReserve<
   canceled_status: boolean;
   payment_status: TPaymentStatus;
   reserve_status: TReserveStatus;
-  createdAt: Date | null;
-  updatedAt: Date | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 }
 
 export type ClientReserve = BaseReserve<ClientReserveTentDto, ClientReserveProductDto, ClientReserveExperienceDto, undefined>;

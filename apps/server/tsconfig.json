@@ -7,15 +7,15 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "baseUrl": "./src",
-    "rootDirs": ["./src", "../../packages/shared-types/src"],
+    "baseUrl": ".",               // ⬅️ CHANGED from "./src" to "."
     "paths": {
-      "@bambucamp/shared-types": ["../../../packages/shared-types/src/index.ts"]
+      "@bambucamp/shared-types": ["../../packages/shared-types/dist"]
     },
+
     "forceConsistentCasingInFileNames": true,
-    "typeRoots": ["./node_modules/@types","./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
-  "files":["./src/types/index.d.ts"]
+  "files": ["./src/types/index.d.ts"]
 }

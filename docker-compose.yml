@@ -49,9 +49,10 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./apps/server:/app
+      - ./apps/server:/app/apps/server
+      - ./packages/shared-types:/app/packages/shared-types
       - /app/node_modules
-      - backend_images:/app/public/images
+      - backend_images:/app/apps/server/public/images
     networks:
       - bambucamp-network
     command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run dev"

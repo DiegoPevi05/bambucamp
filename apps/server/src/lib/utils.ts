@@ -161,7 +161,7 @@ export const computeTentNightly = (
     | 'qtypeople'
   >,
   selection: { kids?: number; additional_people?: number }
-): { nightly: number,nightlyBase:number , kids_price: number, additional_people_price: number } => {
+): { nightly: number, nightlyBase: number, kids_price: number, additional_people_price: number } => {
 
   const nightlyBase = calculatePrice(tent.price, tent.custom_price);
 
@@ -254,7 +254,9 @@ export const checkRoomSize = (tents: Tent[], qtypeople: number, qtyKids: number,
   return true;
 };
 
-export const applyDiscount = async (grossImport: number, discountCodeId: number | undefined, discountRaw?: number | undefined): Promise<{ netImport: number, discount: number, discount_name: string | null }> => {
+export const applyDiscount = async (grossImport: number | undefined, discountCodeId: number | undefined, discountRaw?: number | undefined): Promise<{ netImport: number, discount: number, discount_name: string | null }> => {
+
+  if (!grossImport) return { netImport: 0, discount: 0, discount_name: null };
 
   if (!discountCodeId) {
     return { netImport: grossImport, discount: 0, discount_name: null };
