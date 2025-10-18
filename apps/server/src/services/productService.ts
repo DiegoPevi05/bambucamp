@@ -83,8 +83,12 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
     throw new NotFoundError("error.noProductFoundInDB");
   }
 
-  if(data.categoryId &&  Number(data.categoryId) != product.categoryId ){
-    product.categoryId = Number(data.categoryId);
+  const categoryId = data.categoryId != null ? Number(data.categoryId) : undefined;
+  const stock = data.stock != null ? Number(data.stock) : undefined;
+  const price = data.price != null ? Number(data.price) : undefined;
+
+  if(categoryId != null && categoryId !== product.categoryId ){
+    product.categoryId = categoryId;
   }
 
   if(data.name &&  data.name != product.name){
@@ -95,8 +99,8 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
     product.description   = data.description;
   }
 
-  if(data.stock &&  Number(data.stock) != product.stock ){
-    product.stock = Number(data.stock);
+  if(stock != null && stock !== product.stock ){
+    product.stock = stock;
   }
 
   if(files || data.existing_images){
@@ -138,6 +142,10 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
     const formattedImages = allImages.map(image => image.replace(/\//g, '\\'));
     // Store the images in the desired format
     product.images = JSON.stringify(formattedImages);
+  }
+
+  if(price != null && price !== product.price){
+    product.price = price;
   }
 
   if(data.status && data.status != product.status){

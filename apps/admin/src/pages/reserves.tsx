@@ -1,8 +1,8 @@
 import Dashboard from "../components/ui/Dashboard";
-import { useState, useEffect, FormEvent, useMemo, useRef } from "react";
+import { useState, useEffect, FormEvent, useMemo, useRef, useCallback } from "react";
 import { Eye, Pen, X, ChevronLeft, ChevronRight, Calendar, CircleX, FlameKindling, Tent, Pizza, Search, Plus, Disc, Receipt, User as UserIcon, UserPlus } from "lucide-react";
 import Button from "../components/ui/Button";
-import { formatDate, getCurrentCustomPrice, calculatePrice, formatPrice, getReserveDates, formatDateToYYYYMMDD, getNumberOfNights } from "../lib/utils";
+import { formatDate, getCurrentCustomPrice, calculatePrice, formatPrice, getReserveDates, formatDateToYYYYMMDD, getNumberOfNights, computeTentNightlyTotals } from "../lib/utils";
 import { getAllReserveOptions, getAllReserves, createReserve, updateReserve, deleteReserve, downloadBillForReserve, SearchAvailableTents } from "../db/actions/reserves";
 import { getAllUsers } from "../db/actions/users";
 import { useAuth } from "../contexts/AuthContext";
@@ -97,6 +97,8 @@ const DashboardAdminReserves = () => {
 
   const tentSearchCache = useRef<Map<string, optionsReserve["tents"]>>(new Map());
 
+  const lastSelectedTentIdRef = useRef<number | null>(null);
+
   const tentSearchKey = useMemo(() => {
     const fromKey = formatDateToYYYYMMDD(searchGlampingDates.date_from);
     const toKey = formatDateToYYYYMMDD(searchGlampingDates.date_to);
@@ -150,49 +152,80 @@ const DashboardAdminReserves = () => {
 
   }, [tentSearchKey, user, searchGlampingDates.date_from, searchGlampingDates.date_to, i18n.language])
 
-  const getTentItemFormData = (): { idTent: number, aditionalPeople: number, aditionalPeoplePrice: number, dateFrom: Date, dateTo: Date, no_custom_price: boolean } | null => {
+  const getTentItemFormData = useCallback((): {
+    idTent: number;
+    additional_people: number;
+    additional_people_price: number;
+    kids: number;
+    base_kids: number;
+    max_kids: number;
+    kids_bundle_price: number;
+    dateFrom: Date;
+    dateTo: Date;
+    no_custom_price: boolean;
+  } | null => {
     const container = document.getElementById("modal_reserve_items") as HTMLFormElement;
 
     const idTentInput = container.querySelector(`select[name="reserve_tent_option_id"]`) as HTMLSelectElement;
-    const aditionalPeopleInput = container.querySelector(`input[name="reserve_tent_option_aditional_people"]`) as HTMLInputElement;
+    const additionalPeopleInput = container.querySelector(`input[name="reserve_tent_option_additional_people"]`) as HTMLInputElement;
+    const kidsInput = container.querySelector(`input[name="reserve_tent_option_kids"]`) as HTMLInputElement;
     const noCustomPriceInput = container.querySelector(`input[name="reserve_tent_option_no_special_price"]`) as HTMLInputElement;
 
-    if (idTentInput == undefined || aditionalPeopleInput == undefined || noCustomPriceInput == undefined) {
+    if (!idTentInput || !additionalPeopleInput || !kidsInput || !noCustomPriceInput) {
       return null;
     }
 
     const idTent = Number(idTentInput.value);
-    const aditionalPeople = Number(aditionalPeopleInput.value);
     const dateFrom = searchGlampingDates.date_from;
     const dateTo = searchGlampingDates.date_to;
     const no_custom_price = noCustomPriceInput.checked;
 
-    const tent_db = datasetReservesOptions.tents.find((i) => i.id == idTent);
+    const tent_db = datasetReservesOptions.tents.find((i) => i.id === idTent);
     if (!tent_db) {
       return null;
+    }
+
+    const baseKids = tent_db.qtykids ?? 0;
+    const maxKidsLimit = Math.max(tent_db.max_kids ?? 0, baseKids);
+
+    if (lastSelectedTentIdRef.current !== idTent) {
+      kidsInput.value = baseKids.toString();
+      lastSelectedTentIdRef.current = idTent;
+    }
+
+    const additional_people = Number(additionalPeopleInput.value);
+    let kids = Number(kidsInput.value);
+
+    if (!Number.isFinite(kids)) {
+      kids = baseKids;
+      kidsInput.value = kids.toString();
     }
 
     setErrorMessages({});
 
     try {
-
       ReserveTentItemFormDataSchema.parse({
         reserve_tent_option_id: idTent,
         reserve_tent_option_date_from: dateFrom,
         reserve_tent_option_date_to: dateTo,
-        reserve_tent_option_aditional_people: aditionalPeople,
-        reserve_tent_option_aditional_people_max: tent_db.max_aditional_people,
+        reserve_tent_option_additional_people: additional_people,
+        reserve_tent_option_additional_people_max: tent_db.max_additional_people,
+        reserve_tent_option_kids: kids,
+        reserve_tent_option_kids_max: maxKidsLimit,
       });
 
       return {
         idTent,
-        aditionalPeople,
+        additional_people,
+        additional_people_price: tent_db.additional_people_price ?? 0,
+        kids,
+        base_kids: baseKids,
+        max_kids: maxKidsLimit,
+        kids_bundle_price: tent_db.kids_bundle_price ?? 0,
         dateFrom,
         dateTo,
         no_custom_price,
-        aditionalPeoplePrice: tent_db.aditional_people_price
-      }
-
+      };
     } catch (error) {
       if (error instanceof ZodError) {
         const newErrorMessages: Record<string, string> = {};
@@ -205,9 +238,9 @@ const DashboardAdminReserves = () => {
       return null;
     }
 
-  }
+  }, [datasetReservesOptions.tents, searchGlampingDates.date_from, searchGlampingDates.date_to]);
 
-  const calculateTentItemPrice = () => {
+  const calculateTentItemPrice = useCallback(() => {
 
     const currentItem = getTentItemFormData();
 
@@ -216,14 +249,39 @@ const DashboardAdminReserves = () => {
       return;
     }
 
-    const data = datasetReservesOptions.tents.find((i) => i.id == currentItem.idTent);
+    const tentData = datasetReservesOptions.tents.find((i) => i.id === currentItem.idTent);
 
-    if (data) {
-      const base_price = calculatePrice(data.price, data.custom_price, currentItem.no_custom_price)
-      const ad_people_price = currentItem.aditionalPeople * currentItem.aditionalPeoplePrice;
-      setTentItemTotalPrice((ad_people_price + base_price) * getNumberOfNights(currentItem.dateFrom, currentItem.dateTo));
+    if (!tentData) {
+      setTentItemTotalPrice(0);
+      return;
     }
-  }
+
+    const nights = getNumberOfNights(currentItem.dateFrom, currentItem.dateTo);
+
+    const pricing = computeTentNightlyTotals(
+      {
+        price: tentData.price,
+        custom_price: tentData.custom_price,
+        qtykids: tentData.qtykids,
+        max_kids: tentData.max_kids,
+        kids_bundle_price: tentData.kids_bundle_price,
+        additional_people_price: tentData.additional_people_price,
+        max_additional_people: tentData.max_additional_people,
+        qtypeople: tentData.qtypeople,
+      },
+      {
+        kids: currentItem.kids,
+        additional_people: currentItem.additional_people,
+        no_custom_price: currentItem.no_custom_price,
+      }
+    );
+
+    setTentItemTotalPrice(pricing.nightly * nights);
+  }, [getTentItemFormData, datasetReservesOptions.tents]);
+
+  useEffect(() => {
+    calculateTentItemPrice();
+  }, [calculateTentItemPrice]);
 
   const [productItemTotalPrice, setProductItemTotalPrice] = useState<number>(0);
 
@@ -442,16 +500,38 @@ const DashboardAdminReserves = () => {
       data = datasetReservesOptions.tents.find((i) => i.id == currentItem.idTent);
 
       if (data) {
+        const nights = getNumberOfNights(currentItem.dateFrom, currentItem.dateTo);
+
+        const pricing = computeTentNightlyTotals(
+          {
+            price: data.price,
+            custom_price: data.custom_price,
+            qtykids: data.qtykids,
+            max_kids: data.max_kids,
+            kids_bundle_price: data.kids_bundle_price,
+            additional_people_price: data.additional_people_price,
+            max_additional_people: data.max_additional_people,
+            qtypeople: data.qtypeople,
+          },
+          {
+            kids: currentItem.kids,
+            additional_people: currentItem.additional_people,
+            no_custom_price: currentItem.no_custom_price,
+          }
+        );
+
         const newTentOption: ReserveTentDto = {
           idTent: currentItem.idTent,
           name: data.title,
-          nights: getNumberOfNights(currentItem.dateFrom, currentItem.dateTo),
-          price: calculatePrice(data.price, data.custom_price, currentItem.no_custom_price),
+          nights,
+          price: pricing.nightlyBase,
           confirmed: true,
           dateFrom: currentItem.dateFrom,
           dateTo: currentItem.dateTo,
-          aditionalPeople: currentItem.aditionalPeople,
-          aditionalPeoplePrice: currentItem.aditionalPeoplePrice
+          additional_people: pricing.effectiveAdditionalPeople,
+          additional_people_price: pricing.additional_people_price,
+          kids: pricing.selectedKids,
+          kids_price: pricing.kids_price,
         };
         setTents([...tents, newTentOption]);
       }
@@ -568,7 +648,10 @@ const DashboardAdminReserves = () => {
 
     // Sum prices for tents
     if (tents && tents.length > 0) {
-      gross_import += tents.reduce((sum, item) => sum + (item.nights * item.price + (item.nights * (item.aditionalPeoplePrice ?? 0) * item.aditionalPeople)), 0);
+      gross_import += tents.reduce((sum, item) => {
+        const nightly = item.price + (item.additional_people_price ?? 0) * item.additional_people + (item.kids_price ?? 0);
+        return sum + (nightly * item.nights);
+      }, 0);
     }
 
     // Sum prices for products
@@ -608,6 +691,7 @@ const DashboardAdminReserves = () => {
     let user_lastname = ""
     let user_phone_number = ""
     let user_email = ""
+    const userId = selectedReserve?.userId;
 
     if (userType == "old") {
       user_email = (form.querySelector('input[name="user_email"]') as HTMLInputElement).value
@@ -632,6 +716,7 @@ const DashboardAdminReserves = () => {
 
       ReserveFormDataSchema.parse({
         userType,
+        userId,
         name: user_firstname,
         lastname: user_lastname,
         cellphone: user_phone_number,
@@ -659,6 +744,7 @@ const DashboardAdminReserves = () => {
         user_lastname,
         user_phone_number,
         user_email,
+        userId,
         tents,
         products,
         experiences,
@@ -1107,17 +1193,33 @@ const DashboardAdminReserves = () => {
                       </div>
 
                       <div className="flex flex-col justify-start itemst-start gap-x-6 w-[100%] h-auto gap-y-2 sm:gap-y-1">
-                        <label htmlFor="reserve_tent_option_aditional_people" className="font-primary text-secondary text-xs sm:text-lg h-3 sm:h-6">{t("reserve.aditional_people")}</label>
-                        <input onChange={() => calculateTentItemPrice()} name="reserve_tent_option_aditional_people" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.aditional_people")} />
+                        <label htmlFor="reserve_tent_option_additional_people" className="font-primary text-secondary text-xs sm:text-lg h-3 sm:h-6">{t("reserve.aditional_people")}</label>
+                        <input onChange={() => calculateTentItemPrice()} name="reserve_tent_option_additional_people" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.aditional_people")} />
                         <div className="w-full h-6">
-                          {errorMessages.reserve_tent_option_aditional_people && (
+                          {errorMessages.reserve_tent_option_additional_people && (
                             <motion.p
                               initial="hidden"
                               animate="show"
                               exit="hidden"
                               variants={fadeIn("up", "", 0, 1)}
                               className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.reserve_tent_option_aditional_people)}
+                              {t(errorMessages.reserve_tent_option_additional_people)}
+                            </motion.p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col justify-start itemst-start gap-x-6 w-[100%] h-auto gap-y-2 sm:gap-y-1">
+                        <label htmlFor="reserve_tent_option_kids" className="font-primary text-secondary text-xs sm:text-lg h-3 sm:h-6">{t("reserve.kids")}</label>
+                        <input onChange={() => calculateTentItemPrice()} name="reserve_tent_option_kids" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.kids")} />
+                        <div className="w-full h-6">
+                          {errorMessages.reserve_tent_option_kids && (
+                            <motion.p
+                              initial="hidden"
+                              animate="show"
+                              exit="hidden"
+                              variants={fadeIn("up", "", 0, 1)}
+                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                              {t(errorMessages.reserve_tent_option_kids)}
                             </motion.p>
                           )}
                         </div>
@@ -1379,11 +1481,11 @@ const DashboardAdminReserves = () => {
                     {selectedReserve.tents.map((item, index) => (
                       <tr key={"reserve_key_tent_" + index} className="text-slate-400 ">
                         <td className="border border-slate-300 text-center">{(selectedReserve.extraItems?.length ?? 0) + index + 1}</td>
-                        <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)} ${item.aditionalPeople > 0 ? `| ADP:${item.aditionalPeople} ADPP: ${formatPrice(item.aditionalPeoplePrice ?? 0)}` : ""}`}</td>
+                        <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)}${item.additional_people > 0 ? ` | ADP:${item.additional_people} ADPP: ${formatPrice(item.additional_people_price ?? 0)}` : ""}${item.kids > 0 ? ` | KDS:${item.kids}${item.kids_price ? ` KDPP: ${formatPrice(item.kids_price ?? 0)}` : ""}` : ""}`}</td>
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price + (item.aditionalPeople * (item.aditionalPeoplePrice ?? 0)))}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.nights + ((item.aditionalPeoplePrice ?? 0) * item.aditionalPeople * item.nights))}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                       </tr>
                     ))}
 
@@ -1700,11 +1802,11 @@ const DashboardAdminReserves = () => {
                     {tents.map((item, index) => (
                       <tr key={"reserve_key_tent_" + index} className="text-slate-400 ">
                         <td className="border border-slate-300 text-center">{extraItems.length + index + 1}</td>
-                        <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)} ${item.aditionalPeople > 0 ? `| ADP:${item.aditionalPeople} ADPP: ${formatPrice(item.aditionalPeoplePrice ?? 0)}` : ""}`}</td>
+                        <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)}${item.additional_people > 0 ? ` | ADP:${item.additional_people} ADPP: ${formatPrice(item.additional_people_price ?? 0)}` : ""}${item.kids > 0 ? ` | KDS:${item.kids}${item.kids_price ? ` KDPP: ${formatPrice(item.kids_price ?? 0)}` : ""}` : ""}`}</td>
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price + (item.aditionalPeople * (item.aditionalPeoplePrice ?? 0)))}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.nights + ((item.aditionalPeoplePrice ?? 0) * item.aditionalPeople * item.nights))}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "tent")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -2099,11 +2201,11 @@ const DashboardAdminReserves = () => {
                     {tents.map((item, index) => (
                       <tr key={"reserve_key_tent_" + index} className="text-slate-400 ">
                         <td className="border border-slate-300 text-center">{extraItems.length + index + 1}</td>
-                        <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)} ${item.aditionalPeople > 0 ? `| ADP:${item.aditionalPeople} ADPP: ${formatPrice(item.aditionalPeoplePrice ?? 0)}` : ""}`}</td>
+                        <td className="border border-slate-300 text-left">{`${item.name} | ${t("reserve.from")}: ${formatDateToYYYYMMDD(item.dateFrom)} ${t("reserve.to")}: ${formatDateToYYYYMMDD(item.dateTo)}${item.additional_people > 0 ? ` | ADP:${item.additional_people} ADPP: ${formatPrice(item.additional_people_price ?? 0)}` : ""}${item.kids > 0 ? ` | KDS:${item.kids}${item.kids_price ? ` KDPP: ${formatPrice(item.kids_price ?? 0)}` : ""}` : ""}`}</td>
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price + (item.aditionalPeople * (item.aditionalPeoplePrice ?? 0)))}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.nights + ((item.aditionalPeoplePrice ?? 0) * item.aditionalPeople * item.nights))}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "tent")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}

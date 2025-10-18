@@ -38,7 +38,7 @@ BAMBUCAMP is a comprehensive reservation system designed for managing glamping a
 - **📅 Reservations Management**: Create, update, and manage reservations for tents, products, and experiences
 - **🏕️ Glamping Tents**: Full inventory management for glamping accommodations
 - **🛍️ Products & Services**: Manage products, experiences, and add-on services
-- **💳 Discounts & Promotions**: Create and apply discount codes and promotional offers
+- **💳 Discount Codes**: Create and apply discount codes across reservations
 - **🔔 Notifications System**: Real-time notifications for admins and users
 - **📧 Email Confirmations**: Automated email notifications for reservations
 - **🌍 Internationalization (i18n)**: Multi-language support across all apps
@@ -277,7 +277,6 @@ The backend provides the following main routes:
 - `/api/experiences` - Experiences management
 - `/api/products` - Products management
 - `/api/discounts` - Discount codes
-- `/api/promotions` - Promotions management
 - `/api/tents` - Glamping tents
 - `/api/reserves` - Reservations management
 - `/api/notifications` - Notifications system

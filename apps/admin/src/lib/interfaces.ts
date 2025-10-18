@@ -6,8 +6,6 @@ import type {
   ProductFormData as SharedProductFormData,
   AdminExperience,
   ExperienceFormData as SharedExperienceFormData,
-  PromotionFormData as SharedPromotionFormData,
-  OptionsPromotion,
   OptionsReserve,
   AdminReserveTentDto,
   AdminReserveProductDto,
@@ -36,8 +34,6 @@ export type {
   DiscountCode,
   DiscountCodeFilters,
   DiscountCodeFormData,
-  Promotion,
-  PromotionFilters,
   ExtraItem,
   NotificationDto,
   notifcationFilters,
@@ -59,8 +55,6 @@ export type Experience = AdminExperience;
 export type ExperienceFormData = SharedExperienceFormData<File>;
 export type { PublicExperience } from '@bambucamp/shared-types';
 
-export type PromotionFormData = SharedPromotionFormData<File>;
-export type optionsPromotion = OptionsPromotion;
 export type optionsReserve = OptionsReserve;
 
 export type ReserveTentDto = AdminReserveTentDto;
@@ -75,10 +69,3 @@ export type createReserveExtraItemDto = AdminCreateReserveExtraItemDto;
 export type Reserve = AdminReserve;
 export type ReserveFormData = AdminReserveFormData;
 export type ReserveFilters = SharedReserveFilters<string, string>;
-
-export type optTentPromotionDto = import('@bambucamp/shared-types').OptTentPromotionDto;
-export type optTentPromotionPublicDto = import('@bambucamp/shared-types').OptTentPromotionPublicDto;
-export type optProductPromotionDto = import('@bambucamp/shared-types').OptProductPromotionDto;
-export type optProductPromotionPublicDto = import('@bambucamp/shared-types').OptProductPromotionPublicDto;
-export type optExperiencePromotionDto = import('@bambucamp/shared-types').OptExperiencePromotionDto;
-export type optExperiencePromotionPublicDto = import('@bambucamp/shared-types').OptExperiencePromotionPublicDto;

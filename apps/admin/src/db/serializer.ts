@@ -1,4 +1,4 @@
-import { User, Tent, Product, TentFormData, ProductFormData, ProductCategory, ExperienceCategory, Experience, ExperienceFormData, DiscountCode, Promotion, PromotionFormData, optionsPromotion, optionsReserve, Reserve, NotificationDto, Faq, Review, ReserveTentDto, ReserveProductDto, ReserveExperienceDto, ReserveExtraItemDto, PublicProduct, PublicExperience, ExtraItem } from "../lib/interfaces"
+import { User, Tent, Product, TentFormData, ProductFormData, ProductCategory, ExperienceCategory, Experience, ExperienceFormData, DiscountCode, optionsReserve, Reserve, NotificationDto, Faq, Review, ReserveTentDto, ReserveProductDto, ReserveExperienceDto, ReserveExtraItemDto, PublicProduct, PublicExperience, ExtraItem } from "../lib/interfaces"
 import { convertStrToCurrentTimezoneDate } from "../lib/utils";
 
 export const serializeUser = (data: any): User | null => {
@@ -70,6 +70,8 @@ export const serializeTent = (data: any): Tent | null => {
     custom_price: transformedCustomPrice,
     additional_people_price: data.additional_people_price,
     max_additional_people: data.max_additional_people,
+    max_kids: data.max_kids ?? 0,
+    kids_bundle_price: data.kids_bundle_price ?? 0,
     status: data.status,
     createdAt: data.createdAt ? convertStrToCurrentTimezoneDate(data.createdAt) : data.createdAt,
     updatedAt: data.updatedAt ? convertStrToCurrentTimezoneDate(data.updatedAt) : data.updatedAt
@@ -91,6 +93,8 @@ export const serializeTentToDB = (tent: TentFormData, isEditable?: boolean) => {
   formData.append('qtykids', tent.qtykids.toString());
   formData.append('additional_people_price', tent.additional_people_price.toString());
   formData.append('max_additional_people', tent.max_additional_people.toString());
+  formData.append('max_kids', tent.max_kids.toString());
+  formData.append('kids_bundle_price', tent.kids_bundle_price.toString());
   formData.append('price', tent.price.toString());
   formData.append('status', tent.status);
 
@@ -328,51 +332,6 @@ export const serializeDiscountCode = (data: any): DiscountCode | null => {
   return discuntCode;
 }
 
-export const serializePromotionOptions = (data: any): optionsPromotion | null => {
-  let options: optionsPromotion | null = null;
-
-  const transformedTents = data.tents ? data.tents.map((item: any) => (serializeTent(item))) : [];
-
-  const transformedProducts = data.products ? data.products.map((item: any) => (serializeProduct(item))) : [];
-
-  const transformedExperiences = data.experiences ? data.experiences.map((item: any) => (serializeExperience(item))) : [];
-
-  options = {
-    tents: transformedTents,
-    products: transformedProducts,
-    experiences: transformedExperiences
-  }
-
-  return options;
-}
-
-export const serializePromotion = (data: any): Promotion | null => {
-  let promotion: Promotion | null = null;
-
-  promotion = {
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    images: formatImagePaths(data.images || []),
-    expiredDate: data.expiredDate ? convertStrToCurrentTimezoneDate(data.expiredDate) : data.expiredDate,
-    status: data.status,
-    qtypeople: data.qtypeople || 0,
-    qtykids: data.qtykids || 0,
-    netImport: data.netImport || 0,
-    discount: data.discount || 0,
-    grossImport: data.grossImport || 0,
-    stock: data.stock || 0,
-    tents: data.tents,
-    products: data.products,
-    experiences: data.experiences,
-    createdAt: data.createdAt ? convertStrToCurrentTimezoneDate(data.createdAt) : data.createdAt,
-    updatedAt: data.updatedAt ? convertStrToCurrentTimezoneDate(data.updatedAt) : data.updatedAt
-  };
-
-
-  return promotion;
-}
-
 export const serializeExtraItem = (data: any): ExtraItem | null => {
   if (!data) {
     return null;
@@ -390,37 +349,6 @@ export const serializeExtraItem = (data: any): ExtraItem | null => {
 }
 
 
-export const serializePromotionToDB = (promotion: PromotionFormData, isEditable?: boolean) => {
-
-  // Create a new FormData object
-  const formData = new FormData();
-
-  // Append basic fields
-  formData.append('title', promotion.title);
-  formData.append('description', promotion.description);
-  formData.append('expiredDate', promotion.expiredDate.toString());
-  formData.append('status', promotion.status);
-  formData.append('qtypeople', promotion.qtypeople.toString());
-  formData.append('qtykids', promotion.qtykids.toString());
-  formData.append('netImport', promotion.netImport.toString());
-  formData.append('discount', promotion.discount.toString());
-  formData.append('grossImport', promotion.grossImport.toString());
-  formData.append('stock', promotion.stock.toString());
-  formData.append('tents', promotion.tents);
-  formData.append('products', promotion.products);
-  formData.append('experiences', promotion.experiences);
-
-  if (isEditable && promotion.existing_images) {
-    formData.append('existing_images', promotion.existing_images)
-  }
-
-  // Append images
-  promotion.images.forEach((image) => {
-    formData.append('images', image);  // Ensure each image is appended with the correct key
-  });
-
-  return formData;
-}
 
 export const serializeReserveOptions = (data: any): optionsReserve | null => {
   let options: optionsReserve | null = null;
@@ -468,8 +396,10 @@ const serializeReserveTent = (data: any): ReserveTentDto => {
     dateFrom: new Date(data.dateFrom),
     dateTo: new Date(data.dateTo),
     confirmed: data.confirmed,
-    aditionalPeople: data.aditionalPeople || 0,
-    aditionalPeoplePrice: data.aditionalPeoplePrice || 0,
+    additional_people: data.additional_people ?? data.aditionalPeople ?? 0,
+    additional_people_price: data.additional_people_price ?? data.aditionalPeoplePrice ?? 0,
+    kids: data.kids ?? 0,
+    kids_price: data.kids_price ?? 0,
     tentDB: tent_db_parsed != null ? tent_db_parsed : undefined
   }
   return reserveTent;

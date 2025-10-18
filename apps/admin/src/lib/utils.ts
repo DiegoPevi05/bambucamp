@@ -1,6 +1,6 @@
 import {ClassValue,clsx} from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import {Reserve, ImageInterface, ReserveTentDto, CustomPrice, optTentPromotionDto, optProductPromotionDto, optExperiencePromotionDto} from './interfaces'
+import {Reserve, ImageInterface, ReserveTentDto, CustomPrice, Tent} from './interfaces'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -73,28 +73,6 @@ export const createImagesArray = (files:File[]) => {
     }));
     return newImages;
 }
-
-export const getTotalPromotionCalculated = (tents: optTentPromotionDto[], products: optProductPromotionDto[], experiences: optExperiencePromotionDto[]): number => {
-  let total = 0;
-
-  // Sum prices for tents
-  if (tents && tents.length > 0) {
-    total += tents.reduce((sum, item) => sum + (item.nights * item.price), 0);
-  }
-
-  // Sum prices for products
-  if (products && products.length > 0) {
-    total += products.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  }
-
-  // Sum prices for experiences
-  if (experiences && experiences.length > 0) {
-    total += experiences.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  }
-
-  return total;
-}
-
 
 export const calculatePrice = (basePrice: number , customPrices: CustomPrice[], noCustomPrice?:boolean): number => {
 
@@ -250,14 +228,81 @@ export const countUnconfirmedItems = (reserve: Reserve): number  => {
     }
   });
 
-  // Count unconfirmed promotions
-  reserve.promotions?.forEach((promotion) => {
-    if (!promotion.confirmed) {
-      unconfirmedCount++;
-    }
-  });
-
   return unconfirmedCount;
+}
+
+type TentPricingInput = Pick<
+  Tent,
+  | 'price'
+  | 'custom_price'
+  | 'qtykids'
+  | 'max_kids'
+  | 'kids_bundle_price'
+  | 'additional_people_price'
+  | 'max_additional_people'
+  | 'qtypeople'
+>
+
+type TentSelectionInput = {
+  kids?: number
+  additional_people?: number
+  no_custom_price?: boolean
+}
+
+export const computeTentNightlyTotals = (
+  tent: TentPricingInput,
+  selection: TentSelectionInput
+): {
+  nightly: number
+  nightlyBase: number
+  kids_price: number
+  additional_people_price: number
+  selectedKids: number
+  effectiveAdditionalPeople: number
+} => {
+  const nightlyBase = calculatePrice(
+    tent.price,
+    tent.custom_price ?? [],
+    selection.no_custom_price
+  )
+
+  const baseKids = tent.qtykids ?? 0
+  const maxKids = Math.max(tent.max_kids ?? baseKids, baseKids)
+  const rawKids = Number(selection.kids ?? baseKids)
+  const selectedKids = Math.max(0, Math.min(rawKids, maxKids))
+
+  const rawExtraAdults = Number(selection.additional_people ?? 0)
+  const maxExtraAdults = Math.max(tent.max_additional_people ?? 0, 0)
+  const sanitizedExtraAdults = Math.max(0, Math.min(rawExtraAdults, maxExtraAdults))
+
+  // When kids exceed the base allowance we follow the server behaviour and
+  // drop the extra adults surcharge entirely.
+  const effectiveAdditionalPeople =
+    selectedKids > baseKids ? 0 : sanitizedExtraAdults
+
+  const additionalPeoplePrice =
+    effectiveAdditionalPeople > 0 ? tent.additional_people_price ?? 0 : 0
+
+  const kidsBundleEligible =
+    (tent.kids_bundle_price ?? 0) > 0 &&
+    selectedKids > baseKids &&
+    effectiveAdditionalPeople === 0
+
+  const kidsBundlePrice = kidsBundleEligible ? tent.kids_bundle_price ?? 0 : 0
+
+  const nightly =
+    nightlyBase +
+    effectiveAdditionalPeople * (tent.additional_people_price ?? 0) +
+    kidsBundlePrice
+
+  return {
+    nightly,
+    nightlyBase,
+    kids_price: kidsBundlePrice,
+    additional_people_price: additionalPeoplePrice,
+    selectedKids,
+    effectiveAdditionalPeople,
+  }
 }
 
 
