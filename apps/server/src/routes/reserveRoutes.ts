@@ -28,6 +28,8 @@ router.delete('/reserve/product/admin/:id', authenticateToken, checkRole('ADMIN'
 router.post('/reserve/experience/admin', authenticateToken, checkRole('ADMIN', 'SUPERVISOR'), reserveController.createExperienceReserve);
 router.delete('/reserve/experience/:id', authenticateToken, checkRole('ADMIN', 'SUPERVISOR'), reserveController.deleteExperienceReserve);
 
+router.post('/reserves/reserve/extra-item/admin', authenticateToken, checkRole('ADMIN', 'SUPERVISOR'), reserveController.createExtraItemReserve);
+
 router.get('/bill/:id', authenticateToken, checkRole('CLIENT', 'ADMIN', 'SUPERVISOR'), reserveController.downloadReserveBill);
 
 router.post('/reserve/confirm', authenticateToken, checkRole('ADMIN', 'SUPERVISOR'), reserveController.confirmEntity);

@@ -1,10 +1,10 @@
-import {toast} from 'sonner';
+import { toast } from 'sonner';
 import axios from 'axios';
-import { PublicExperience, PublicProduct, Reserve, ReserveExperienceDto, ReserveFilters, ReserveFormData, ReserveProductDto, Tent, optionsReserve } from '../../lib/interfaces';
+import { PublicExperience, PublicProduct, Reserve, ReserveExperienceDto, ReserveExtraItemDto, ReserveFilters, ReserveFormData, ReserveProductDto, Tent, optionsReserve } from '../../lib/interfaces';
 import { serializeCalendarDays, serializeMyReserves, serializeMyReservesCalendar, serializePublicExperience, serializePublicProduct, serializeReserve, serializeReserveOptions, serializeTent } from '../serializer';
 
-export const SearchAvailableTents = async (token:string, dates:{dateFrom:Date,dateTo:Date}, language:string): Promise<Tent[]|null> => {
-  let data: Tent[]|null = null  
+export const SearchAvailableTents = async (token: string, dates: { dateFrom: Date, dateTo: Date }, language: string): Promise<Tent[] | null> => {
+  let data: Tent[] | null = null
 
   try {
     // Create a URLSearchParams object to construct the query string
@@ -19,12 +19,12 @@ export const SearchAvailableTents = async (token:string, dates:{dateFrom:Date,da
     const SearchAvailableTentsResponse = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language,
+        'Accept-Language': language,
       }
     });
 
 
-    data =  SearchAvailableTentsResponse.data.map((tent: any) => serializeTent(tent));
+    data = SearchAvailableTentsResponse.data.map((tent: any) => serializeTent(tent));
 
     return data;
 
@@ -55,9 +55,9 @@ export const SearchAvailableTents = async (token:string, dates:{dateFrom:Date,da
   return null;
 };
 
-export const getCalendarDates = async(page:Number, language:string):Promise<{ date: Date, label: string, available: boolean }[] | null> => {
-  let data:{ date: Date, label: string, available: boolean }[]|null = null;
-  try{
+export const getCalendarDates = async (page: Number, language: string): Promise<{ date: Date, label: string, available: boolean }[] | null> => {
+  let data: { date: Date, label: string, available: boolean }[] | null = null;
+  try {
 
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
@@ -68,14 +68,14 @@ export const getCalendarDates = async(page:Number, language:string):Promise<{ da
 
     const fetchedDays = await axios.get(url, {
       headers: {
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
     data = serializeCalendarDays(fetchedDays.data);
 
 
-  }catch(error){
+  } catch (error) {
     console.log(error)
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
@@ -104,9 +104,9 @@ export const getCalendarDates = async(page:Number, language:string):Promise<{ da
   return data;
 }
 
-export const getAllMyReservesCalendar = async(token:string, page:Number, language:string):Promise<{reserves:{ id:number, external_id:string, dateFrom:Date, dateTo:Date }[]} |null> => {
-  let data:{ reserves:{ id:number, external_id:string, dateFrom:Date, dateTo:Date }[]}  | null = null;
-  try{
+export const getAllMyReservesCalendar = async (token: string, page: Number, language: string): Promise<{ reserves: { id: number, external_id: string, dateFrom: Date, dateTo: Date }[] } | null> => {
+  let data: { reserves: { id: number, external_id: string, dateFrom: Date, dateTo: Date }[] } | null = null;
+  try {
 
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
@@ -118,7 +118,7 @@ export const getAllMyReservesCalendar = async(token:string, page:Number, languag
     const fetchReserves = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -128,7 +128,7 @@ export const getAllMyReservesCalendar = async(token:string, page:Number, languag
 
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -156,9 +156,9 @@ export const getAllMyReservesCalendar = async(token:string, page:Number, languag
   return data;
 }
 
-export const getAllMyReserves = async(token:string, page:Number, pageSize:number, language:string):Promise<{reserves:Reserve[], totalPages:Number ,currentPage:Number}|null> => {
-  let data:{ reserves:Reserve[],totalPages:Number,currentPage:Number } | null = null;
-  try{
+export const getAllMyReserves = async (token: string, page: Number, pageSize: number, language: string): Promise<{ reserves: Reserve[], totalPages: Number, currentPage: Number } | null> => {
+  let data: { reserves: Reserve[], totalPages: Number, currentPage: Number } | null = null;
+  try {
 
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
@@ -171,7 +171,7 @@ export const getAllMyReserves = async(token:string, page:Number, pageSize:number
     const fetchReserves = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -179,12 +179,12 @@ export const getAllMyReserves = async(token:string, page:Number, pageSize:number
     data = {
       reserves: fetchReserves.data.reserves.map((reserve: any) => serializeMyReserves(reserve)),
       currentPage: parseInt(fetchReserves.data.currentPage as string, 10),
-      totalPages:parseInt(fetchReserves.data.totalPages as string, 10)
+      totalPages: parseInt(fetchReserves.data.totalPages as string, 10)
     }
 
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -212,9 +212,9 @@ export const getAllMyReserves = async(token:string, page:Number, pageSize:number
   return data;
 }
 
-export const getAllReserveOptions = async(token:string, language:string):Promise<optionsReserve|null> => {
-  let data:optionsReserve | null = null;
-  try{
+export const getAllReserveOptions = async (token: string, language: string): Promise<optionsReserve | null> => {
+  let data: optionsReserve | null = null;
+  try {
 
     // Construct the URL with query parameters
     const url = `${import.meta.env.VITE_BACKEND_URL}/reserves/options`;
@@ -222,16 +222,16 @@ export const getAllReserveOptions = async(token:string, language:string):Promise
     const fetchReservesOptions = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
 
-    data = serializeReserveOptions(fetchReservesOptions.data); 
+    data = serializeReserveOptions(fetchReservesOptions.data);
 
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -259,10 +259,10 @@ export const getAllReserveOptions = async(token:string, language:string):Promise
   return data;
 }
 
-export const getAllReserves = async( token: string, page:Number, language:string, filters?:ReserveFilters ): Promise<{reserves:Reserve[], totalPages:Number ,currentPage:Number}|null> => {
+export const getAllReserves = async (token: string, page: Number, language: string, filters?: ReserveFilters): Promise<{ reserves: Reserve[], totalPages: Number, currentPage: Number } | null> => {
 
-  let data:{ reserves:Reserve[],totalPages:Number,currentPage:Number } | null = null;
-  try{
+  let data: { reserves: Reserve[], totalPages: Number, currentPage: Number } | null = null;
+  try {
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
     params.append('page', page.toString());
@@ -282,18 +282,18 @@ export const getAllReserves = async( token: string, page:Number, language:string
     const fetchReserves = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
     data = {
       reserves: fetchReserves.data.reserves.map((reserve: any) => serializeReserve(reserve)),
       currentPage: parseInt(fetchReserves.data.currentPage as string, 10),
-      totalPages:parseInt(fetchReserves.data.totalPages as string, 10)
+      totalPages: parseInt(fetchReserves.data.totalPages as string, 10)
     }
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -323,13 +323,13 @@ export const getAllReserves = async( token: string, page:Number, language:string
 
 
 
-export const createReserve = async (reserve: ReserveFormData, token: string, language:string): Promise<boolean> => {
+export const createReserve = async (reserve: ReserveFormData, token: string, language: string): Promise<boolean> => {
   try {
 
     const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reserves`, reserve, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
     toast.success(response.data.message);
@@ -362,13 +362,13 @@ export const createReserve = async (reserve: ReserveFormData, token: string, lan
 };
 
 
-export const updateReserve = async (reserveId:Number,reserve: ReserveFormData, token: string, language:string): Promise<boolean> => {
+export const updateReserve = async (reserveId: Number, reserve: ReserveFormData, token: string, language: string): Promise<boolean> => {
   try {
 
     const response = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/reserves/${reserveId}`, reserve, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -403,13 +403,13 @@ export const updateReserve = async (reserveId:Number,reserve: ReserveFormData, t
 
 
 
-export const deleteReserve = async(idReserve:Number, token:string, language:string ):Promise<boolean> => {
+export const deleteReserve = async (idReserve: Number, token: string, language: string): Promise<boolean> => {
 
   try {
     const response = await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/reserves/${idReserve}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -445,12 +445,12 @@ export const deleteReserve = async(idReserve:Number, token:string, language:stri
 
 
 
-export const addProductToReserve = async (products: ReserveProductDto[], token: string, language:string): Promise<boolean> => {
+export const addProductToReserve = async (products: ReserveProductDto[], token: string, language: string): Promise<boolean> => {
   try {
-    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reserves/reserve/product/admin`, {products:products }, {
+    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reserves/reserve/product/admin`, { products: products }, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
     toast.success(response.data.message);
@@ -482,14 +482,14 @@ export const addProductToReserve = async (products: ReserveProductDto[], token: 
   }
 };
 
-export const addExperienceToReserve = async (experiences: ReserveExperienceDto[], token: string, language:string): Promise<boolean> => {
+export const addExperienceToReserve = async (experiences: ReserveExperienceDto[], token: string, language: string): Promise<boolean> => {
   try {
 
 
-    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reserves/reserve/experience/admin`, {experiences:experiences }, {
+    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reserves/reserve/experience/admin`, { experiences: experiences }, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
     toast.success(response.data.message);
@@ -521,8 +521,44 @@ export const addExperienceToReserve = async (experiences: ReserveExperienceDto[]
   }
 };
 
-export const getPublicProducts = async (language:string, categories?:string[]): Promise<PublicProduct[]|null> => {
-  let data: PublicProduct[]|null = null  
+export const addExtraItemToReserve = async (
+  extraItems: ReserveExtraItemDto[],
+  token: string,
+  language: string
+): Promise<boolean> => {
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/reserves/reserve/extra-item/admin`,
+      { extraItems },
+      { headers: { Authorization: `Bearer ${token}`, 'Accept-Language': language } }
+    );
+    toast.success(response.data.message);
+    return true;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const statusCode = error.response?.status;
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.error;
+
+      if (Array.isArray(errorMessage)) {
+        errorMessage.forEach((err: any) => toast.error(err.msg || 'Validation error'));
+      } else {
+        if (statusCode) {
+          toast.error(`${errorData?.error || "Error adding extra items."} (Code: ${statusCode})`);
+        } else {
+          toast.error(errorData?.error || "An error occurred.");
+        }
+      }
+    } else {
+      toast.error("An unexpected error occurred.");
+    }
+    console.error(error);
+    return false;
+  }
+};
+
+export const getPublicProducts = async (language: string, categories?: string[]): Promise<PublicProduct[] | null> => {
+  let data: PublicProduct[] | null = null
 
   try {
 
@@ -539,12 +575,12 @@ export const getPublicProducts = async (language:string, categories?:string[]): 
 
     const PublicProductsResponse = await axios.get(url, {
       headers: {
-        'Accept-Language':language,
+        'Accept-Language': language,
       }
     });
 
 
-    data =  PublicProductsResponse.data.map((product: any) => serializePublicProduct(product));
+    data = PublicProductsResponse.data.map((product: any) => serializePublicProduct(product));
 
     return data;
 
@@ -575,8 +611,8 @@ export const getPublicProducts = async (language:string, categories?:string[]): 
   return null;
 };
 
-export const getPublicExperiences = async (language:string, categories?:string[]): Promise<PublicExperience[]|null> => {
-  let data: PublicExperience[]|null = null  
+export const getPublicExperiences = async (language: string, categories?: string[]): Promise<PublicExperience[] | null> => {
+  let data: PublicExperience[] | null = null
 
   try {
 
@@ -593,12 +629,12 @@ export const getPublicExperiences = async (language:string, categories?:string[]
 
     const PublicExperiencesResponse = await axios.get(url, {
       headers: {
-        'Accept-Language':language,
+        'Accept-Language': language,
       }
     });
 
 
-    data =  PublicExperiencesResponse.data.map((experience: any) => serializePublicExperience(experience));
+    data = PublicExperiencesResponse.data.map((experience: any) => serializePublicExperience(experience));
 
     return data;
 
@@ -630,13 +666,13 @@ export const getPublicExperiences = async (language:string, categories?:string[]
 };
 
 
-export const downloadBillForReserve = async(idReserve:Number, token:string, language:string ):Promise<void> => {
+export const downloadBillForReserve = async (idReserve: Number, token: string, language: string): Promise<void> => {
 
   try {
     const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/reserves/bill/${idReserve}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       },
       responseType: 'arraybuffer'
     });
@@ -685,17 +721,17 @@ export const downloadBillForReserve = async(idReserve:Number, token:string, lang
 };
 
 
-export const confirmEntity = async (entityType: string,reserveId:number, token:string, language:string , entityId?:number): Promise<boolean> => {
+export const confirmEntity = async (entityType: string, reserveId: number, token: string, language: string, entityId?: number): Promise<boolean> => {
   try {
-    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reserves/reserve/confirm`, 
-      { 
+    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/reserves/reserve/confirm`,
+      {
         entityType,
         reserveId,
         entityId
       }, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
     toast.success(response.data.message);

@@ -528,6 +528,28 @@ export const deleteExperienceReserve = async (id: number) => {
   return deleted;
 };
 
+export const AddExtraItemReserve = async (
+  reserve: Reserve | null,
+  data: ReserveExtraItemDto[]
+) => {
+  let priceIsConfirmed = false;
+
+  if (!reserve) {
+    priceIsConfirmed = true;
+    const reserveId = data[0]?.reserveId;
+    reserve = await reserveRepository.getReserveById(reserveId);
+    if (!reserve) throw new NotFoundError('error.noReservefoundInDB');
+  }
+
+  // if admin flow, auto-confirm
+  const processed = data.map(x => ({ ...x, confirmed: priceIsConfirmed ? true : (x.confirmed ?? false) }));
+
+  await reserveRepository.AddExtraItemReserve(processed);
+  await reserveRepository.recomputeAndUpdateReserveTotals(reserve.id);
+
+  return processed;
+};
+
 export const downloadReserveBill = async (reserveId: number, user: User | undefined, t: (key: string) => string): Promise<Buffer> => {
 
   if (!user) throw new UnauthorizedError('error.unauthorized');

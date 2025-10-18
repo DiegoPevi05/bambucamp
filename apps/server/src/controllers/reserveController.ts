@@ -506,6 +506,29 @@ export const deleteExperienceReserve = [
   }
 ];
 
+export const createExtraItemReserve = [
+  body('extraItems').isArray().withMessage('validation.extraItemsMustBeArray'),
+
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const localizedErrors = errors.array().map((error) => ({ ...error, msg: req.t(error.msg) }));
+      return res.status(400).json({ error: localizedErrors });
+    }
+
+    try {
+      await reserveService.AddExtraItemReserve(null, req.body.extraItems);
+      res.status(201).json({ message: req.t('message.extraItemReserveCreated') });
+    } catch (error) {
+      if (error instanceof CustomError) {
+        res.status(error.statusCode).json({ error: req.t(error.message) });
+      } else {
+        res.status(500).json({ error: req.t('error.failedToCreateExtraItemReserve') });
+      }
+    }
+  }
+];
+
 export const confirmEntity = [
   // Validate that 'entityType' and 'reserveId' exist
   body('entityType').notEmpty().withMessage('validation.entityTypeRequired'),

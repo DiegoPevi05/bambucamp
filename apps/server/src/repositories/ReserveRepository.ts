@@ -579,6 +579,23 @@ export const AddExperienceReserve = async (data: createReserveExperienceDto[]): 
   return createdExperiences;
 };
 
+export const AddExtraItemReserve = async (data: ReserveExtraItemDto[]): Promise<ReserveExtraItem[]> => {
+  const created: ReserveExtraItem[] = [];
+  for (const x of data) {
+    const row = await prisma.reserveExtraItem.create({
+      data: {
+        reserveId: x.reserveId,
+        name: x.name,
+        price: x.price,
+        quantity: x.quantity,
+        confirmed: x.confirmed ?? false,
+      }
+    });
+    created.push(row);
+  }
+  return created;
+};
+
 export const updateExperienceReserve = async (id: number, confirmed: boolean): Promise<ReserveExperience> => {
   return await prisma.reserveExperience.update({
     where: { id },

@@ -420,6 +420,7 @@ export interface PaginatedDiscountCodes {
 
 export interface ExtraItem {
   id: number;
+  reserveId: number;
   name: string;
   description?: string;
   price: number;
@@ -559,6 +560,7 @@ export interface ServerReserveExperienceDto<TExperience = unknown> {
 
 export interface ClientReserveExtraItemDto {
   id?: number;
+  reserveId: number;
   name: string;
   price: number;
   quantity: number;
@@ -569,6 +571,7 @@ export interface AdminReserveExtraItemDto extends ClientReserveExtraItemDto { }
 
 export interface ServerReserveExtraItemDto<TExtraItem = unknown> {
   id?: number;
+  reserveId: number;
   name: string;
   price: number;
   quantity: number;
