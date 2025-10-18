@@ -249,7 +249,7 @@ export const serializeExperience = (data: any): Experience | null => {
     duration: data.duration || 0,
     qtypeople: data.qtypeople || 0,
     limit_age: data.limit_age || 0,
-    suggestions: data.suggestions ? JSON.parse(data.suggestions) : [],
+    suggestions: typeof data.suggestions === "string" ? JSON.parse(data.suggestions) : data.suggestions,
     custom_price: transformedCustomPrice,
     status: data.status,
     createdAt: data.createdAt ? convertStrToCurrentTimezoneDate(data.createdAt) : data.createdAt,
@@ -273,7 +273,7 @@ export const serializePublicExperience = (data: any): PublicExperience | null =>
     duration: data.duration || 0,
     qtypeople: data.qtypeople || 0,
     limit_age: data.limit_age || 0,
-    suggestions: data.suggestions ? JSON.parse(data.suggestions) : [],
+    suggestions: typeof data.suggestions === "string" ? JSON.parse(data.suggestions) : data.suggestions,
     custom_price: data.custom_price,
     status: data.status,
     createdAt: data.createdAt ? convertStrToCurrentTimezoneDate(data.createdAt) : data.createdAt,
@@ -362,7 +362,7 @@ export const serializeReserveOptions = (data: any): optionsReserve | null => {
   const transformedExtraItems = data.extraItems
     ? data.extraItems
       .map((item: any) => serializeExtraItem(item))
-      .filter((item): item is ExtraItem => item !== null)
+      .filter((item: any): item is ExtraItem => item !== null)
     : [];
 
   const transformedDiscounts = data.discounts ? data.discounts.map((item: any) => (serializeDiscountCode(item))) : [];
@@ -483,7 +483,7 @@ export const serializeReserve = (data: any): Reserve | null => {
     tents: data.tents ? data.tents.map((tent: any) => serializeReserveTent(tent)) : [],
     products: data.products ? data.products.map((product: any) => serializeReserveProduct(product)) : [],
     experiences: data.experiences ? data.experiences.map((experience: any) => serializeReserveExperience(experience)) : [],
-    extraItems: data.extraItems ? data.extraItems.map((item: any) => serializeReserveExtraItem(item)).filter((item): item is ReserveExtraItemDto => item !== null) : [],
+    extraItems: data.extraItems ? data.extraItems.map((item: any) => serializeReserveExtraItem(item)).filter((item: any): item is ReserveExtraItemDto => item !== null) : [],
     discount_code_id: data.discount_code_id || 0,
     discount_code_name: data.discount_code_name,
     canceled_reason: data.canceled_reason,

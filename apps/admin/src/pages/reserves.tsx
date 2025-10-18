@@ -165,6 +165,7 @@ const DashboardAdminReserves = () => {
     no_custom_price: boolean;
   } | null => {
     const container = document.getElementById("modal_reserve_items") as HTMLFormElement;
+    if (!container) return null;
 
     const idTentInput = container.querySelector(`select[name="reserve_tent_option_id"]`) as HTMLSelectElement;
     const additionalPeopleInput = container.querySelector(`input[name="reserve_tent_option_additional_people"]`) as HTMLInputElement;
@@ -381,50 +382,31 @@ const DashboardAdminReserves = () => {
 
   const [extraItemTotalPrice, setExtraItemTotalPrice] = useState<number>(0);
 
-  const getExtraItemFormData = (): { extraItemId: number | null, name: string, price: number, quantity: number } | null => {
+  const getExtraItemFormData = (): { extraItemId: null, name: string, price: number, quantity: number } | null => {
     const container = document.getElementById("modal_reserve_items") as HTMLFormElement;
 
-    const idInput = container.querySelector(`select[name="reserve_extra_item_option_id"]`) as HTMLSelectElement;
     const nameInput = container.querySelector(`input[name="reserve_extra_item_option_name"]`) as HTMLInputElement;
     const priceInput = container.querySelector(`input[name="reserve_extra_item_option_price"]`) as HTMLInputElement;
     const quantityInput = container.querySelector(`input[name="reserve_extra_item_option_quantity"]`) as HTMLInputElement;
 
-    if (!idInput || !nameInput || !priceInput || !quantityInput) {
-      return null;
-    }
+    if (!nameInput || !priceInput || !quantityInput) return null;
 
-    const extraItemId = idInput.value ? Number(idInput.value) : null;
-    let name = nameInput.value;
-    let price = Number(priceInput.value);
+    const name = nameInput.value;
+    const price = Number(priceInput.value);
     const quantity = Number(quantityInput.value);
-
-    const selectedExtraItem = extraItemId ? datasetReservesOptions.extraItems.find((item) => item.id === extraItemId) : undefined;
-
-    if (selectedExtraItem) {
-      name = selectedExtraItem.name;
-      price = selectedExtraItem.price ?? price;
-      nameInput.value = selectedExtraItem.name;
-      priceInput.value = selectedExtraItem.price?.toString() ?? priceInput.value;
-    }
 
     setErrorMessages({});
 
     try {
-
+      // keep schema call; pass id as null (if your schema expects it)
       ReserveExtraItemFormDataSchema.parse({
-        reserve_extra_item_option_id: extraItemId,
+        reserve_extra_item_option_id: null,
         reserve_extra_item_option_name: name,
         reserve_extra_item_option_price: price,
         reserve_extra_item_option_quantity: quantity,
       });
 
-      return {
-        extraItemId,
-        name,
-        price,
-        quantity
-      }
-
+      return { extraItemId: null, name, price, quantity };
     } catch (error) {
       if (error instanceof ZodError) {
         const newErrorMessages: Record<string, string> = {};
@@ -436,8 +418,7 @@ const DashboardAdminReserves = () => {
       }
       return null;
     }
-
-  }
+  };
 
   const calculateProductItemPrice = () => {
 
@@ -474,16 +455,13 @@ const DashboardAdminReserves = () => {
   }
 
   const calculateExtraItemPrice = () => {
-
     const currentItem = getExtraItemFormData();
-
     if (currentItem == null) {
       setExtraItemTotalPrice(0);
       return;
     }
-
     setExtraItemTotalPrice(currentItem.price * currentItem.quantity);
-  }
+  };
 
 
   const handleAddReserveOption = (type: string) => {
@@ -500,6 +478,7 @@ const DashboardAdminReserves = () => {
       data = datasetReservesOptions.tents.find((i) => i.id == currentItem.idTent);
 
       if (data) {
+        console.log(currentItem.dateFrom, currentItem.dateTo);
         const nights = getNumberOfNights(currentItem.dateFrom, currentItem.dateTo);
 
         const pricing = computeTentNightlyTotals(
@@ -533,6 +512,7 @@ const DashboardAdminReserves = () => {
           kids: pricing.selectedKids,
           kids_price: pricing.kids_price,
         };
+
         setTents([...tents, newTentOption]);
       }
 
@@ -581,19 +561,13 @@ const DashboardAdminReserves = () => {
     } else if (type == "extraItem") {
 
       const currentItem = getExtraItemFormData();
-
-      if (currentItem == null) {
-        return;
-      }
-
-      const extraItemData = currentItem.extraItemId ? datasetReservesOptions.extraItems.find((i) => i.id == currentItem.extraItemId) : undefined;
+      if (currentItem == null) return;
 
       const newExtraItemOption: ReserveExtraItemDto = {
-        extraItemId: currentItem.extraItemId ?? null,
-        name: extraItemData ? extraItemData.name : currentItem.name,
-        price: extraItemData ? extraItemData.price ?? currentItem.price : currentItem.price,
+        name: currentItem.name,
+        price: currentItem.price,
         quantity: currentItem.quantity,
-        confirmed: true
+        confirmed: true,
       };
       setExtraItems([...extraItems, newExtraItemOption]);
 
@@ -824,7 +798,7 @@ const DashboardAdminReserves = () => {
   }
 
   const deleteReserveHandler = async () => {
-    if (user != null && selectedReserve != null) {
+    if (user != null && selectedReserve != null && selectedReserve.id) {
       const isSuccess = await deleteReserve(selectedReserve.id, user.token, i18n.language)
       if (!isSuccess) {
         return;
@@ -860,7 +834,7 @@ const DashboardAdminReserves = () => {
     setLoadingForm(true);
     const fieldsValidated = validateFields('form_update_reserve');
     if (fieldsValidated != null) {
-      if (user !== null && selectedReserve != null) {
+      if (user !== null && selectedReserve != null && selectedReserve.id) {
         const isSuccess = await updateReserve(selectedReserve.id, fieldsValidated, user.token, i18n.language);
         if (!isSuccess) {
           setLoadingForm(false);
@@ -954,7 +928,7 @@ const DashboardAdminReserves = () => {
       }*/
 
   const downloadReceipt = async () => {
-    if (user !== null && selectedReserve) {
+    if (user !== null && selectedReserve && selectedReserve.id) {
       await downloadBillForReserve(selectedReserve.id, user.token, i18n.language);
     }
   }
@@ -1369,50 +1343,84 @@ const DashboardAdminReserves = () => {
                   )}
 
                   {openReserveOption == "extraItem" && (
-
                     <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden mt-6 gap-y-2 sm:gap-y-2">
-
-                      <div className="flex flex-col justify-start items-start gap-x-6 w-[100%] h-auto gap-y-2 sm:gap-y-1">
-                        <label htmlFor="reserve_extra_item_option_id" className="font-primary text-secondary text-xs sm:text-lg h-3 sm:h-6">{t("reserve.extra_item_select")}</label>
-                        <select onChange={() => calculateExtraItemPrice()} name="reserve_extra_item_option_id" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
-                          <option value="">{t("reserve.extra_item_custom")}</option>
-                          {datasetReservesOptions.extraItems.map((extraItem, index) => (
-                            <option key={index} value={extraItem.id}>{`${extraItem.name} | ${t("reserve.price")}: ${formatPrice(extraItem.price ?? 0)}`}</option>
-                          ))}
-                        </select>
-                        <div className="w-full h-6">
-                          {errorMessages.reserve_extra_item_option_id && (
-                            <motion.p
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up", "", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.reserve_extra_item_option_id)}
-                            </motion.p>
-                          )}
-                        </div>
-                      </div>
                       <div className="flex flex-col lg:flex-row justify-start items-start w-full h-auto overflow-hidden my-1 gap-x-6 gap-y-2">
                         <div className="flex flex-col justify-start items-start w-full h-auto gap-y-2 sm:gap-y-1">
-                          <label htmlFor="reserve_extra_item_option_name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.extra_item_name")}</label>
-                          <input name="reserve_extra_item_option_name" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.extra_item_name")} />
+                          <label htmlFor="reserve_extra_item_option_name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">
+                            {t("reserve.extra_item_name")}
+                          </label>
+                          <input
+                            name="reserve_extra_item_option_name"
+                            className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary"
+                            placeholder={t("reserve.extra_item_name")}
+                            onChange={calculateExtraItemPrice}
+                          />
+                          <div className="w-full h-6">
+                            {errorMessages.reserve_extra_item_option_name && (
+                              <motion.p initial="hidden" animate="show" exit="hidden" variants={fadeIn("up", "", 0, 1)} className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                                {t(errorMessages.reserve_extra_item_option_name)}
+                              </motion.p>
+                            )}
+                          </div>
                         </div>
+
                         <div className="flex flex-col justify-start items-start w-full h-auto gap-y-2 sm:gap-y-1">
-                          <label htmlFor="reserve_extra_item_option_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.extra_item_price")}</label>
-                          <input onChange={() => calculateExtraItemPrice()} name="reserve_extra_item_option_price" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.extra_item_price")} />
+                          <label htmlFor="reserve_extra_item_option_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">
+                            {t("reserve.extra_item_price")}
+                          </label>
+                          <input
+                            onChange={calculateExtraItemPrice}
+                            name="reserve_extra_item_option_price"
+                            type="number"
+                            className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary"
+                            placeholder={t("reserve.extra_item_price")}
+                          />
+                          <div className="w-full h-6">
+                            {errorMessages.reserve_extra_item_option_price && (
+                              <motion.p initial="hidden" animate="show" exit="hidden" variants={fadeIn("up", "", 0, 1)} className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                                {t(errorMessages.reserve_extra_item_option_price)}
+                              </motion.p>
+                            )}
+                          </div>
                         </div>
+
                         <div className="flex flex-col justify-start items-start w-full h-auto gap-y-2 sm:gap-y-1">
-                          <label htmlFor="reserve_extra_item_option_quantity" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("reserve.extra_item_quantity")}</label>
-                          <input onChange={() => calculateExtraItemPrice()} name="reserve_extra_item_option_quantity" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("reserve.extra_item_quantity")} />
+                          <label htmlFor="reserve_extra_item_option_quantity" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">
+                            {t("reserve.extra_item_quantity")}
+                          </label>
+                          <input
+                            onChange={calculateExtraItemPrice}
+                            name="reserve_extra_item_option_quantity"
+                            type="number"
+                            className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary"
+                            placeholder={t("reserve.extra_item_quantity")}
+                          />
+                          <div className="w-full h-6">
+                            {errorMessages.reserve_extra_item_option_quantity && (
+                              <motion.p initial="hidden" animate="show" exit="hidden" variants={fadeIn("up", "", 0, 1)} className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                                {t(errorMessages.reserve_extra_item_option_quantity)}
+                              </motion.p>
+                            )}
+                          </div>
                         </div>
                       </div>
+
                       <div className="w-full h-auto flex flex-row justify-end">
                         <span className="text-2xl">{formatPrice(extraItemTotalPrice)}</span>
                       </div>
-                      <Button onClick={() => handleAddReserveOption("extraItem")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-auto ml-auto mt-auto">{t("reserve.add_extra_item_reserve")}</Button>
-                    </div>
 
+                      <Button
+                        onClick={() => handleAddReserveOption("extraItem")}
+                        size="sm"
+                        type="button"
+                        variant="dark"
+                        effect="default"
+                        isRound={true}
+                        className="w-auto ml-auto mt-auto"
+                      >
+                        {t("reserve.add_extra_item_reserve")}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </Modal>

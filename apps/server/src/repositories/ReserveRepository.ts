@@ -1,5 +1,5 @@
-import { PrismaClient, Reserve, ReserveTent, ReserveProduct, ReserveExperience, ReserveExtraItem, Tent, ReserveStatus, PaymentStatus} from "@prisma/client";
-import { ReserveDto, ReserveFilters, PaginatedReserve, ReserveTentDto, ReserveExperienceDto, ReserveProductDto, ReserveExtraItemDto, ReserveOptions, createReserveProductDto, createReserveExperienceDto, createReserveExtraItemDto } from "../dto/reserve";
+import { PrismaClient, Reserve, ReserveTent, ReserveProduct, ReserveExperience, ReserveExtraItem, Tent, ReserveStatus, PaymentStatus } from "@prisma/client";
+import { ReserveDto, ReserveFilters, PaginatedReserve, ReserveTentDto, ReserveExperienceDto, ReserveProductDto, ReserveExtraItemDto, ReserveOptions, createReserveProductDto, createReserveExperienceDto } from "../dto/reserve";
 import * as utils from "../lib/utils";
 import { NotFoundError } from "../middleware/errors";
 
@@ -31,15 +31,10 @@ export async function enrichReserve(reserve: ReserveWithRelations): Promise<Rese
   const productIds = reserve.products.map(p => p.idProduct);
   const experienceIds = reserve.experiences.map(e => e.idExperience);
 
-  const extraItemIds = reserve.extraItems
-    .map(extra => extra.extraItemId)
-    .filter((id): id is number => typeof id === 'number');
-
-  const [rawTentsDB, rawProductsDB, rawExperiencesDB, rawExtraItemsDB] = await Promise.all([
+  const [rawTentsDB, rawProductsDB, rawExperiencesDB] = await Promise.all([
     tentIds.length ? prisma.tent.findMany({ where: { id: { in: tentIds } } }) : Promise.resolve([]),
     productIds.length ? prisma.product.findMany({ where: { id: { in: productIds } } }) : Promise.resolve([]),
     experienceIds.length ? prisma.experience.findMany({ where: { id: { in: experienceIds } } }) : Promise.resolve([]),
-    extraItemIds.length ? prisma.extraItem.findMany({ where: { id: { in: extraItemIds } } }) : Promise.resolve([]),
   ]);
 
   // Parseo directo (siempre string JSON válido)
@@ -64,7 +59,6 @@ export async function enrichReserve(reserve: ReserveWithRelations): Promise<Rese
   const tentMap = new Map(tentsDB.map(t => [t.id, t]));
   const productMap = new Map(productsDB.map(p => [p.id, p]));
   const experienceMap = new Map(experiencesDB.map(e => [e.id, e]));
-  const extraItemMap = new Map(rawExtraItemsDB.map(item => [item.id, item]));
 
   return {
     ...reserve,
@@ -80,10 +74,7 @@ export async function enrichReserve(reserve: ReserveWithRelations): Promise<Rese
       ...experience,
       experienceDB: experienceMap.get(experience.idExperience),
     })),
-    extraItems: reserve.extraItems.map(extraItem => ({
-      ...extraItem,
-      extraItemDB: extraItem.extraItemId ? extraItemMap.get(extraItem.extraItemId) : undefined,
-    })),
+    extraItems: reserve.extraItems.map(x => ({ ...x })),
   } as ReserveDto;
 }
 
@@ -304,12 +295,6 @@ export const getAllReserveOptions = async (): Promise<ReserveOptions> => {
     },
   });
 
-  const extraItems = await prisma.extraItem.findMany({
-    where: {
-      status: 'ACTIVE'
-    },
-  });
-
   const discounts = await prisma.discountCode.findMany({
     where: {
       status: 'ACTIVE'
@@ -320,7 +305,6 @@ export const getAllReserveOptions = async (): Promise<ReserveOptions> => {
     tents,
     products,
     experiences,
-    extraItems,
     discounts
   }
 
@@ -500,11 +484,10 @@ export const createReserve = async (data: ReserveDto): Promise<ReserveDto | null
       })),
     },
     extraItems: {
-      create: (data.extraItems ?? []).map(extraItem => ({
-        extraItemId: extraItem.extraItemId ?? null,
-        name: extraItem.name,
-        price: extraItem.price,
-        quantity: extraItem.quantity,
+      create: (data.extraItems ?? []).map(x => ({
+        name: x.name,
+        price: x.price,
+        quantity: x.quantity,
         confirmed,
       })),
     },
@@ -610,34 +593,36 @@ export const deleteExperienceReserve = async (id: number): Promise<ReserveExperi
 }
 
 
+export const getAvailableReserves = async (
+  tents: ReserveTentDto[],
+  excludeReserveId?: number
+): Promise<{ reserveId: number; idTent: number; dateFrom: Date; dateTo: Date }[]> => {
+  // only well-formed tents
+  const items = tents.filter(t => t.idTent != null && t.dateFrom && t.dateTo);
 
-export const getAvailableReserves = async (tents: ReserveTentDto[]): Promise<{ reserveId: number; idTent: number }[]> => {
-  // Extract tent IDs and filter out any undefined values
-  const tentIds = tents.map(tent => tent.idTent).filter((id): id is number => id !== undefined);
+  if (items.length === 0) return [];
 
-  // Prepare the query to find overlapping reservations
-  return await prisma.reserveTent.findMany({
+  return prisma.reserveTent.findMany({
     where: {
-      idTent: {
-        in: tentIds,
-      },
-      AND: tents.flatMap(tent => [
-        {
-          dateFrom: {
-            lt: tent.dateTo, // Check if the reservation ends after the tent's check-in
+      OR: items.map(t => ({
+        idTent: t.idTent!,
+        ...(excludeReserveId ? { reserveId: { not: excludeReserveId } } : {}),
+        AND: [
+          // true overlap: start < otherEnd AND end > otherStart
+          { dateFrom: { lt: t.dateTo } },
+          { dateTo: { gt: t.dateFrom } },
+          // count only blocking reserve statuses (optional but recommended)
+          {
+            reserve: {
+              reserve_status: {
+                in: [ReserveStatus.CONFIRMED, ReserveStatus.NOT_CONFIRMED],
+              },
+            },
           },
-        },
-        {
-          dateTo: {
-            gt: tent.dateFrom, // Check if the reservation starts before the tent's check-out
-          },
-        },
-      ]),
+        ],
+      })),
     },
-    select: {
-      reserveId: true,
-      idTent: true,
-    },
+    select: { reserveId: true, idTent: true, dateFrom: true, dateTo: true },
   });
 };
 
@@ -710,11 +695,10 @@ export const upsertReserveDetails = async (
 
   // Create new extra items
   await prisma.reserveExtraItem.createMany({
-    data: extraItems.map((extraItem) => ({
-      extraItemId: extraItem.extraItemId ?? null,
-      name: extraItem.name,
-      price: extraItem.price,
-      quantity: extraItem.quantity,
+    data: extraItems.map(x => ({
+      name: x.name,
+      price: x.price,
+      quantity: x.quantity,
       reserveId: idReserve,
     })),
   });
@@ -1165,3 +1149,41 @@ export const getReserveQuantityStatistics = async (filters: SalesFilters, langua
 
   return quantityData.reverse();
 };
+
+// reserveRepository.ts
+export async function recomputeAndUpdateReserveTotals(reserveId: number) {
+  const reserve = await prisma.reserve.findUnique({
+    where: { id: reserveId },
+    include: { tents: true, products: true, experiences: true, extraItems: true },
+  });
+  if (!reserve) throw new NotFoundError('error.noReservefoundInDB');
+
+  // Calculate gross
+  const tentTotal = reserve.tents.reduce((sum, t) => {
+    const nightly = t.price + (t.kids_price ?? 0) + (t.additional_people_price ?? 0) * (t.additional_people ?? 0);
+    return sum + nightly * (t.nights ?? 0);
+  }, 0);
+
+  const productTotal = reserve.products.reduce((s, p) => s + p.price * p.quantity, 0);
+  const experienceTotal = reserve.experiences.reduce((s, e) => s + e.price * e.quantity, 0);
+  const extraItemTotal = reserve.extraItems.reduce((s, x) => s + x.price * x.quantity, 0);
+
+  const gross_import = tentTotal + productTotal + experienceTotal + extraItemTotal;
+
+  // Apply discount using your same util
+  const { netImport, discount, discount_name } = await utils.applyDiscount(
+    gross_import,
+    reserve.discount_code_id,
+    reserve.discount // keep current if any (your util handles optional)
+  );
+
+  await prisma.reserve.update({
+    where: { id: reserveId },
+    data: {
+      gross_import,
+      net_import: netImport,
+      discount,
+      discount_code_name: discount_name ?? "",
+    },
+  });
+}

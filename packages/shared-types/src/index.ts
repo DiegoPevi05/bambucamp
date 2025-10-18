@@ -559,24 +559,20 @@ export interface ServerReserveExperienceDto<TExperience = unknown> {
 
 export interface ClientReserveExtraItemDto {
   id?: number;
-  extraItemId?: number | null;
   name: string;
   price: number;
   quantity: number;
   confirmed: boolean;
-  extraItemDB?: ExtraItem;
 }
 
 export interface AdminReserveExtraItemDto extends ClientReserveExtraItemDto { }
 
 export interface ServerReserveExtraItemDto<TExtraItem = unknown> {
   id?: number;
-  extraItemId?: number | null;
   name: string;
   price: number;
   quantity: number;
   confirmed: boolean;
-  extraItemDB?: TExtraItem;
 }
 
 
@@ -715,7 +711,6 @@ export interface ReserveOptions {
   tents?: PublicTentDto[];
   products?: ProductPublicDto[];
   experiences?: ExperiencePublicDto[];
-  extraItems?: ExtraItem[];
   discounts?: DiscountCodeDto[];
 }
 

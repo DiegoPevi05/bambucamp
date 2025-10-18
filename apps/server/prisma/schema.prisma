@@ -201,31 +201,17 @@ model ReserveExperience {
   updatedAt       DateTime  @updatedAt @default(now())
 }
 
-model ExtraItem {
-  id          Int                 @id @default(autoincrement())
-  name        String              @db.Text
-  description String?             @db.Text
-  price       Float               @default(0)
-  status      String              @default("ACTIVE") @db.Text
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt @default(now())
-  reserves    ReserveExtraItem[]
-}
-
 model ReserveExtraItem {
-  id          Int        @id @default(autoincrement())
-  reserveId   Int
-  extraItemId Int?
-  name        String     @db.Text
-  price       Float      @default(0)
-  quantity    Int        @default(1)
-  confirmed   Boolean    @default(false)
-  reserve     Reserve    @relation(fields: [reserveId], references: [id], onDelete: Cascade)
-  extraItem   ExtraItem? @relation(fields: [extraItemId], references: [id])
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt @default(now())
+  id        Int      @id @default(autoincrement())
+  reserveId Int
+  name      String   @db.Text
+  price     Float    @default(0)
+  quantity  Int      @default(1)
+  confirmed Boolean  @default(false)
+  reserve   Reserve  @relation(fields: [reserveId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 }
-
 
 enum NotificationType {
   SUCCESS

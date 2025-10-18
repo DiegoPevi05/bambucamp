@@ -1,9 +1,7 @@
 import * as reserveRepository from '../repositories/ReserveRepository';
-import { PaginatedReserve, ReserveDto, ReserveEntityType, ReserveExperienceDto, ReserveExtraItemDto, ReserveFilters, ReserveFormDto, ReserveOptions, ReserveProductDto, ReserveTentDto, createReserveExperienceDto, createReserveExtraItemDto, createReserveProductDto } from "../dto/reserve";
+import { PaginatedReserve, ReserveDto, ReserveEntityType, ReserveExperienceDto, ReserveExtraItemDto, ReserveFilters, ReserveFormDto, ReserveOptions, ReserveProductDto, ReserveTentDto, createReserveExperienceDto, createReserveProductDto } from "../dto/reserve";
 import *  as userRepository from '../repositories/userRepository';
 import * as productService from './productService';
-import * as experienceService from './experienceService';
-import * as extraItemService from './extraItemService';
 import * as authService from './authService';
 import * as utils from '../lib/utils';
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../middleware/errors";
@@ -168,17 +166,6 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
     utils.getExperiences(data.experiences),
   ]);
 
-  const extraItemsInput = data.extraItems ?? [];
-  const extraItemIds = extraItemsInput
-    .map(item => item.extraItemId)
-    .filter((id): id is number => typeof id === 'number');
-
-  const extraItemsDb = extraItemIds.length
-    ? await extraItemService.getExtraItemsByIds(extraItemIds)
-    : [];
-
-  const extraItemMap = new Map(extraItemsDb.map(item => [item.id, item]));
-
   const tentsAvailable = await utils.checkAvailability(data.tents);
   if (!tentsAvailable) throw new BadRequestError("error.noTentsAvailable");
 
@@ -255,28 +242,15 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
     };
   });
 
-  const reserveExtraItems: ReserveExtraItemDto[] = extraItemsInput.map(extraItem => {
-    const extraItemDB = extraItem.extraItemId ? extraItemMap.get(extraItem.extraItemId) : undefined;
-
-    if (extraItem.extraItemId && !extraItemDB) {
-      throw new NotFoundError('error.noExtraItemFoundInDB');
-    }
-
-    const price = extraItemDB ? extraItemDB.price : extraItem.price;
-    const name = extraItemDB ? extraItemDB.name : extraItem.name;
-
+  const reserveExtraItems: ReserveExtraItemDto[] = (data.extraItems ?? []).map(x => {
     const payload: ReserveExtraItemDto = {
-      id: extraItem.id,
-      extraItemId: extraItem.extraItemId ?? null,
-      name,
-      price,
-      quantity: extraItem.quantity,
+      id: x.id,
+      name: x.name,
+      price: x.price,
+      quantity: x.quantity,
       confirmed: false,
     };
-
-    reserveDto.extraItems = reserveDto.extraItems ?? [];
-    reserveDto.extraItems.push(payload);
-
+    reserveDto.extraItems!.push(payload);
     return payload;
   });
 
@@ -398,22 +372,13 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     };
   });
 
-  const reserve_extraItems: ReserveExtraItemDto[] = extraItemsInput.map(extraItem => {
-    const extraItemDB = extraItem.extraItemId ? extraItemMap.get(extraItem.extraItemId) : undefined;
-
-    if (extraItem.extraItemId && !extraItemDB) {
-      throw new NotFoundError('error.noExtraItemFoundInDB');
-    }
-
-    return {
-      id: extraItem.id,
-      extraItemId: extraItem.extraItemId ?? null,
-      name: extraItemDB ? extraItemDB.name : extraItem.name,
-      price: extraItemDB ? extraItemDB.price : extraItem.price,
-      quantity: extraItem.quantity,
-      confirmed: false,
-    };
-  });
+  const reserve_extraItems: ReserveExtraItemDto[] = (data.extraItems ?? []).map(x => ({
+    id: x.id,
+    name: x.name,
+    price: x.price,
+    quantity: x.quantity,
+    confirmed: false,
+  }));
 
   const tentsWithQuantities = data.tents.map(t => {
     const tentDB = tentsDbMap.get(t.idTent)!;
@@ -480,36 +445,6 @@ export const deleteReserve = async (id: number) => {
   return await reserveRepository.deleteReserve(id);
 };
 
-export const AddProductReserveByUser = async (userId: number, data: createReserveProductDto[]) => {
-
-  const reserveId = data[0].reserveId;
-  const reserve = await reserveRepository.getReserveById(reserveId);
-
-  if (!reserve) {
-    throw new NotFoundError('error.noReservefoundInDB');
-  }
-
-  if (reserve.userId !== userId) {
-    throw new UnauthorizedError('error.unauthorized');
-  }
-
-  const updatedProducts = await Promise.all(data.map(async productData => {
-    const product = await productService.getProductById(productData.idProduct);
-
-    if (!product) {
-      throw new NotFoundError("error.noProductFoundInDB");
-    }
-
-    productData.name = product.name;
-    productData.price = utils.calculatePrice(product.price, product.custom_price);
-    productData.confirmed = false;
-    return productData;
-  }));
-
-
-  await AddProductReserve(reserve, updatedProducts);  // Pass reserve object to avoid duplicate search
-};
-
 export const AddProductReserve = async (reserve: Reserve | null, data: createReserveProductDto[]) => {
   // If reserve is not provided, fetch it from the repository
   let priceIsConfirmed: boolean = false;
@@ -536,44 +471,21 @@ export const AddProductReserve = async (reserve: Reserve | null, data: createRes
   })
   );
 
-  return await reserveRepository.AddProductReserve(processedProducts);
+  await reserveRepository.AddProductReserve(processedProducts);
+
+  await reserveRepository.recomputeAndUpdateReserveTotals(reserve.id);
+
+  return processedProducts;
 };
 
 export const deleteProductReserve = async (id: number) => {
-  return await reserveRepository.deleteProductReserve(id);
+
+  const deleted = await reserveRepository.deleteProductReserve(id);
+
+  await reserveRepository.recomputeAndUpdateReserveTotals(deleted.reserveId);
+
+  return deleted;
 };
-
-export const AddExperienceReserveByUser = async (userId: number, data: createReserveExperienceDto[]) => {
-
-  // Assume all data objects belong to the same reserve
-  const reserveId = data[0].reserveId;
-  const reserve = await reserveRepository.getReserveById(reserveId);
-
-  if (!reserve) {
-    throw new NotFoundError('error.noReservefoundInDB');
-  }
-
-  if (reserve.userId !== userId) {
-    throw new UnauthorizedError('error.unauthorized');
-  }
-
-  const updatedExperiences = await Promise.all(data.map(async experienceData => {
-    const experience = await experienceService.getExperienceById(experienceData.idExperience);
-
-    if (!experience) {
-      throw new NotFoundError("error.noExperienceFoundInDB");
-    }
-
-    experienceData.name = experience.name;
-    experienceData.price = utils.calculatePrice(experience.price, experience.custom_price);
-    experienceData.confirmed = false;
-    return experienceData;
-  }));
-
-  // Pass the entire array to the AddExperienceReserve function
-  await AddExperienceReserve(reserve, updatedExperiences);
-};
-
 
 export const AddExperienceReserve = async (reserve: Reserve | null, data: createReserveExperienceDto[]) => {
   // If reserve is not provided, fetch it from the repository (assuming all belong to the same reserve)
@@ -589,26 +501,31 @@ export const AddExperienceReserve = async (reserve: Reserve | null, data: create
     }
   }
 
-  const processedExperiences = data.map(experienceData => {
-    if (experienceData.day) {
-      const date_parsed = new Date(experienceData.day);
-      date_parsed.setUTCHours(17, 0, 0, 0);  // This modifies the date in place
-      experienceData.day = date_parsed;
+  const processed = data.map(e => {
+    if (e.day) {
+      const d = new Date(e.day);
+      d.setUTCHours(17, 0, 0, 0);
+      e.day = d;
     }
-
-    if (priceIsConfirmed) {
-      experienceData.confirmed = true;
-    }
-
-    return experienceData;
+    if (priceIsConfirmed) e.confirmed = true;
+    return e;
   });
 
-  // Pass the entire array to the repository method
-  return await reserveRepository.AddExperienceReserve(processedExperiences);
+  await reserveRepository.AddExperienceReserve(processed);
+
+  await reserveRepository.recomputeAndUpdateReserveTotals(reserve.id);
+
+  return processed;
+
 };
 
 export const deleteExperienceReserve = async (id: number) => {
-  return await reserveRepository.deleteExperienceReserve(id);
+
+  const deleted = await reserveRepository.deleteExperienceReserve(id);
+
+  await reserveRepository.recomputeAndUpdateReserveTotals(deleted.reserveId);
+
+  return deleted;
 };
 
 export const downloadReserveBill = async (reserveId: number, user: User | undefined, t: (key: string) => string): Promise<Buffer> => {

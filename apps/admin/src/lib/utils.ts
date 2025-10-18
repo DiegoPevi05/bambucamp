@@ -1,30 +1,30 @@
-import {ClassValue,clsx} from 'clsx'
+import { ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import {Reserve, ImageInterface, ReserveTentDto, CustomPrice, Tent} from './interfaces'
+import { Reserve, ImageInterface, ReserveTentDto, CustomPrice, Tent } from './interfaces'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const formatFullName = (firstName:string|undefined, lastName:string|undefined) => {
+export const formatFullName = (firstName: string | undefined, lastName: string | undefined) => {
   let rtn_str = null;
-  if(firstName != undefined && firstName.length > 0 )  rtn_str = firstName; 
-  if(lastName != undefined && lastName.length > 0 ) rtn_str += ","+lastName;
+  if (firstName != undefined && firstName.length > 0) rtn_str = firstName;
+  if (lastName != undefined && lastName.length > 0) rtn_str += "," + lastName;
   return rtn_str;
 }
 
-export const getTentsNames = (reserve:Reserve) => {
-  if(reserve.tents.length === 0) return "N/A";
+export const getTentsNames = (reserve: Reserve) => {
+  if (reserve.tents.length === 0) return "N/A";
   return reserve.tents.map((tent) => tent.name).join(", ");
 }
 
-export const getProductsNames = (reserve:Reserve) => {
-  if(reserve.products.length === 0) return "N/A";
+export const getProductsNames = (reserve: Reserve) => {
+  if (reserve.products.length === 0) return "N/A";
   return reserve.products.map((product) => product.name).join(", ");
 }
 
-export const getExperiencesNames = (reserve:Reserve) => {
-  if(reserve.experiences.length === 0) return "N/A";
+export const getExperiencesNames = (reserve: Reserve) => {
+  if (reserve.experiences.length === 0) return "N/A";
   return reserve.experiences.map((experience) => experience.name).join(", ");
 }
 
@@ -32,9 +32,9 @@ export const formatPrice = (price: number) => {
   return price.toLocaleString("es-PE", { style: "currency", currency: "PEN" });
 };
 
-export const formatDate = (date:Date) => {
+export const formatDate = (date: Date) => {
   //format with time 
-  return new Intl.DateTimeFormat("en-US", {dateStyle: "medium", timeStyle: "short"}).format(date);
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 export const formatToISODate = (date: Date) => {
@@ -51,34 +51,34 @@ export const convertStrToCurrentTimezoneDate = (utcDateString: string): Date => 
   return new Date(date.getTime() + localOffset);
 };
 
-export const getLabelService = (key:string) => {
-    if(key == "wifi") return "glamping.wi_fi"
-    if(key == "parking") return "glamping.parking"
-    if(key == "pool") return "glamping.pool"
-    if(key == "breakfast") return "glamping.breakfast"
-    if(key == "lunch" ) return "glamping.lunch"
-    if(key == "dinner") return "glamping.dinner"
-    if(key == "spa") return "glamping.spa"
-    if(key == "bar") return "glamping.bar"
-    if(key == "hotwater") return "glamping.hotwater"
-    if(key == "airconditioning") return "glamping.air_conditioner"
-    if(key == "grill") return "glamping.grill"
-    return key;
+export const getLabelService = (key: string) => {
+  if (key == "wifi") return "glamping.wi_fi"
+  if (key == "parking") return "glamping.parking"
+  if (key == "pool") return "glamping.pool"
+  if (key == "breakfast") return "glamping.breakfast"
+  if (key == "lunch") return "glamping.lunch"
+  if (key == "dinner") return "glamping.dinner"
+  if (key == "spa") return "glamping.spa"
+  if (key == "bar") return "glamping.bar"
+  if (key == "hotwater") return "glamping.hotwater"
+  if (key == "airconditioning") return "glamping.air_conditioner"
+  if (key == "grill") return "glamping.grill"
+  return key;
 }
 
-export const createImagesArray = (files:File[]) => {
-    const newImages: ImageInterface[] = files.map(file => ({
-      url: URL.createObjectURL(file),
-      file
-    }));
-    return newImages;
+export const createImagesArray = (files: File[]) => {
+  const newImages: ImageInterface[] = files.map(file => ({
+    url: URL.createObjectURL(file),
+    file
+  }));
+  return newImages;
 }
 
-export const calculatePrice = (basePrice: number , customPrices: CustomPrice[], noCustomPrice?:boolean): number => {
+export const calculatePrice = (basePrice: number, customPrices: CustomPrice[], noCustomPrice?: boolean): number => {
 
-  if(customPrices === null) return basePrice;
+  if (customPrices === null) return basePrice;
 
-  if(noCustomPrice) return basePrice;
+  if (noCustomPrice) return basePrice;
 
   const currentCustomPrice = getCurrentCustomPrice(customPrices);
 
@@ -89,25 +89,25 @@ export const getCurrentCustomPrice = (customPrices: CustomPrice[]): number => {
 
 
   const currentDate = new Date();
-  
+
   const matchingPrices = customPrices.filter(customPrice => currentDate >= customPrice.dateFrom && currentDate <= customPrice.dateTo);
 
   if (matchingPrices.length === 0) {
     return 0;
   }
   matchingPrices.sort((a, b) => b.dateTo.getTime() - a.dateTo.getTime());
-  
+
   return matchingPrices[0].price;
 }
 
-export const capitalizeNames = (names:string) => {
+export const capitalizeNames = (names: string) => {
   return names
     .split(' ')
     .map(name => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase())
     .join(' ');
 }
 
-export const getInitials = (names:string) => {
+export const getInitials = (names: string) => {
   const nameArray = names.split(' ');
   const firstInitial = nameArray[0].charAt(0).toUpperCase();
   const lastInitial = nameArray[nameArray.length - 1].charAt(0).toUpperCase();
@@ -139,57 +139,64 @@ export const getReserveDates = (tents: ReserveTentDto[]): { dateFrom: Date; date
 
   // Handle case where no tents are provided
   if (earliestDateFrom === null || latestDateTo === null) {
-    return { dateFrom: ( new Date() ), dateTo: ( new Date() ) }
+    return { dateFrom: (new Date()), dateTo: (new Date()) }
   }
 
   return { dateFrom: earliestDateFrom, dateTo: latestDateTo };
 };
 
 
-export const getRangeDatesForReserve = (reserve:Reserve) => {
-    // Initialize an array to store the ranges of dates
-    let dateRanges: { date: Date; label: string }[] = [];
+export const getRangeDatesForReserve = (reserve: Reserve) => {
+  // Initialize an array to store the ranges of dates
+  let dateRanges: { date: Date; label: string }[] = [];
 
-    // Loop through each tent in the cart
-    reserve.tents.forEach((dateItem) => {
-      // Initialize the current date to tent's dateFrom
-      let currentDate = new Date(dateItem.dateFrom);
+  // Loop through each tent in the cart
+  reserve.tents.forEach((dateItem) => {
+    // Initialize the current date to tent's dateFrom
+    let currentDate = new Date(dateItem.dateFrom);
 
-      // Loop through the dates from dateFrom to dateTo for each tent
-      while (currentDate <= dateItem.dateTo) {
-        const formattedDate = currentDate.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
+    // Loop through the dates from dateFrom to dateTo for each tent
+    while (currentDate <= dateItem.dateTo) {
+      const formattedDate = currentDate.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
 
-        // Check if the date is already in the dateRanges array to avoid overlap
-        const dateExists = dateRanges.some((range) => range.label === formattedDate);
+      // Check if the date is already in the dateRanges array to avoid overlap
+      const dateExists = dateRanges.some((range) => range.label === formattedDate);
 
-        if (!dateExists) {
-          dateRanges.push({
-            date: new Date(currentDate),
-            label: formattedDate,
-          });
-        }
-
-        // Move to the next day
-        currentDate.setDate(currentDate.getDate() + 1);
+      if (!dateExists) {
+        dateRanges.push({
+          date: new Date(currentDate),
+          label: formattedDate,
+        });
       }
-    });
 
-    // Sort the dateRanges array by date to ensure the dates are in chronological order
-    dateRanges = dateRanges.sort((a, b) => a.date.getTime() - b.date.getTime());
+      // Move to the next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+  });
 
-    return dateRanges;
+  // Sort the dateRanges array by date to ensure the dates are in chronological order
+  dateRanges = dateRanges.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  return dateRanges;
 };
 
-export const getNumberOfNights = (dateFrom: Date, dateTo: Date): number => {
-  // Calculate the time difference between the two dates in milliseconds
-  const timeDifference = dateTo.getTime() - dateFrom.getTime();
+// Checkout day is exclusive; normalize to local midnight for math.
+export function getNumberOfNights(dateFrom: Date, dateTo: Date): number {
+  const start = new Date(dateFrom);
+  const end = new Date(dateTo);
 
-  // Convert the time difference from milliseconds to days
-  const numberOfDays = timeDifference / (1000 * 60 * 60 * 24);
+  // Set both dates to 12:00 PM
+  start.setHours(12, 0, 0, 0);
+  end.setHours(12, 0, 0, 0);
 
-  // Return the number of nights (days between the dates)
-  return Math.ceil(numberOfDays);
-};
+  // Calculate difference in time
+  const timeDifference = end.getTime() - start.getTime();
+
+  // Convert the difference to days (1 day = 86400000 ms)
+  const totalNights = timeDifference / (1000 * 3600 * 24);
+
+  return totalNights > 0 ? totalNights : 0; // Ensure no negative nights
+}
 
 export const formatDateToYYYYMMDD = (date: Date): string => {
   // Create a new Date object with the current time zone
@@ -204,7 +211,7 @@ export const formatDateToYYYYMMDD = (date: Date): string => {
   return `${year}-${month}-${day}`;
 }
 
-export const countUnconfirmedItems = (reserve: Reserve): number  => {
+export const countUnconfirmedItems = (reserve: Reserve): number => {
   let unconfirmedCount = 0;
 
   // Count unconfirmed tents
@@ -260,50 +267,56 @@ export const computeTentNightlyTotals = (
   selectedKids: number
   effectiveAdditionalPeople: number
 } => {
+  // Same idea as client, but honoring "no_custom_price"
   const nightlyBase = calculatePrice(
     tent.price,
     tent.custom_price ?? [],
     selection.no_custom_price
-  )
+  );
 
-  const baseKids = tent.qtykids ?? 0
-  const maxKids = Math.max(tent.max_kids ?? baseKids, baseKids)
-  const rawKids = Number(selection.kids ?? baseKids)
-  const selectedKids = Math.max(0, Math.min(rawKids, maxKids))
+  const baseKids = tent.qtykids ?? 0;
 
-  const rawExtraAdults = Number(selection.additional_people ?? 0)
-  const maxExtraAdults = Math.max(tent.max_additional_people ?? 0, 0)
-  const sanitizedExtraAdults = Math.max(0, Math.min(rawExtraAdults, maxExtraAdults))
+  // Match client: if max_kids is missing, treat as Infinity
+  const maxKids = (tent.max_kids ?? Number.POSITIVE_INFINITY);
 
-  // When kids exceed the base allowance we follow the server behaviour and
-  // drop the extra adults surcharge entirely.
-  const effectiveAdditionalPeople =
-    selectedKids > baseKids ? 0 : sanitizedExtraAdults
+  // Default UI behavior: start from base kids; clamp to [0, maxKids]
+  const rawKids = Number(selection.kids ?? baseKids);
+  const selectedKids = Math.max(0, Math.min(rawKids, maxKids));
 
-  const additionalPeoplePrice =
-    effectiveAdditionalPeople > 0 ? tent.additional_people_price ?? 0 : 0
+  // Extra adults (clamped to tent limit)
+  const rawExtraAdults = Number(selection.additional_people ?? 0);
+  const maxExtraAdults = Math.max(tent.max_additional_people ?? 0, 0);
+  const sanitizedExtraAdults = Math.max(0, Math.min(rawExtraAdults, maxExtraAdults));
 
+  // Client rule: if selected kids exceed included, extra adults are dropped
+  const effectiveAdditionalPeople = selectedKids > baseKids ? 0 : sanitizedExtraAdults;
+
+  // Per-unit price shown back to UI (only matters if there are extra adults)
+  const additionalPeopleUnitPrice =
+    effectiveAdditionalPeople > 0 ? (tent.additional_people_price ?? 0) : 0;
+
+  // Client bundle rule: ONLY when kids hit the max, AND no extra adults
   const kidsBundleEligible =
     (tent.kids_bundle_price ?? 0) > 0 &&
-    selectedKids > baseKids &&
-    effectiveAdditionalPeople === 0
+    selectedKids === maxKids &&
+    effectiveAdditionalPeople === 0;
 
-  const kidsBundlePrice = kidsBundleEligible ? tent.kids_bundle_price ?? 0 : 0
+  const kidsBundlePrice = kidsBundleEligible ? (tent.kids_bundle_price ?? 0) : 0;
 
   const nightly =
     nightlyBase +
     effectiveAdditionalPeople * (tent.additional_people_price ?? 0) +
-    kidsBundlePrice
+    kidsBundlePrice;
 
   return {
     nightly,
     nightlyBase,
-    kids_price: kidsBundlePrice,
-    additional_people_price: additionalPeoplePrice,
+    kids_price: kidsBundlePrice,                // nightly kids charge (bundle)
+    additional_people_price: additionalPeopleUnitPrice, // per-unit nightly extra adult price (for display/storage)
     selectedKids,
     effectiveAdditionalPeople,
-  }
-}
+  };
+};
 
 
 
