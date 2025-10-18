@@ -31,7 +31,6 @@ export const generateSalesNote = async (reserve: ReserveDto, t: (key: string) =>
       net_import: `${reserve.net_import}`,
       link_web_page: CLIENT_HOSTNAME,
       web_page: CLIENT_HOSTNAME,
-      promotions_items: '',
       tents_items: '',
       experiences_items: '',
       products_items: ''

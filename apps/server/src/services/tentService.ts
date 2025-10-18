@@ -79,6 +79,14 @@ export const updateTent = async (id: number, data: TentDto, files: MulterFile[] 
     throw new NotFoundError("error.noTentFoundInDB");
   }
 
+  const additionalPeoplePrice = data.additional_people_price != null ? Number(data.additional_people_price) : undefined;
+  const maxAdditionalPeople = data.max_additional_people != null ? Number(data.max_additional_people) : undefined;
+  const maxKids = data.max_kids != null ? Number(data.max_kids) : undefined;
+  const kidsBundlePrice = data.kids_bundle_price != null ? Number(data.kids_bundle_price) : undefined;
+  const qtyPeople = data.qtypeople != null ? Number(data.qtypeople) : undefined;
+  const qtyKids = data.qtykids != null ? Number(data.qtykids) : undefined;
+  const price = data.price != null ? Number(data.price) : undefined;
+
   if (data.header && data.header != tent.header) {
     tent.header = data.header;
   }
@@ -99,20 +107,20 @@ export const updateTent = async (id: number, data: TentDto, files: MulterFile[] 
     tent.custom_price = data.custom_price;
   }
 
-  if (data.additional_people_price && data.additional_people_price != tent.additional_people_price) {
-    tent.additional_people_price = data.additional_people_price;
+  if (additionalPeoplePrice != null && additionalPeoplePrice !== tent.additional_people_price) {
+    tent.additional_people_price = additionalPeoplePrice;
   }
 
-  if (data.max_additional_people && data.max_additional_people != tent.max_additional_people) {
-    tent.max_additional_people = data.max_additional_people;
+  if (maxAdditionalPeople != null && maxAdditionalPeople !== tent.max_additional_people) {
+    tent.max_additional_people = maxAdditionalPeople;
   }
 
-  if (data.max_kids != null && data.max_kids != undefined && data.max_kids != tent.max_kids) {
-    tent.max_kids = Number(data.max_kids);
+  if (maxKids != null && maxKids !== tent.max_kids) {
+    tent.max_kids = maxKids;
   }
 
-  if (data.kids_bundle_price != null && data.kids_bundle_price != undefined && data.kids_bundle_price != tent.kids_bundle_price) {
-    tent.kids_bundle_price = Number(data.kids_bundle_price);
+  if (kidsBundlePrice != null && kidsBundlePrice !== tent.kids_bundle_price) {
+    tent.kids_bundle_price = kidsBundlePrice;
   }
 
 
@@ -157,16 +165,16 @@ export const updateTent = async (id: number, data: TentDto, files: MulterFile[] 
     tent.images = JSON.stringify(formattedImages);
   }
 
-  if (data.qtypeople && data.qtypeople != tent.qtypeople) {
-    tent.qtypeople = Number(data.qtypeople);
+  if (qtyPeople != null && qtyPeople !== tent.qtypeople) {
+    tent.qtypeople = qtyPeople;
   }
 
-  if (data.qtykids && data.qtykids != tent.qtykids) {
-    tent.qtykids = Number(data.qtykids);
+  if (qtyKids != null && qtyKids !== tent.qtykids) {
+    tent.qtykids = qtyKids;
   }
 
-  if (data.price && Number(data.price) != tent.price) {
-    tent.price = Number(data.price);
+  if (price != null && price !== tent.price) {
+    tent.price = price;
   }
 
   if (data.status && data.status != tent.status) {

@@ -2,1498 +2,1505 @@ import Dashboard from "../components/ui/Dashboard";
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { Eye, Pen, X, ChevronLeft, ChevronRight, FlameKindlingIcon, CircleX, Image, RefreshCw } from "lucide-react";
 import Button from "../components/ui/Button";
-import {  formatDate, createImagesArray, formatPrice } from "../lib/utils";
+import { formatDate, createImagesArray, formatPrice } from "../lib/utils";
 import { getAllExperiences, createExperience, updateExperience, deleteExperience } from "../db/actions/experiences";
-import { getAllExperiencesCategory , createExperienceCategory, deleteExperienceCategory, updateExperienceCategory} from "../db/actions/categories";
+import { getAllExperiencesCategory, createExperienceCategory, deleteExperienceCategory, updateExperienceCategory } from "../db/actions/categories";
 import { useAuth } from "../contexts/AuthContext";
 import { Experience, ExperienceFilters, ExperienceFormData, ImageInterface, CustomPrice, ExperienceCategory } from "../lib/interfaces";
 import { AnimatePresence, motion } from "framer-motion";
-import {fadeIn, fadeOnly} from "../lib/motions";
-import {  ZodError } from 'zod';
+import { fadeIn, fadeOnly } from "../lib/motions";
+import { ZodError } from 'zod';
 import { ExperienceSchema } from "../db/schemas";
 import Modal from "../components/Modal";
 import { toast } from "sonner";
-import {useTranslation} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
 
 const DashboardAdminExperiences = () => {
 
-    const {t,i18n} = useTranslation();
-    const { user } = useAuth();
-    const [datasetExperiences,setDataSetExperiences] = useState<{experiences:Experience[],totalPages:Number,currentPage:Number}>({experiences:[],totalPages:1,currentPage:1});
-    const [datasetExperiencesCategory, setDatasetExperiencesCategory] = useState<ExperienceCategory[]>([]);
-    const [currentView,setCurrentView] = useState<string>("LOADING");
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const [datasetExperiences, setDataSetExperiences] = useState<{ experiences: Experience[], totalPages: Number, currentPage: Number }>({ experiences: [], totalPages: 1, currentPage: 1 });
+  const [datasetExperiencesCategory, setDatasetExperiencesCategory] = useState<ExperienceCategory[]>([]);
+  const [currentView, setCurrentView] = useState<string>("LOADING");
 
-    useEffect(()=>{
-        getExperiencesHandler(1);
-        getExperiencesCategory();
-    },[])
+  useEffect(() => {
+    getExperiencesHandler(1);
+    getExperiencesCategory();
+  }, [])
 
-    const getExperiencesCategory = async() => {
-      if(user != null){
-          const categories  = await getAllExperiencesCategory(user.token);
-          if(categories){
-              setDatasetExperiencesCategory(categories);
-          }
+  const getExperiencesCategory = async () => {
+    if (user != null) {
+      const categories = await getAllExperiencesCategory(user.token);
+      if (categories) {
+        setDatasetExperiencesCategory(categories);
       }
     }
+  }
 
-    const getExperiencesHandler = async (page:Number, filters?:ExperienceFilters) => {
-        setCurrentView("LOADING");
-        if(user != null){
-            const experiences  = await getAllExperiences(user.token,page,i18n.language,filters);
-            if(experiences){
-                setDataSetExperiences(experiences);
-                setCurrentView("L");
-            }
-        }
+  const getExperiencesHandler = async (page: Number, filters?: ExperienceFilters) => {
+    setCurrentView("LOADING");
+    if (user != null) {
+      const experiences = await getAllExperiences(user.token, page, i18n.language, filters);
+      if (experiences) {
+        setDataSetExperiences(experiences);
+        setCurrentView("L");
+      }
     }
+  }
 
-    const [loadingForm, setLoadingForm] = useState<boolean>(false);
+  const [loadingForm, setLoadingForm] = useState<boolean>(false);
 
-    const [images, setImages] = useState<ImageInterface[]>([]);
-    const [existingImages,setExistingImages] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageInterface[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
 
-    const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       const newImages: ImageInterface[] = createImagesArray(files);
       setImages(prevImages => [...prevImages, ...newImages]);
       e.target.value = ''; // Resetear el input file
     }
-    };
+  };
 
-    const handleRemoveExistingImage = (url: string) => {
-      setExistingImages(prevExistantImages => prevExistantImages.filter(existantImage => existantImage !== url));
-    };
+  const handleRemoveExistingImage = (url: string) => {
+    setExistingImages(prevExistantImages => prevExistantImages.filter(existantImage => existantImage !== url));
+  };
 
-    const handleRemoveImage = (url: string) => {
-      setImages(prevImages => prevImages.filter(image => image.url !== url));
-    };
-
-
-    const [customPrices, setCustomPrices] = useState<CustomPrice[]>([]);
-
-    const handleAddCustomPrice = (formName:string) => {
-      const form = document.getElementById(formName) as HTMLFormElement;
-      const dateFromInput = form.querySelector('input[name="custom_price_date_from"]') as HTMLInputElement;
-      const dateToInput = form.querySelector('input[name="custom_price_date_to"]') as HTMLInputElement;
-      const priceInput = form.querySelector('input[name="custom_price_value"]') as HTMLInputElement;
-
-      const dateFrom = new Date(dateFromInput.value);
-      const dateTo = new Date(dateToInput.value);
-      const price = parseFloat(priceInput.value);
-
-      if (!isNaN(dateFrom.getTime()) && !isNaN(dateTo.getTime()) && !isNaN(price)) {
-        dateFrom.setHours(12, 0, 0, 0);
-        dateTo.setHours(12, 0, 0, 0);
-
-        if(dateFrom > dateTo){
-          toast.error(t("experience.validations.start_date_lower_than_end_date"));
-          return;
-        };   
-
-        const newCustomPrice: CustomPrice = { dateFrom, dateTo, price };
-        setCustomPrices([...customPrices, newCustomPrice]);
-
-        // Clear input fields
-        dateFromInput.value = '';
-        dateToInput.value = '';
-        priceInput.value = '';
-      } else {
-        // Handle invalid input
-        toast.error(t("experience.validations.input_valid_date"));
-      }
-    };
-
-    const handleRemoveCustomPrice = (index: number) => {
-      setCustomPrices(customPrices.filter((_, i) => i !== index));
-    };
-
-    const [suggestions,setSuggestions] = useState<string[]>([]);
-
-    const handleAddSuggestion = (formName:string) => {
-      const form = document.getElementById(formName) as HTMLFormElement;
-      const suggestionInput = form.querySelector('textarea[name="suggestion_input"]') as HTMLTextAreaElement;
-      const suggestion      = suggestionInput.value;
-
-      if (suggestion) {
-
-        if(suggestion.length == 0){
-          toast.error(t("experience.validations.suggestions_empty"));
-          return;
-        };   
-
-        setSuggestions([...suggestions, suggestion]);
-
-        // Clear input fields
-        suggestionInput.value = '';
-
-      } else {
-        // Handle invalid input
-        toast.error(t("experience.validations.suggestions_error"));
-      }
-    };
-
-    const handleRemoveSuggestion = (index: number) => {
-      setSuggestions(suggestions.filter((_, i) => i !== index));
-    };
-
-    const [errorMessages, setErrorMessages] = useState<Record<string, string>>({});
-
-    const validateFields = (formname:string): ExperienceFormData |null => {
-        const form = document.getElementById(formname) as HTMLFormElement;
-        const categoryId  = Number((form.querySelector('select[name="categoryId"]') as HTMLInputElement).value); 
-        const header = (form.querySelector('input[name="header"]') as HTMLInputElement).value;
-        const name = (form.querySelector('input[name="name"]') as HTMLInputElement).value;
-        const description = (form.querySelector('textarea[name="description"]') as HTMLTextAreaElement).value;
-        const price = Number((form.querySelector('input[name="price"]') as HTMLInputElement).value);
-        const duration = Number((form.querySelector('input[name="duration"]') as HTMLInputElement).value);
-        const limit_age = Number((form.querySelector('input[name="limit_age"]') as HTMLInputElement).value);
-        const qtypeople = Number((form.querySelector('input[name="qtypeople"]') as HTMLInputElement).value);
-        const status = (form.querySelector('select[name="status"]') as HTMLInputElement).value;
-
-        setErrorMessages({});
-
-        try {
-          ExperienceSchema.parse({categoryId, header, name, description, existing_images:existingImages,images: images.map(image => image.file),  status, duration, limit_age,qtypeople, suggestions, price, custom_price:customPrices });
-
-          return {
-            categoryId,
-            header,
-            name,
-            description,
-            price,
-            duration,
-            limit_age,
-            qtypeople,
-            suggestions: JSON.stringify(suggestions),
-            status,
-            custom_price:JSON.stringify(customPrices),
-            images: images.map(image => image.file)
-          };
-        } catch (error) {
-          if (error instanceof ZodError) {
-            const newErrorMessages: Record<string, string> = {};
-            error.errors.forEach(err => {
-              const fieldName = err.path[0] as string;
-              newErrorMessages[fieldName] = err.message;
-            });
-            setErrorMessages(newErrorMessages);
-          }
-          return null;
-        }
-    };
-
-    const onSubmitCreation = async (e: FormEvent) => {
-        e.preventDefault();
-        setLoadingForm(true);
-        const fieldsValidated = validateFields('form_create_experience');
-        if(fieldsValidated != null){
-          if(user !== null){
-            const isSuccess = await createExperience(fieldsValidated, user.token,i18n.language);
-            if(!isSuccess){
-              setLoadingForm(false);
-              return;
-            }
-          }
-          getExperiencesHandler(1);
-          setImages([]);
-          setCustomPrices([]);
-          setSuggestions([]);
-          setCurrentView("L")
-        }
-        setLoadingForm(false);
-    };
+  const handleRemoveImage = (url: string) => {
+    setImages(prevImages => prevImages.filter(image => image.url !== url));
+  };
 
 
-    const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+  const [customPrices, setCustomPrices] = useState<CustomPrice[]>([]);
 
-    const [selectedExperience, setSelectedExperience] = useState<Experience|null>(null);
+  const handleAddCustomPrice = (formName: string) => {
+    const form = document.getElementById(formName) as HTMLFormElement;
+    const dateFromInput = form.querySelector('input[name="custom_price_date_from"]') as HTMLInputElement;
+    const dateToInput = form.querySelector('input[name="custom_price_date_to"]') as HTMLInputElement;
+    const priceInput = form.querySelector('input[name="custom_price_value"]') as HTMLInputElement;
 
-    const searchExperienceHandler = async() => {
-        // Get the input value
-        const searchValue = (document.querySelector('input[name="criteria_search_value"]') as HTMLInputElement).value.trim();
+    const dateFrom = new Date(dateFromInput.value);
+    const dateTo = new Date(dateToInput.value);
+    const price = parseFloat(priceInput.value);
 
-        // Get the selected role from the select dropdown
-        const selectedStatus = (document.querySelector('select[name="criteria_search_status"]') as HTMLSelectElement).value;
+    if (!isNaN(dateFrom.getTime()) && !isNaN(dateTo.getTime()) && !isNaN(price)) {
+      dateFrom.setHours(12, 0, 0, 0);
+      dateTo.setHours(12, 0, 0, 0);
 
+      if (dateFrom > dateTo) {
+        toast.error(t("experience.validations.start_date_lower_than_end_date"));
+        return;
+      };
 
-        // Construct filters based on input values and selected criteria
-        const filters: ExperienceFilters = {};
-        if (searchValue) {
-            filters["name"] = searchValue;
-        }
+      const newCustomPrice: CustomPrice = { dateFrom, dateTo, price };
+      setCustomPrices([...customPrices, newCustomPrice]);
 
-        if (selectedStatus) {
-            filters.status = selectedStatus;
-        }
-
-        getExperiencesHandler(1,filters);
+      // Clear input fields
+      dateFromInput.value = '';
+      dateToInput.value = '';
+      priceInput.value = '';
+    } else {
+      // Handle invalid input
+      toast.error(t("experience.validations.input_valid_date"));
     }
+  };
 
-    const deleteExperienceHandler = async() => {
-        if(user != null && selectedExperience != null){
-            const isSuccess = await deleteExperience(selectedExperience.id,user.token,i18n.language)
-            if(!isSuccess){
-              return;
-            }
-        }
-        getExperiencesHandler(1);
-        setOpenDeleteModal(false);
+  const handleRemoveCustomPrice = (index: number) => {
+    setCustomPrices(customPrices.filter((_, i) => i !== index));
+  };
+
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  const handleAddSuggestion = (formName: string) => {
+    const form = document.getElementById(formName) as HTMLFormElement;
+    const suggestionInput = form.querySelector('textarea[name="suggestion_input"]') as HTMLTextAreaElement;
+    const suggestion = suggestionInput.value;
+
+    if (suggestion) {
+
+      if (suggestion.length == 0) {
+        toast.error(t("experience.validations.suggestions_empty"));
+        return;
+      };
+
+      setSuggestions([...suggestions, suggestion]);
+
+      // Clear input fields
+      suggestionInput.value = '';
+
+    } else {
+      // Handle invalid input
+      toast.error(t("experience.validations.suggestions_error"));
     }
+  };
 
-    const onChangeSelectedExperience = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        const fieldValue = value;
+  const handleRemoveSuggestion = (index: number) => {
+    setSuggestions(suggestions.filter((_, i) => i !== index));
+  };
 
-        setSelectedExperience(prevSelectedExperience => {
-            if(!prevSelectedExperience) return null;
-            return {
-                ...prevSelectedExperience,
-                [name]: fieldValue,
-            };
+  const [errorMessages, setErrorMessages] = useState<Record<string, string>>({});
+
+  const validateFields = (formname: string): ExperienceFormData | null => {
+    const form = document.getElementById(formname) as HTMLFormElement;
+    const categoryId = Number((form.querySelector('select[name="categoryId"]') as HTMLInputElement).value);
+    const header = (form.querySelector('input[name="header"]') as HTMLInputElement).value;
+    const name = (form.querySelector('input[name="name"]') as HTMLInputElement).value;
+    const description = (form.querySelector('textarea[name="description"]') as HTMLTextAreaElement).value;
+    const price = Number((form.querySelector('input[name="price"]') as HTMLInputElement).value);
+    const duration = Number((form.querySelector('input[name="duration"]') as HTMLInputElement).value);
+    const limit_age = Number((form.querySelector('input[name="limit_age"]') as HTMLInputElement).value);
+    const qtypeople = Number((form.querySelector('input[name="qtypeople"]') as HTMLInputElement).value);
+    const status = (form.querySelector('select[name="status"]') as HTMLInputElement).value;
+
+    setErrorMessages({});
+
+    try {
+      ExperienceSchema.parse({ categoryId, header, name, description, existing_images: existingImages, images: images.map(image => image.file), status, duration, limit_age, qtypeople, suggestions, price, custom_price: customPrices });
+
+      return {
+        categoryId,
+        header,
+        name,
+        description,
+        price,
+        duration,
+        limit_age,
+        qtypeople,
+        suggestions: JSON.stringify(suggestions),
+        status,
+        custom_price: JSON.stringify(customPrices),
+        images: images.map(image => image.file)
+      };
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const newErrorMessages: Record<string, string> = {};
+        error.errors.forEach(err => {
+          const fieldName = err.path[0] as string;
+          newErrorMessages[fieldName] = err.message;
         });
-    };
+        setErrorMessages(newErrorMessages);
+      }
+      return null;
+    }
+  };
 
-    const onSubmitUpdate = async (e: FormEvent) => {
-        e.preventDefault();
-        setLoadingForm(true);
-        const fieldsValidated = validateFields('form_update_experience');
-        if(fieldsValidated != null){
-          fieldsValidated.existing_images = JSON.stringify(existingImages);
-          if(user !== null && selectedExperience != null){
-              const isSuccess = await updateExperience(selectedExperience.id,fieldsValidated, user.token, i18n.language);
-              if(!isSuccess){
-                setLoadingForm(false);
-                return;
-              }
-          }
-          setImages([]);
-          setCustomPrices([]);
-          setSuggestions([]);
-          getExperiencesHandler(1);
-          setCurrentView("L")
-        }
-        setLoadingForm(false);
-    };
-
-
-    const [openModalCategories, setOpenModalCategories] = useState<boolean>(false);
-    const [selectedCategory,setSelectedCategory] = useState<ExperienceCategory|null>(null);
-    const [loadingCategory,setLoadingCategory] = useState<boolean>(false);
-
-    const onChangeSelectedCategory = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        const fieldValue = value;
-
-        setSelectedCategory(prevSelectedCategory => {
-            if(!prevSelectedCategory) return null;
-            return {
-                ...prevSelectedCategory,
-                [name]: fieldValue,
-            };
-        });
-    };
-
-
-
-    const onSubmitCreationCategory = async(e:FormEvent) => {
-        e.preventDefault();
-        setLoadingCategory(true);
-        const form = document.getElementById("form_create_experience_category") as HTMLFormElement;
-        const category = (form.querySelector('input[name="category"]') as HTMLInputElement).value;
-
-        if(category.length == 0){
-          toast.error(t("experience.validations.category_name"));
+  const onSubmitCreation = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoadingForm(true);
+    const fieldsValidated = validateFields('form_create_experience');
+    if (fieldsValidated != null) {
+      if (user !== null) {
+        const isSuccess = await createExperience(fieldsValidated, user.token, i18n.language);
+        if (!isSuccess) {
+          setLoadingForm(false);
           return;
-        };
-
-        if(user !== null){
-            const isSuccess = await createExperienceCategory(category, user.token);
-            if(!isSuccess){
-              setLoadingCategory(false);
-              return;
-            }
-            getExperiencesCategory();
         }
-        setLoadingCategory(false);
+      }
+      getExperiencesHandler(1);
+      setImages([]);
+      setCustomPrices([]);
+      setSuggestions([]);
+      setCurrentView("L")
+    }
+    setLoadingForm(false);
+  };
+
+
+  const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
+
+  const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
+
+  const searchExperienceHandler = async () => {
+    // Get the input value
+    const searchValue = (document.querySelector('input[name="criteria_search_value"]') as HTMLInputElement).value.trim();
+
+    // Get the selected role from the select dropdown
+    const selectedStatus = (document.querySelector('select[name="criteria_search_status"]') as HTMLSelectElement).value;
+
+
+    // Construct filters based on input values and selected criteria
+    const filters: ExperienceFilters = {};
+    if (searchValue) {
+      filters["name"] = searchValue;
     }
 
-    const onSubmitUpdateCategory = async () => {
-        setLoadingCategory(true);
-        if(user !== null && selectedCategory != null){
-            const isSuccess = await updateExperienceCategory(selectedCategory.id,selectedCategory, user.token);
-            if(!isSuccess){
-              setLoadingForm(false);
-            }
-            getExperiencesCategory();
+    if (selectedStatus) {
+      filters.status = selectedStatus;
+    }
+
+    getExperiencesHandler(1, filters);
+  }
+
+  const deleteExperienceHandler = async () => {
+    if (user != null && selectedExperience != null) {
+      const isSuccess = await deleteExperience(selectedExperience.id, user.token, i18n.language)
+      if (!isSuccess) {
+        return;
+      }
+    }
+    getExperiencesHandler(1);
+    setOpenDeleteModal(false);
+  }
+
+  const onChangeSelectedExperience = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    const fieldValue = value;
+
+    setSelectedExperience(prevSelectedExperience => {
+      if (!prevSelectedExperience) return null;
+      return {
+        ...prevSelectedExperience,
+        [name]: fieldValue,
+      };
+    });
+  };
+
+  const onSubmitUpdate = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoadingForm(true);
+    const fieldsValidated = validateFields('form_update_experience');
+    if (fieldsValidated != null) {
+      fieldsValidated.existing_images = JSON.stringify(existingImages);
+      if (user !== null && selectedExperience != null) {
+        const isSuccess = await updateExperience(selectedExperience.id, fieldsValidated, user.token, i18n.language);
+        if (!isSuccess) {
+          setLoadingForm(false);
+          return;
         }
-        setLoadingCategory(false);
-        setSelectedCategory(null);
+      }
+      setImages([]);
+      setCustomPrices([]);
+      setSuggestions([]);
+      getExperiencesHandler(1);
+      setCurrentView("L")
+    }
+    setLoadingForm(false);
+  };
+
+
+  const [openModalCategories, setOpenModalCategories] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<ExperienceCategory | null>(null);
+  const [loadingCategory, setLoadingCategory] = useState<boolean>(false);
+
+  const onChangeSelectedCategory = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const fieldValue = value;
+
+    setSelectedCategory(prevSelectedCategory => {
+      if (!prevSelectedCategory) return null;
+      return {
+        ...prevSelectedCategory,
+        [name]: fieldValue,
+      };
+    });
+  };
+
+
+
+  const onSubmitCreationCategory = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoadingCategory(true);
+    const form = document.getElementById("form_create_experience_category") as HTMLFormElement;
+    const category = (form.querySelector('input[name="category"]') as HTMLInputElement).value;
+
+    if (category.length == 0) {
+      toast.error(t("experience.validations.category_name"));
+      return;
     };
 
-    const deleteExperienceCategoryHandler = async(idCategory:number) => {
-        setLoadingCategory(true);
-        if(user != null){
-            const isSuccess = await deleteExperienceCategory(idCategory,user.token)
-            if(!isSuccess){
-              setLoadingForm(false);
-            }
-            getExperiencesCategory();
-        }
+    if (user !== null) {
+      const isSuccess = await createExperienceCategory(category, user.token);
+      if (!isSuccess) {
         setLoadingCategory(false);
+        return;
+      }
+      getExperiencesCategory();
     }
+    setLoadingCategory(false);
+  }
+
+  const onSubmitUpdateCategory = async () => {
+    setLoadingCategory(true);
+    if (user !== null && selectedCategory != null) {
+      const isSuccess = await updateExperienceCategory(selectedCategory.id, selectedCategory, user.token);
+      if (!isSuccess) {
+        setLoadingForm(false);
+      }
+      getExperiencesCategory();
+    }
+    setLoadingCategory(false);
+    setSelectedCategory(null);
+  };
+
+  const deleteExperienceCategoryHandler = async (idCategory: number) => {
+    setLoadingCategory(true);
+    if (user != null) {
+      const isSuccess = await deleteExperienceCategory(idCategory, user.token)
+      if (!isSuccess) {
+        setLoadingForm(false);
+      }
+      getExperiencesCategory();
+    }
+    setLoadingCategory(false);
+  }
+
+  const handleExperienceCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newId = Number(e.target.value);
+    const newCat = datasetExperiencesCategory.find(c => c.id === newId);
+    setSelectedExperience(prev => prev
+      ? { ...prev, category: newCat ?? prev.category }
+      : prev
+    );
+  };
 
 
 
-
-
-    return (
+  return (
     <Dashboard>
-        <AnimatePresence>
+      <AnimatePresence>
         {currentView == "LOADING" && (
-            <motion.div 
-                key={"Loading-View"}
-                initial="hidden"
-                animate="show"
-                exit="hidden"
-                viewport={{ once: true }}
-                variants={fadeIn("up","",0.5,0.3)}
-                className="w-full min-h-[300px] flex flex-col justify-center items-center gap-y-4 bg-white pointer-events-none">
-                  <div className="loader"></div>
-                  <h1 className="font-primary text-secondary mt-4">{t("common.loading")}</h1>
-            </motion.div>
+          <motion.div
+            key={"Loading-View"}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            viewport={{ once: true }}
+            variants={fadeIn("up", "", 0.5, 0.3)}
+            className="w-full min-h-[300px] flex flex-col justify-center items-center gap-y-4 bg-white pointer-events-none">
+            <div className="loader"></div>
+            <h1 className="font-primary text-secondary mt-4">{t("common.loading")}</h1>
+          </motion.div>
         )}
 
         {currentView == "L" && (
-            <>
+          <>
 
-                <motion.div 
-                    key={"List-View"}
-                    initial="hidden"
-                    animate="show"
-                    exit="hidden"
-                    viewport={{ once: true }}
-                    variants={fadeIn("up","",0.5,0.3)}
-                    className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
-                    <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon/>{t("experience.plural")}</h2>
-                  <div className="w-full h-auto flex flex-col xl:flex-row justify-start xl:justify-between items-center gap-x-4">
-                    <div className="w-full xl:w-auto h-auto flex flex-col md:flex-row justify-between xl:justify-start items-start gap-y-4 gap-x-4">
-                      <div className="max-xl:w-[50%] flex flex-row items-start md:items-center gap-x-2">
-                            <input 
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  searchExperienceHandler();
-                                }
-                              }}
-                              type="text" 
-                              name="criteria_search_value"
-                              placeholder={t("experience.search_experience")} 
-                              className="w-full xl:w-96 h-8 text-xs font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-primary"
-                            />
+            <motion.div
+              key={"List-View"}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              viewport={{ once: true }}
+              variants={fadeIn("up", "", 0.5, 0.3)}
+              className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
+              <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon />{t("experience.plural")}</h2>
+              <div className="w-full h-auto flex flex-col xl:flex-row justify-start xl:justify-between items-center gap-x-4">
+                <div className="w-full xl:w-auto h-auto flex flex-col md:flex-row justify-between xl:justify-start items-start gap-y-4 gap-x-4">
+                  <div className="max-xl:w-[50%] flex flex-row items-start md:items-center gap-x-2">
+                    <input
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          searchExperienceHandler();
+                        }
+                      }}
+                      type="text"
+                      name="criteria_search_value"
+                      placeholder={t("experience.search_experience")}
+                      className="w-full xl:w-96 h-8 text-xs font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-primary"
+                    />
+                  </div>
+                  <div className="max-xl:w-[50%] flex flex-col md:flex-row items-start md:items-center gap-x-2">
+                    <label className="max-xl:w-full md:ml-4 flex items-center">
+                      {t("experience.status")}
+                      <select name="criteria_search_status" className="max-xl:w-full ml-2 h-8 text-xs font-tertiary border-b-2 border-secondary focus:outline-none focus:border-b-primary">
+                        <option value="">{t("experience.select_status")}</option>
+                        <option value="ACTIVE">{t("experience.ACTIVE")}</option>
+                        <option value="INACTIVE">{t("experience.INACTIVE")}</option>
+                      </select>
+                    </label>
+                    <Button variant="ghostLight" isRound={true} effect="default" className="md:ml-4 mt-4 md:mt-0" onClick={() => searchExperienceHandler()}>
+                      {t("common.search")}
+                    </Button>
+                  </div>
+                </div>
+                <div className="w-full xl:w-auto h-auto flex flex-row justify-between xl:justify-end items-start gap-y-4 gap-x-4 max-xl:mt-4">
+                  <div className="w-auto xl:w-full h-10 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setOpenModalCategories(true)}
+                      className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-primary hover:text-white rounded-xl duration-300 hover:border-primary"
+                    >
+                      {t("experience.categories")}
+                    </button>
+                  </div>
+                  <Button onClick={() => { setCurrentView("A"); setImages([]); setCustomPrices([]); setSuggestions([]); setExistingImages([]) }} size="sm" variant="dark" effect="default" className="min-w-[300px]" isRound={true}>{t("experience.add_experience")}<FlameKindlingIcon /></Button>
+                </div>
+              </div>
+              <table className="h-full w-full shadow-xl rounded-xl text-center p-4">
+                <thead className="font-primary text-sm xl:text-md bg-primary text-white">
+                  <tr className="">
+                    <th className="rounded-tl-xl p-2">#</th>
+                    <th className="p-2">{t("experience.category")}</th>
+                    <th className="p-2">{t("experience.name")}</th>
+                    <th className="p-2">{t("experience.price")}</th>
+                    <th className="p-2">{t("experience.duration")}</th>
+                    <th className="p-2">{t("experience.images")}</th>
+                    <th className="p-2">{t("experience.status")}</th>
+                    <th className="p-2 max-xl:hidden">{t("experience.created")}</th>
+                    <th className="p-2 max-xl:hidden">{t("experience.updated")}</th>
+                    <th className="rounded-tr-xl p-2">{t("experience.actions")}</th>
+                  </tr>
+                </thead>
+                <tbody className="font-secondary text-xs xl:text-sm">
+                  {datasetExperiences.experiences.map((experienceItem, index) => {
+                    return (
+                      <tr key={"user_key" + index} className="text-slate-400 hover:bg-secondary hover:text-white duration-300 cursor-pointer">
+                        <td className="">{experienceItem.id}</td>
+                        <td className="">{experienceItem.category.name}</td>
+                        <td className="">{experienceItem.name}</td>
+                        <td className="">{formatPrice(experienceItem.price)}</td>
+                        <td className="">{`${experienceItem.duration} min.`}</td>
+                        <td className="flex flex-row flex-wrap items-start justify-start gap-2">
+                          {experienceItem.images.map((img, index) => (
+                            <a key={index} href={`${img}`} target="_blank">
+                              <Image className="hover:text-tertiary duration-300" />
+                            </a>
+                          ))}
+                        </td>
+                        <td className="h-full">{experienceItem.status != "ACTIVE" ? t("experience.INACTIVE") : t("experience.ACTIVE")}</td>
+                        <td className="h-full max-xl:hidden">{experienceItem.updatedAt != undefined && experienceItem.updatedAt != null ? formatDate(experienceItem.updatedAt) : t("experience.none")}</td>
+                        <td className="h-full max-xl:hidden">{experienceItem.createdAt != undefined && experienceItem.createdAt != null ? formatDate(experienceItem.createdAt) : t("experience.none")}</td>
+                        <td className="h-full flex flex-col items-center justify-center">
+                          <div className="w-full h-auto flex flex-row flex-wrap gap-x-2">
+                            <button onClick={() => { setSelectedExperience(experienceItem); setCurrentView("V") }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Eye className="h-5 w-5" /></button>
+                            <button onClick={() => { setSelectedExperience(experienceItem); setCustomPrices(experienceItem.custom_price); setSuggestions(experienceItem.suggestions); setExistingImages(experienceItem.images); setImages([]); setCurrentView("E") }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Pen className="h-5 w-5" /></button>
+                            <button onClick={() => { setOpenDeleteModal(true), setSelectedExperience(experienceItem) }} className="border rounded-md hover:bg-red-400 hover:text-white duration-300 active:scale-75 p-1"><X className="h-5 w-5" /></button>
                           </div>
-                      <div className="max-xl:w-[50%] flex flex-col md:flex-row items-start md:items-center gap-x-2">
-                        <label className="max-xl:w-full md:ml-4 flex items-center">
-                                {t("experience.status")}
-                                <select name="criteria_search_status" className="max-xl:w-full ml-2 h-8 text-xs font-tertiary border-b-2 border-secondary focus:outline-none focus:border-b-primary">
-                                  <option value="">{t("experience.select_status")}</option>
-                                  <option value="ACTIVE">{t("experience.ACTIVE")}</option>
-                                  <option value="INACTIVE">{t("experience.INACTIVE")}</option>
-                                </select>
-                              </label>
-                              <Button variant="ghostLight" isRound={true} effect="default" className="md:ml-4 mt-4 md:mt-0" onClick={()=>searchExperienceHandler()}>
-                                {t("common.search")}
-                            </Button>
-                          </div>
-                        </div>
-                    <div className="w-full xl:w-auto h-auto flex flex-row justify-between xl:justify-end items-start gap-y-4 gap-x-4 max-xl:mt-4">
-                      <div className="w-auto xl:w-full h-10 flex justify-end">
-                              <button
-                                type="button"
-                                onClick={()=>setOpenModalCategories(true)}
-                                className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-primary hover:text-white rounded-xl duration-300 hover:border-primary"
-                              >
-                                {t("experience.categories")}
-                              </button>
-                            </div>
-                          <Button onClick={()=>{setCurrentView("A"); setImages([]); setCustomPrices([]); setSuggestions([]); setExistingImages([])}} size="sm" variant="dark" effect="default" className="min-w-[300px]" isRound={true}>{t("experience.add_experience")}<FlameKindlingIcon/></Button>
-                        </div>
-                    </div>
-                    <table className="h-full w-full shadow-xl rounded-xl text-center p-4">
-                      <thead className="font-primary text-sm xl:text-md bg-primary text-white">
-                            <tr className="">
-                                <th className="rounded-tl-xl p-2">#</th>
-                                <th className="p-2">{t("experience.category")}</th>
-                                <th className="p-2">{t("experience.name")}</th>
-                                <th className="p-2">{t("experience.price")}</th>
-                                <th className="p-2">{t("experience.duration")}</th>
-                                <th className="p-2">{t("experience.images")}</th>
-                                <th className="p-2">{t("experience.status")}</th>
-                                <th className="p-2 max-xl:hidden">{t("experience.created")}</th>
-                                <th className="p-2 max-xl:hidden">{t("experience.updated")}</th>
-                                <th className="rounded-tr-xl p-2">{t("experience.actions")}</th>
-                            </tr>
-                        </thead>
-                      <tbody className="font-secondary text-xs xl:text-sm">
-                                {datasetExperiences.experiences.map((experienceItem,index)=>{
-                                    return(
-                                    <tr key={"user_key"+index} className="text-slate-400 hover:bg-secondary hover:text-white duration-300 cursor-pointer"> 
-                                        <td className="">{experienceItem.id}</td>
-                                        <td className="">{experienceItem.category.name}</td>
-                                        <td className="">{experienceItem.name}</td>
-                                        <td className="">{formatPrice(experienceItem.price)}</td>
-                                        <td className="">{`${experienceItem.duration} min.`}</td>
-                                        <td className="flex flex-row flex-wrap items-start justify-start gap-2">
-                                          {experienceItem.images.map((img, index) => (
-                                            <a key={index} href={`${img}`} target="_blank">
-                                              <Image className="hover:text-tertiary duration-300"/>
-                                            </a>
-                                          ))}
-                                        </td>
-                                        <td className="h-full">{experienceItem.status != "ACTIVE" ? t("experience.INACTIVE") : t("experience.ACTIVE") }</td>
-                                      <td className="h-full max-xl:hidden">{experienceItem.updatedAt != undefined && experienceItem.updatedAt != null ? formatDate(experienceItem.updatedAt) : t("experience.none")}</td>
-                                      <td className="h-full max-xl:hidden">{experienceItem.createdAt != undefined && experienceItem.createdAt != null ? formatDate(experienceItem.createdAt) : t("experience.none")}</td>
-                                        <td className="h-full flex flex-col items-center justify-center">
-                                          <div className="w-full h-auto flex flex-row flex-wrap gap-x-2">
-                                            <button onClick={()=>{setSelectedExperience(experienceItem); setCurrentView("V")}} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Eye className="h-5 w-5"/></button>
-                                            <button  onClick={()=>{setSelectedExperience(experienceItem); setCustomPrices(experienceItem.custom_price); setSuggestions(experienceItem.suggestions); setExistingImages(experienceItem.images) ; setImages([]); setCurrentView("E")}} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Pen className="h-5 w-5"/></button>
-                                            <button onClick={()=>{setOpenDeleteModal(true),setSelectedExperience(experienceItem)}} className="border rounded-md hover:bg-red-400 hover:text-white duration-300 active:scale-75 p-1"><X className="h-5 w-5"/></button>
-                                          </div>
-                                        </td>
-                                    </tr>
-                                    )
-                                })}
-                        </tbody>
-                    </table>
-                    <div className="flex flex-row justify-between w-full">
-                        <Button onClick={ () => getExperiencesHandler( Number(datasetExperiences.currentPage) - 1)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetExperiences.currentPage == 1}> <ChevronLeft/>  </Button>
-                        <Button onClick={ () => getExperiencesHandler( Number(datasetExperiences.currentPage) + 1)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetExperiences.currentPage >= datasetExperiences.totalPages}> <ChevronRight/> </Button>
-                    </div>
-                </motion.div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              <div className="flex flex-row justify-between w-full">
+                <Button onClick={() => getExperiencesHandler(Number(datasetExperiences.currentPage) - 1)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetExperiences.currentPage == 1}> <ChevronLeft />  </Button>
+                <Button onClick={() => getExperiencesHandler(Number(datasetExperiences.currentPage) + 1)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetExperiences.currentPage >= datasetExperiences.totalPages}> <ChevronRight /> </Button>
+              </div>
+            </motion.div>
 
-                <Modal isOpen={openDeleteModal} onClose={()=>setOpenDeleteModal(false)}>
-                    <div className="w-[400px] h-auto flex flex-col items-center justify-center text-secondary pb-6 px-6 pt-12 text-center">
-                        <CircleX className="h-[60px] w-[60px] text-red-400 "/>
-                        <p className="text-primary">{t("experience.secure_delete_experience_header")}</p>
-                        <p className="text-sm mt-6 text-secondary">{t("experience.secure_delete_experience_description")}</p>
-                        <div className="flex flex-row justify-around w-full mt-6">
-                            <Button size="sm" variant="dark" effect="default" isRound={true} onClick={()=>setOpenDeleteModal(false)}>{t("common.cancel")}</Button>
-                            <Button size="sm" variant="danger" effect="default" isRound={true} onClick={()=>{deleteExperienceHandler()}}>{t("common.accept")}</Button>
-                        </div>
-                    </div>
-                </Modal>
+            <Modal isOpen={openDeleteModal} onClose={() => setOpenDeleteModal(false)}>
+              <div className="w-[400px] h-auto flex flex-col items-center justify-center text-secondary pb-6 px-6 pt-12 text-center">
+                <CircleX className="h-[60px] w-[60px] text-red-400 " />
+                <p className="text-primary">{t("experience.secure_delete_experience_header")}</p>
+                <p className="text-sm mt-6 text-secondary">{t("experience.secure_delete_experience_description")}</p>
+                <div className="flex flex-row justify-around w-full mt-6">
+                  <Button size="sm" variant="dark" effect="default" isRound={true} onClick={() => setOpenDeleteModal(false)}>{t("common.cancel")}</Button>
+                  <Button size="sm" variant="danger" effect="default" isRound={true} onClick={() => { deleteExperienceHandler() }}>{t("common.accept")}</Button>
+                </div>
+              </div>
+            </Modal>
 
-              <Modal isOpen={openModalCategories} onClose={()=>setOpenModalCategories(false)}>
-                  <div className="w-[600px] h-auto flex flex-col items-center justify-center text-secondary pb-6 px-6 pt-12 text-center">
-                    {loadingCategory ? 
-                      <>
-                        <div className="loader"></div>
-                        <h1 className="font-primary text-white mt-4">{t("common.loading")}</h1>
-                      </>
-                    :
-                    <>
-                      <form id="form_create_experience_category" className="h-auto w-full flex flex-row items-end justify-between gap-x-2" onSubmit={(e)=>onSubmitCreationCategory(e)}>
-                        <div className="flex flex-col items-start justify-start w-full">
-                          <label htmlFor="category" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.new_category")}</label>
-                            <input name="category" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.category_name")}/>
-                        </div>
-                        <div className="flex flex-col items-center justify-center w-auto h-auto">
-                          <button
-                            type="submit"
-                            className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-primary hover:text-white rounded-md duration-300 hover:border-primary h-8 w-8 flex items-center justify-center"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </form>
-                      <div className="mt-12 h-[200px] w-full flex flex-col justify-start items-start overflow-y-scroll gap-y-2">
-                        <label htmlFor="category" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.categories")}</label>
-                        { datasetExperiencesCategory.map((category,index)=>{
-                          return(
-                            <div key={"category_experience"+index} className="w-[90%] h-auto flex flex-row items-center justify-center border border-2 border-slate-200 rounded-md p-2 mx-auto">
-                              <div className="flex flex-col items-center justify-center w-full">
-                                {selectedCategory?.id == category.id ?
-                                  <input name="name" value={selectedCategory.name} onChange={(e)=>onChangeSelectedCategory(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.category_name")}/>
+            <Modal isOpen={openModalCategories} onClose={() => setOpenModalCategories(false)}>
+              <div className="w-[600px] h-auto flex flex-col items-center justify-center text-secondary pb-6 px-6 pt-12 text-center">
+                {loadingCategory ?
+                  <>
+                    <div className="loader"></div>
+                    <h1 className="font-primary text-white mt-4">{t("common.loading")}</h1>
+                  </>
+                  :
+                  <>
+                    <form id="form_create_experience_category" className="h-auto w-full flex flex-row items-end justify-between gap-x-2" onSubmit={(e) => onSubmitCreationCategory(e)}>
+                      <div className="flex flex-col items-start justify-start w-full">
+                        <label htmlFor="category" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.new_category")}</label>
+                        <input name="category" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.category_name")} />
+                      </div>
+                      <div className="flex flex-col items-center justify-center w-auto h-auto">
+                        <button
+                          type="submit"
+                          className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-primary hover:text-white rounded-md duration-300 hover:border-primary h-8 w-8 flex items-center justify-center"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </form>
+                    <div className="mt-12 h-[200px] w-full flex flex-col justify-start items-start overflow-y-scroll gap-y-2">
+                      <label htmlFor="category" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.categories")}</label>
+                      {datasetExperiencesCategory.map((category, index) => {
+                        return (
+                          <div key={"category_experience" + index} className="w-[90%] h-auto flex flex-row items-center justify-center border border-2 border-slate-200 rounded-md p-2 mx-auto">
+                            <div className="flex flex-col items-center justify-center w-full">
+                              {selectedCategory?.id == category.id ?
+                                <input name="name" value={selectedCategory.name} onChange={(e) => onChangeSelectedCategory(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.category_name")} />
                                 :
                                 <label className="w-full text-left text-sm">{category.name}</label>
-                                }
-                              </div>
-                              <div className="flex flex-row items-center justify-center w-auto gap-x-2">
-                                {selectedCategory?.id == category.id ? 
-                                  <button
-                                    onClick={()=>{onSubmitUpdateCategory()}}
-                                    type="button"
-                                    className="border-2 border-slate-200 active:scale-95 hover:bg-primary hover:text-white rounded-md duration-300 hover:border-primary h-8 w-8 flex items-center justify-center"
-                                  >
-                                    <RefreshCw className="w-4 h-4"/>
-                                  </button>
-                                :
-                                  <button
-                                    onClick={()=>setSelectedCategory(category)}
-                                    type="button"
-                                    className="border-2 border-slate-200 active:scale-95 hover:bg-primary hover:text-white rounded-md duration-300 hover:border-primary h-8 w-8 flex items-center justify-center"
-                                  >
-                                    <Pen className="w-4 h-4"/>
-                                  </button>
-                                }
+                              }
+                            </div>
+                            <div className="flex flex-row items-center justify-center w-auto gap-x-2">
+                              {selectedCategory?.id == category.id ?
                                 <button
+                                  onClick={() => { onSubmitUpdateCategory() }}
                                   type="button"
-                                  onClick={()=>deleteExperienceCategoryHandler(category.id)}
                                   className="border-2 border-slate-200 active:scale-95 hover:bg-primary hover:text-white rounded-md duration-300 hover:border-primary h-8 w-8 flex items-center justify-center"
                                 >
-                                  <X className="w-4 h-4"/>
+                                  <RefreshCw className="w-4 h-4" />
                                 </button>
-                              </div>
+                                :
+                                <button
+                                  onClick={() => setSelectedCategory(category)}
+                                  type="button"
+                                  className="border-2 border-slate-200 active:scale-95 hover:bg-primary hover:text-white rounded-md duration-300 hover:border-primary h-8 w-8 flex items-center justify-center"
+                                >
+                                  <Pen className="w-4 h-4" />
+                                </button>
+                              }
+                              <button
+                                type="button"
+                                onClick={() => deleteExperienceCategoryHandler(category.id)}
+                                className="border-2 border-slate-200 active:scale-95 hover:bg-primary hover:text-white rounded-md duration-300 hover:border-primary h-8 w-8 flex items-center justify-center"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
                             </div>
-                          )
-                        })}
-                      </div>
-                    </>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
 
-                    }
-                  </div>
-              </Modal>
-            </>
+                }
+              </div>
+            </Modal>
+          </>
 
         )}
 
         {currentView == "V" && selectedExperience && (
-                <motion.div 
-                    key={"View"}
-                    initial="hidden"
-                    animate="show"
-                    exit="hidden"
-                    viewport={{ once: true }}
-                    variants={fadeIn("up","",0.5,0.3)}
-                    className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
-                    <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon/>{t("experience.see_experiences")}</h2>
+          <motion.div
+            key={"View"}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            viewport={{ once: true }}
+            variants={fadeIn("up", "", 0.5, 0.3)}
+            className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
+            <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon />{t("experience.see_experiences")}</h2>
 
-                  <div className="w-full h-auto flex flex-col lg:flex-row gap-6 p-6" >
+            <div className="w-full h-auto flex flex-col lg:flex-row gap-6 p-6" >
 
-                    <div className="flex flex-col justify-start items-start w-full lg:w-[50%] h-full">
+              <div className="flex flex-col justify-start items-start w-full lg:w-[50%] h-full">
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                                <label htmlFor="categoryId" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_category")}</label>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="categoryId" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_category")}</label>
 
-                                <select name="categoryId" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
-                                  <option value={selectedExperience.category.id}>{selectedExperience.category.name}</option>
-                                </select>
-                          </div>
+                  <select name="categoryId" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
+                    <option value={selectedExperience.category.id}>{selectedExperience.category.name}</option>
+                  </select>
+                </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="header" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_header")}</label>
-                            <input name="header" value={selectedExperience.header} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_category")} readOnly/>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="header" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_header")}</label>
+                  <input name="header" value={selectedExperience.header} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_category")} readOnly />
+                </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_name")}</label>
-                            <input name="name" value={selectedExperience.name} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_name")} readOnly/>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_name")}</label>
+                  <input name="name" value={selectedExperience.name} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_name")} readOnly />
+                </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="description" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_description")}</label>
-                            <textarea name="description" className="w-full h-8 sm:h-24 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary mt-2" placeholder={t("experience.experience_description")} value={ selectedExperience.description } readOnly/>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="description" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_description")}</label>
+                  <textarea name="description" className="w-full h-8 sm:h-24 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary mt-2" placeholder={t("experience.experience_description")} value={selectedExperience.description} readOnly />
+                </div>
 
-                          <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
 
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_price")}</label>
-                              <input name="price" value={selectedExperience.price} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_price")} readOnly/>
-                            </div>
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_price")}</label>
+                    <input name="price" value={selectedExperience.price} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_price")} readOnly />
+                  </div>
 
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="duration" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_duration")}</label>
-                              <input name="duration" value={selectedExperience.duration} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_duration")} readOnly/>
-                            </div>
-                          </div>
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="duration" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_duration")}</label>
+                    <input name="duration" value={selectedExperience.duration} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_duration")} readOnly />
+                  </div>
+                </div>
 
-                          <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
 
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="limit_age" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_limit_age")}</label>
-                              <input name="limit_age" value={selectedExperience.limit_age} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_limit_age")} readOnly/>
-                            </div>
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="limit_age" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_limit_age")}</label>
+                    <input name="limit_age" value={selectedExperience.limit_age} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_limit_age")} readOnly />
+                  </div>
 
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="qtypeople" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_qty_people")}</label>
-                              <input name="qtypeople" value={selectedExperience.qtypeople} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_qty_people")} readOnly/>
-                            </div>
-                          </div>
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="qtypeople" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_qty_people")}</label>
+                    <input name="qtypeople" value={selectedExperience.qtypeople} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_qty_people")} readOnly />
+                  </div>
+                </div>
 
 
 
-                      </div>
+              </div>
 
-                    <div className="flex flex-col justify-start items-start w-full lg:w-[50%]">
-                          
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
-                            <label htmlFor="custom_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price")}</label>
-                            <div className="w-full h-auto flex flex-col items-start justify-start">
-                              <AnimatePresence>
-                                {selectedExperience.custom_price.map((price, index) => (
-                                          <motion.div
-                                            key={index}
-                                            initial="hidden"
-                                            animate="show"
-                                            exit="hidden"
-                                            viewport={{ once: true }}
-                                            variants={fadeIn("up","",0,0.3)}
-                                            className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
-                                          >
-                                            <span className="w-[30%]">
-                                              {t("experience.experience_custom_price_from")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateFrom)}</label>
-                                            </span>
-                                            <span className="w-[30%]">
-                                              {t("experience.experience_custom_price_to")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateTo)}</label>
-                                            </span>
-                                            <span className="w-[30%]">
-                                              {t("experience.experience_custom_price_price")}: <label className="text-tertiary ml-2">S/{price.price.toFixed(2)}</label>
-                                            </span>
-                                          </motion.div>
-                                        ))}
-                              </AnimatePresence>
-                            </div>
+              <div className="flex flex-col justify-start items-start w-full lg:w-[50%]">
 
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
+                  <label htmlFor="custom_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price")}</label>
+                  <div className="w-full h-auto flex flex-col items-start justify-start">
+                    <AnimatePresence>
+                      {selectedExperience.custom_price.map((price, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeIn("up", "", 0, 0.3)}
+                          className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
+                        >
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_from")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateFrom)}</label>
+                          </span>
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_to")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateTo)}</label>
+                          </span>
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_price")}: <label className="text-tertiary ml-2">S/{price.price.toFixed(2)}</label>
+                          </span>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="status" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.status")}</label>
-                            <select name="status" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
-                              <option value={selectedExperience.status}>{selectedExperience.status == "ACTIVE" ? t("experience.ACTIVE") : t("experience.INACTIVE")}</option>
-                            </select>
-                          </div>
-                          
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="image" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_images")}</label>
-                              <div className="flex flex-row flex-wrap justify-start items-start w-full h-auto p-4 gap-6">
-                                <AnimatePresence>
-                                  {selectedExperience.images.map((image, index) => (
-                                    <motion.div
-                                      key={index}
-                                      initial="hidden"
-                                      animate="show"
-                                      exit="hidden"
-                                      viewport={{ once: true }}
-                                      variants={fadeOnly("",0,0.3)}
-                                      className="image-selected"
-                                      style={{
-                                        backgroundImage: `url(${image})`,
-                                        backgroundSize: 'cover',
-                                        position: 'relative'
-                                      }}
-                                    >
-                                    </motion.div>
-                                  ))}
-                                </AnimatePresence>
-                              </div>
-                          </div>
+                </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
-                            <label htmlFor="suggestions" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_suggestions")}</label>
-                            <div className="w-full h-auto">
-                              <AnimatePresence>
-                                {selectedExperience.suggestions.map((suggestion, index) => (
-                                          <motion.div
-                                            key={index}
-                                            initial="hidden"
-                                            animate="show"
-                                            exit="hidden"
-                                            viewport={{ once: true }}
-                                            variants={fadeIn("up","",0,0.3)}
-                                            className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
-                                          >
-                                            <span className="w-[90%]">
-                                              {`Sug. ${index+1}:`} <label className="text-tertiary ml-2 text-xs">{suggestion}</label>
-                                            </span>
-                                          </motion.div>
-                                        ))}
-                              </AnimatePresence>
-                            </div>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="status" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.status")}</label>
+                  <select name="status" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
+                    <option value={selectedExperience.status}>{selectedExperience.status == "ACTIVE" ? t("experience.ACTIVE") : t("experience.INACTIVE")}</option>
+                  </select>
+                </div>
 
-                          <div className="flex flex-row justify-end gap-x-6 w-full mt-12">
-                              <Button type="button" onClick={()=>setCurrentView("L")} size="sm" variant="dark" effect="default" isRound={true}>{t("experience.go_back_experiences_list")}</Button>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="image" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_images")}</label>
+                  <div className="flex flex-row flex-wrap justify-start items-start w-full h-auto p-4 gap-6">
+                    <AnimatePresence>
+                      {selectedExperience.images.map((image, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeOnly("", 0, 0.3)}
+                          className="image-selected"
+                          style={{
+                            backgroundImage: `url(${image})`,
+                            backgroundSize: 'cover',
+                            position: 'relative'
+                          }}
+                        >
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
 
-                      </div>
-                    </div>
-                </motion.div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
+                  <label htmlFor="suggestions" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_suggestions")}</label>
+                  <div className="w-full h-auto">
+                    <AnimatePresence>
+                      {selectedExperience.suggestions.map((suggestion, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeIn("up", "", 0, 0.3)}
+                          className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
+                        >
+                          <span className="w-[90%]">
+                            {`Sug. ${index + 1}:`} <label className="text-tertiary ml-2 text-xs">{suggestion}</label>
+                          </span>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                <div className="flex flex-row justify-end gap-x-6 w-full mt-12">
+                  <Button type="button" onClick={() => setCurrentView("L")} size="sm" variant="dark" effect="default" isRound={true}>{t("experience.go_back_experiences_list")}</Button>
+                </div>
+
+              </div>
+            </div>
+          </motion.div>
         )}
 
 
 
 
         {currentView == "A" && (
-            <motion.div 
-                key={"New-View"}
-                initial="hidden"
-                animate="show"
-                exit="hidden"
-                viewport={{ once: true }}
-                variants={fadeIn("up","",0.5,0.3)}
-                className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
-                <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon/>{t("experience.add_experience")}</h2>
+          <motion.div
+            key={"New-View"}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            viewport={{ once: true }}
+            variants={fadeIn("up", "", 0.5, 0.3)}
+            className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
+            <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon />{t("experience.add_experience")}</h2>
 
-              <form id="form_create_experience" className="w-full h-auto flex flex-col lg:flex-row gap-6 p-6" onSubmit={(e)=>onSubmitCreation(e)}>
+            <form id="form_create_experience" className="w-full h-auto flex flex-col lg:flex-row gap-6 p-6" onSubmit={(e) => onSubmitCreation(e)}>
 
-                <div className="flex flex-col justify-start items-start w-full lg:w-[50%] h-full">
+              <div className="flex flex-col justify-start items-start w-full lg:w-[50%] h-full">
 
-                  <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                        <label htmlFor="categoryId" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_category")}</label>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="categoryId" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_category")}</label>
 
-                        <select name="categoryId" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
-                          { datasetExperiencesCategory.map((category,index)=>{
-                            return(
-                              <option key={index} value={category.id}>{category.name}</option>
-                            )
-                          })}
-                        </select>
+                  <select name="categoryId" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
+                    {datasetExperiencesCategory.map((category, index) => {
+                      return (
+                        <option key={index} value={category.id}>{category.name}</option>
+                      )
+                    })}
+                  </select>
 
-                        <div className="w-full h-6">
-                          {errorMessages.categoryId && (
-                            <motion.p 
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up","", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {errorMessages.categoryId}
-                            </motion.p>
-                          )}
-                        </div>
+                  <div className="w-full h-6">
+                    {errorMessages.categoryId && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {errorMessages.categoryId}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="header" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_header")}</label>
+                  <input name="header" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_header")} />
+                  <div className="w-full h-6">
+                    {errorMessages.header && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.header)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
+
+
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_name")}</label>
+                  <input name="name" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_name")} />
+                  <div className="w-full h-6">
+                    {errorMessages.name && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.name)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="description" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_description")}</label>
+                  <textarea name="description" className="w-full h-8 sm:h-24 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary mt-2" placeholder={t("experience.experience_description")} />
+                  <div className="w-full h-6">
+                    {errorMessages.description && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.description)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_price")}</label>
+                    <input name="price" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_price")} />
+
+                    <div className="w-full h-6">
+                      {errorMessages.price && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.price)}
+                        </motion.p>
+                      )}
+                    </div>
                   </div>
 
-                      <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                        <label htmlFor="header" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_header")}</label>
-                        <input name="header" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_header")}/>
-                        <div className="w-full h-6">
-                          {errorMessages.header && (
-                            <motion.p 
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up","", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.header)}
-                            </motion.p>
-                          )}
-                        </div>
-                      </div>
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="duration" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_duration")}</label>
+                    <input name="duration" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_duration")} />
+
+                    <div className="w-full h-6">
+                      {errorMessages.duration && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.duration)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="limit_age" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_limit_age")}</label>
+                    <input name="limit_age" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_limit_age")} />
+
+                    <div className="w-full h-6">
+                      {errorMessages.limit_age && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.limit_age)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="qtypeople" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_qty_people")}</label>
+                    <input name="qtypeople" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_qty_people")} />
+
+                    <div className="w-full h-6">
+                      {errorMessages.qtypeople && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.qtypeople)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
 
 
-                      <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                        <label htmlFor="name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_name")}</label>
-                        <input name="name" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_name")}/>
-                        <div className="w-full h-6">
-                          {errorMessages.name && (
-                            <motion.p 
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up","", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.name)}
-                            </motion.p>
-                          )}
-                        </div>
-                      </div>
 
-                      <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                        <label htmlFor="description" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_description")}</label>
-                        <textarea name="description" className="w-full h-8 sm:h-24 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary mt-2" placeholder={t("experience.experience_description")}/>
-                        <div className="w-full h-6">
-                          {errorMessages.description && (
-                            <motion.p 
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up","", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.description)}
-                            </motion.p>
-                          )}
-                        </div>
-                      </div>
+              </div>
 
-                      <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                        <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                          <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_price")}</label>
-                          <input name="price" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_price")}/>
+              <div className="flex flex-col justify-start items-start w-full lg:w-[50%]">
 
-                          <div className="w-full h-6">
-                            {errorMessages.price && (
-                              <motion.p 
-                                initial="hidden"
-                                animate="show"
-                                exit="hidden"
-                                variants={fadeIn("up","", 0, 1)}
-                                className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                {t(errorMessages.price)}
-                              </motion.p>
-                            )}
-                          </div>
-                        </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
+                  <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price")}</label>
+                  <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
+                      <label htmlFor="custom_price_date_from" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_from")}</label>
+                      <input name="custom_price_date_from" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_from")} />
+                    </div>
 
-                        <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                          <label htmlFor="duration" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_duration")}</label>
-                          <input name="duration" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_duration")}/>
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
+                      <label htmlFor="custom_price_date_to" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_to")}</label>
+                      <input name="custom_price_date_to" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_to")} />
+                    </div>
 
-                          <div className="w-full h-6">
-                            {errorMessages.duration && (
-                              <motion.p 
-                                initial="hidden"
-                                animate="show"
-                                exit="hidden"
-                                variants={fadeIn("up","", 0, 1)}
-                                className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                {t(errorMessages.duration)}
-                              </motion.p>
-                            )}
-                          </div>
-                        </div>
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
+                      <label htmlFor="custom_price_value" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_price")}</label>
+                      <input name="custom_price_value" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_price")} />
+                    </div>
+                    <Button onClick={() => handleAddCustomPrice("form_create_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
+                  </div>
 
-                      </div>
+                  <div className="w-full h-auto">
+                    <AnimatePresence>
+                      {customPrices.map((price, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeIn("up", "", 0, 0.3)}
+                          className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
+                        >
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_from")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateFrom)}</label>
+                          </span>
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_to")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateTo)}</label>
+                          </span>
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_price")}: <label className="text-tertiary ml-2">S/{price.price.toFixed(2)}</label>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomPrice(index)}
+                            className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
+                          >
+                            {t("experience.experience_custom_price_delete_btn")}
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
 
-                      <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                        <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                          <label htmlFor="limit_age" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_limit_age")}</label>
-                          <input name="limit_age" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_limit_age")}/>
+                  <div className="w-full h-6">
+                    {errorMessages.customPrices && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.customPrices)}
+                      </motion.p>
+                    )}
+                  </div>
 
-                          <div className="w-full h-6">
-                            {errorMessages.limit_age && (
-                              <motion.p 
-                                initial="hidden"
-                                animate="show"
-                                exit="hidden"
-                                variants={fadeIn("up","", 0, 1)}
-                                className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                {t(errorMessages.limit_age)}
-                              </motion.p>
-                            )}
-                          </div>
-                        </div>
+                </div>
 
-                        <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                          <label htmlFor="qtypeople" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_qty_people")}</label>
-                          <input name="qtypeople" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_qty_people")}/>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="status" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.status")}</label>
+                  <select name="status" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
+                    <option value="ACTIVE">{t("experience.ACTIVE")}</option>
+                    <option value="INACTIVE">{t("experience.INACTIVE")}</option>
+                  </select>
 
-                          <div className="w-full h-6">
-                            {errorMessages.qtypeople && (
-                              <motion.p 
-                                initial="hidden"
-                                animate="show"
-                                exit="hidden"
-                                variants={fadeIn("up","", 0, 1)}
-                                className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                {t(errorMessages.qtypeople)}
-                              </motion.p>
-                            )}
-                          </div>
-                        </div>
+                  <div className="w-full h-6">
+                    {errorMessages.status && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.status)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-                      </div>
-
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="image" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_images")}</label>
+                  <div className="flex flex-row flex-wrap justify-start items-start w-full h-auto p-4 gap-6">
+                    <AnimatePresence>
+                      {images.map((image, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeOnly("", 0, 0.3)}
+                          className="image-selected"
+                          style={{
+                            backgroundImage: `url(${image.url})`,
+                            backgroundSize: 'cover',
+                            position: 'relative'
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="delete-image-selected"
+                            onClick={() => handleRemoveImage(image.url)}
+                          >
+                            X
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                    <div className="file-select" id="src-tent-image" >
+                      <input type="file" name="src-tent-image" aria-label="Archivo" onChange={handleImageChange} multiple />
+                    </div>
 
 
                   </div>
-
-                <div className="flex flex-col justify-start items-start w-full lg:w-[50%]">
-
-                      <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
-                        <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price")}</label>
-                        <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="custom_price_date_from" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_from")}</label>
-                              <input name="custom_price_date_from" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_from")}/>
-                            </div>
-
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="custom_price_date_to" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_to")}</label>
-                              <input name="custom_price_date_to" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_to")}/>
-                            </div>
-
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="custom_price_value" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_price")}</label>
-                              <input name="custom_price_value" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_price")}/>
-                            </div>
-                          <Button onClick={()=>handleAddCustomPrice("form_create_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
-                        </div>
-
-                        <div className="w-full h-auto">
-                          <AnimatePresence>
-                            {customPrices.map((price, index) => (
-                                      <motion.div
-                                        key={index}
-                                        initial="hidden"
-                                        animate="show"
-                                        exit="hidden"
-                                        viewport={{ once: true }}
-                                        variants={fadeIn("up","",0,0.3)}
-                                        className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
-                                      >
-                                        <span className="w-[30%]">
-                                          {t("experience.experience_custom_price_from")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateFrom)}</label>
-                                        </span>
-                                        <span className="w-[30%]">
-                                          {t("experience.experience_custom_price_to")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateTo)}</label>
-                                        </span>
-                                        <span className="w-[30%]">
-                                          {t("experience.experience_custom_price_price")}: <label className="text-tertiary ml-2">S/{price.price.toFixed(2)}</label>
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRemoveCustomPrice(index)}
-                                          className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
-                                        >
-                                          {t("experience.experience_custom_price_delete_btn")}
-                                        </button>
-                                      </motion.div>
-                                    ))}
-                          </AnimatePresence>
-                        </div>
-
-                        <div className="w-full h-6">
-                          {errorMessages.customPrices && (
-                            <motion.p 
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up","", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.customPrices)}
-                            </motion.p>
-                          )}
-                        </div>
-
-                      </div>
-
-                      <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                        <label htmlFor="status" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.status")}</label>
-                        <select name="status" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
-                          <option value="ACTIVE">{t("experience.ACTIVE")}</option>
-                          <option value="INACTIVE">{t("experience.INACTIVE")}</option>
-                        </select>
-
-                        <div className="w-full h-6">
-                          {errorMessages.status && (
-                            <motion.p 
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up","", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.status)}
-                            </motion.p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                        <label htmlFor="image" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_images")}</label>
-                          <div className="flex flex-row flex-wrap justify-start items-start w-full h-auto p-4 gap-6">
-                            <AnimatePresence>
-                              {images.map((image, index) => (
-                                <motion.div
-                                  key={index}
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  viewport={{ once: true }}
-                                  variants={fadeOnly("",0,0.3)}
-                                  className="image-selected"
-                                  style={{
-                                    backgroundImage: `url(${image.url})`,
-                                    backgroundSize: 'cover',
-                                    position: 'relative'
-                                  }}
-                                >
-                                  <button
-                                    type="button"
-                                    className="delete-image-selected"
-                                    onClick={() => handleRemoveImage(image.url)}
-                                  >
-                                    X
-                                  </button>
-                                </motion.div>
-                              ))}
-                            </AnimatePresence>
-                            <div className="file-select" id="src-tent-image" >
-                              <input type="file" name="src-tent-image" aria-label="Archivo" onChange={handleImageChange} multiple/>
-                            </div>
-
-
-                          </div>
-                          <div className="w-full h-6">
-                            {errorMessages.images && (
-                              <motion.p 
-                                initial="hidden"
-                                animate="show"
-                                exit="hidden"
-                                variants={fadeIn("up","", 0, 1)}
-                                className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                {t(errorMessages.images)}
-                              </motion.p>
-                            )}
-                          </div>
-                      </div>
-
-                      <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
-                        <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_suggestions")}</label>
-                        <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-[75%] h-auto gap-y-2 sm:gap-y-1">
-                              <textarea name="suggestion_input" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_suggestions")}/>
-                            </div>
-                            <Button onClick={()=>handleAddSuggestion("form_create_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
-                        </div>
-
-                        <div className="w-full h-auto">
-                          <AnimatePresence>
-                            {suggestions.map((suggestion, index) => (
-                                      <motion.div
-                                        key={index}
-                                        initial="hidden"
-                                        animate="show"
-                                        exit="hidden"
-                                        viewport={{ once: true }}
-                                        variants={fadeIn("up","",0,0.3)}
-                                        className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
-                                      >
-                                        <span className="w-[90%]">
-                                          {`Sug. ${index+1}:`} <label className="text-tertiary ml-2 text-xs">{suggestion}</label>
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRemoveSuggestion(index)}
-                                          className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
-                                        >
-                                          {t("experience.experience_suggestion_delete_btn")}
-                                        </button>
-                                      </motion.div>
-                                    ))}
-                          </AnimatePresence>
-                        </div>
-
-                        <div className="w-full h-6">
-                          {errorMessages.suggestions && (
-                            <motion.p 
-                              initial="hidden"
-                              animate="show"
-                              exit="hidden"
-                              variants={fadeIn("up","", 0, 1)}
-                              className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                              {t(errorMessages.suggestions)}
-                            </motion.p>
-                          )}
-                        </div>
-
-                      </div>
-
-                      <div className="flex flex-row justify-end gap-x-6 w-full">
-                          <Button type="button" onClick={()=>setCurrentView("L")} size="sm" variant="dark" effect="default" isRound={true}>{t("common.cancel")}</Button>
-                          <Button type="submit" size="sm" variant="dark" effect="default" isRound={true} isLoading={loadingForm}>{t("experience.create_experience")} </Button>
-                      </div>
-
+                  <div className="w-full h-6">
+                    {errorMessages.images && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.images)}
+                      </motion.p>
+                    )}
                   </div>
-                </form>
-            </motion.div>
+                </div>
+
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
+                  <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_suggestions")}</label>
+                  <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[75%] h-auto gap-y-2 sm:gap-y-1">
+                      <textarea name="suggestion_input" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_suggestions")} />
+                    </div>
+                    <Button onClick={() => handleAddSuggestion("form_create_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
+                  </div>
+
+                  <div className="w-full h-auto">
+                    <AnimatePresence>
+                      {suggestions.map((suggestion, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeIn("up", "", 0, 0.3)}
+                          className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
+                        >
+                          <span className="w-[90%]">
+                            {`Sug. ${index + 1}:`} <label className="text-tertiary ml-2 text-xs">{suggestion}</label>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSuggestion(index)}
+                            className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
+                          >
+                            {t("experience.experience_suggestion_delete_btn")}
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+
+                  <div className="w-full h-6">
+                    {errorMessages.suggestions && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.suggestions)}
+                      </motion.p>
+                    )}
+                  </div>
+
+                </div>
+
+                <div className="flex flex-row justify-end gap-x-6 w-full">
+                  <Button type="button" onClick={() => setCurrentView("L")} size="sm" variant="dark" effect="default" isRound={true}>{t("common.cancel")}</Button>
+                  <Button type="submit" size="sm" variant="dark" effect="default" isRound={true} isLoading={loadingForm}>{t("experience.create_experience")} </Button>
+                </div>
+
+              </div>
+            </form>
+          </motion.div>
         )}
 
         {currentView === "E" && selectedExperience && (
-                <motion.div 
-                    key={"Edit-View"}
-                    initial="hidden"
-                    animate="show"
-                    exit="hidden"
-                    viewport={{ once: true }}
-                    variants={fadeIn("up","",0.5,0.3)}
-                    className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
-                    <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon/>{t("experience.edit_experience")}</h2>
+          <motion.div
+            key={"Edit-View"}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            viewport={{ once: true }}
+            variants={fadeIn("up", "", 0.5, 0.3)}
+            className="w-full h-auto flex flex-col justify-start items-start gap-y-4">
+            <h2 className="text-secondary text-2xl flex flex-row gap-x-4"><FlameKindlingIcon />{t("experience.edit_experience")}</h2>
 
-                  <form id="form_update_experience" className="w-full h-auto flex flex-col lg:flex-row gap-6 p-6" onSubmit={(e)=>onSubmitUpdate(e)}>
+            <form id="form_update_experience" className="w-full h-auto flex flex-col lg:flex-row gap-6 p-6" onSubmit={(e) => onSubmitUpdate(e)}>
 
-                    <div className="flex flex-col justify-start items-start w-full lg:w-[50%] h-full">
+              <div className="flex flex-col justify-start items-start w-full lg:w-[50%] h-full">
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                                <label htmlFor="categoryId" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_category")}</label>
-                                <select name="categoryId" onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" value={selectedExperience.category.id}>
-                                  { datasetExperiencesCategory.map((category,index)=>{
-                                    return(
-                                      <option key={index} value={category.id}>{category.name}</option>
-                                    )
-                                  })}
-                                </select>
-                                <div className="w-full h-6">
-                                  {errorMessages.categoryId && (
-                                    <motion.p 
-                                      initial="hidden"
-                                      animate="show"
-                                      exit="hidden"
-                                      variants={fadeIn("up","", 0, 1)}
-                                      className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                      {t(errorMessages.categoryId)}
-                                    </motion.p>
-                                  )}
-                                </div>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="categoryId" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_category")}</label>
+                  <select name="categoryId" onChange={handleExperienceCategoryChange} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" value={selectedExperience.category.id}>
+                    {datasetExperiencesCategory.map((category, index) => {
+                      return (
+                        <option key={index} value={category.id}>{category.name}</option>
+                      )
+                    })}
+                  </select>
+                  <div className="w-full h-6">
+                    {errorMessages.categoryId && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.categoryId)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="header" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_header")}</label>
-                            <input name="header" value={selectedExperience.header}  onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_header")}/>
-                            <div className="w-full h-6">
-                              {errorMessages.header && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.header)}
-                                </motion.p>
-                              )}
-                            </div>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="header" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_header")}</label>
+                  <input name="header" value={selectedExperience.header} onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_header")} />
+                  <div className="w-full h-6">
+                    {errorMessages.header && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.header)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_name")}</label>
-                            <input name="name" value={selectedExperience.name}  onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_name")}/>
-                            <div className="w-full h-6">
-                              {errorMessages.name && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.name)}
-                                </motion.p>
-                              )}
-                            </div>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="name" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_name")}</label>
+                  <input name="name" value={selectedExperience.name} onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_name")} />
+                  <div className="w-full h-6">
+                    {errorMessages.name && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.name)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="description" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_description")}</label>
-                            <textarea name="description"  onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-24 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary mt-2" placeholder={t("experience.experience_description")} value={selectedExperience.description} />
-                            <div className="w-full h-6">
-                              {errorMessages.description && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.description)}
-                                </motion.p>
-                              )}
-                            </div>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="description" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_description")}</label>
+                  <textarea name="description" onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-24 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary mt-2" placeholder={t("experience.experience_description")} value={selectedExperience.description} />
+                  <div className="w-full h-6">
+                    {errorMessages.description && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.description)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-                          <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_price")}</label>
-                              <input name="price" value={selectedExperience.price}  onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_price")}/>
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_price")}</label>
+                    <input name="price" value={selectedExperience.price} onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_price")} />
 
-                              <div className="w-full h-6">
-                                {errorMessages.price && (
-                                  <motion.p 
-                                    initial="hidden"
-                                    animate="show"
-                                    exit="hidden"
-                                    variants={fadeIn("up","", 0, 1)}
-                                    className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                    {t(errorMessages.price)}
-                                  </motion.p>
-                                )}
-                              </div>
-                            </div>
+                    <div className="w-full h-6">
+                      {errorMessages.price && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.price)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
 
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
 
-                              <label htmlFor="duration" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_duration")}</label>
-                              <input name="duration" value={selectedExperience.duration}  onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_duration")}/>
+                    <label htmlFor="duration" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_duration")}</label>
+                    <input name="duration" value={selectedExperience.duration} onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_duration")} />
 
-                              <div className="w-full h-6">
-                                {errorMessages.duration && (
-                                  <motion.p 
-                                    initial="hidden"
-                                    animate="show"
-                                    exit="hidden"
-                                    variants={fadeIn("up","", 0, 1)}
-                                    className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                    {t(errorMessages.duration)}
-                                  </motion.p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                    <div className="w-full h-6">
+                      {errorMessages.duration && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.duration)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                          <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
-                              <label htmlFor="limit_age" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_limit_age")}</label>
-                              <input name="limit_age" value={selectedExperience.limit_age}  onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_limit_age")}/>
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="limit_age" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_limit_age")}</label>
+                    <input name="limit_age" value={selectedExperience.limit_age} onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_limit_age")} />
 
-                              <div className="w-full h-6">
-                                {errorMessages.limit_age && (
-                                  <motion.p 
-                                    initial="hidden"
-                                    animate="show"
-                                    exit="hidden"
-                                    variants={fadeIn("up","", 0, 1)}
-                                    className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                    {t(errorMessages.limit_age)}
-                                  </motion.p>
-                                )}
-                              </div>
-                            </div>
+                    <div className="w-full h-6">
+                      {errorMessages.limit_age && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.limit_age)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
 
-                            <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
 
-                              <label htmlFor="qtypeople" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_qty_people")}</label>
-                              <input name="qtypeople" value={selectedExperience.qtypeople}  onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_qty_people")}/>
+                    <label htmlFor="qtypeople" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_qty_people")}</label>
+                    <input name="qtypeople" value={selectedExperience.qtypeople} onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_qty_people")} />
 
-                              <div className="w-full h-6">
-                                {errorMessages.qtypeople && (
-                                  <motion.p 
-                                    initial="hidden"
-                                    animate="show"
-                                    exit="hidden"
-                                    variants={fadeIn("up","", 0, 1)}
-                                    className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                    {t(errorMessages.qtypeople)}
-                                  </motion.p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-
-                      </div>
-
-                    <div className="flex flex-col justify-start items-start w-full lg:w-[50%]">
-
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
-                            <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price")}</label>
-                            <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                                <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
-                                  <label htmlFor="custom_price_date_from" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_from")}</label>
-                                  <input name="custom_price_date_from" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_from")}/>
-                                </div>
-
-                                <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
-                                  <label htmlFor="custom_price_date_to" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_to")}</label>
-                                  <input name="custom_price_date_to" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_to")}/>
-                                </div>
-
-                                <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
-                                  <label htmlFor="custom_price_value" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_price")}</label>
-                                  <input name="custom_price_value" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_price")}/>
-                                </div>
-                                <Button onClick={()=>handleAddCustomPrice("form_update_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
-                            </div>
-                            <div id="tent_create_container_custom_prices flex flex-col items-start justify-start"className="w-full h-auto">
-                              <AnimatePresence>
-                                {customPrices.map((price, index) => (
-                                          <motion.div
-                                            key={index}
-                                            initial="hidden"
-                                            animate="show"
-                                            exit="hidden"
-                                            viewport={{ once: true }}
-                                            variants={fadeIn("up","",0,0.3)}
-                                            className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
-                                          >
-                                            <span className="w-[30%]">
-                                              {t("experience.experience_custom_price_from")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateFrom)}</label>
-                                            </span>
-                                            <span className="w-[30%]">
-                                              {t("experience.experience_custom_price_to")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateTo)}</label>
-                                            </span>
-                                            <span className="w-[30%]">
-                                              {t("experience.experience_custom_price_price")}: <label className="text-tertiary ml-2">S/{price.price.toFixed(2)}</label>
-                                            </span>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleRemoveCustomPrice(index)}
-                                              className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
-                                            >
-                                              {t("experience.experience_custom_price_delete_btn")}
-                                            </button>
-                                          </motion.div>
-                                        ))}
-                              </AnimatePresence>
-                            </div>
-                            <div className="w-full h-6">
-                              {errorMessages.customPrices && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.customPrices)}
-                                </motion.p>
-                              )}
-                            </div>
-                          </div>
+                    <div className="w-full h-6">
+                      {errorMessages.qtypeople && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.qtypeople)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="status" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.status")}</label>
-                            <select name="status" onChange={(e)=>onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" value={selectedExperience.status}>
-                              <option value="ACTIVE" >{t("experience.ACTIVE")}</option>
-                              <option value="INACTIVE" >{t("experience.INACTIVE")}</option>
-                            </select>
-                            <div className="w-full h-6">
-                              {errorMessages.status && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.status)}
-                                </motion.p>
-                              )}
-                            </div>
-                          </div>
+              </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
-                            <label htmlFor="image" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_images")}</label>
-                              <div className="flex flex-row flex-wrap justify-start items-start w-full h-auto p-4 gap-6">
-                                <AnimatePresence>
-                                  {existingImages.map((image, index) => (
-                                    <motion.div
-                                      key={"ExistantImage"+index}
-                                      initial="hidden"
-                                      animate="show"
-                                      exit="hidden"
-                                      viewport={{ once: true }}
-                                      variants={fadeOnly("",0,0.3)}
-                                      className="image-selected"
-                                      style={{
-                                        backgroundImage: `url(${image})`,
-                                        backgroundSize: 'cover',
-                                        position: 'relative'
-                                      }}
-                                    >
-                                      <button
-                                        type="button"
-                                        className="delete-image-selected"
-                                        onClick={() => handleRemoveExistingImage(image)}
-                                      >
-                                        X
-                                      </button>
-                                    </motion.div>
-                                  ))}
-                                  {images.map((image, index) => (
-                                    <motion.div
-                                      key={"FilesImages"+index}
-                                      initial="hidden"
-                                      animate="show"
-                                      exit="hidden"
-                                      viewport={{ once: true }}
-                                      variants={fadeOnly("",0,0.3)}
-                                      className="image-selected"
-                                      style={{
-                                        backgroundImage: `url(${image.url})`,
-                                        backgroundSize: 'cover',
-                                        position: 'relative'
-                                      }}
-                                    >
-                                      <button
-                                        type="button"
-                                        className="delete-image-selected"
-                                        onClick={() => handleRemoveImage(image.url)}
-                                      >
-                                        X
-                                      </button>
-                                    </motion.div>
-                                  ))}
-                                </AnimatePresence>
-                                <div className="file-select" id="src-tent-image" >
-                                  <input type="file" name="src-tent-image" aria-label="Archivo" onChange={handleImageChange} multiple/>
-                                </div>
+              <div className="flex flex-col justify-start items-start w-full lg:w-[50%]">
 
-                              </div>
-                              <div className="w-full h-6">
-                                {errorMessages.images && (
-                                  <motion.p 
-                                    initial="hidden"
-                                    animate="show"
-                                    exit="hidden"
-                                    variants={fadeIn("up","", 0, 1)}
-                                    className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                    {t(errorMessages.images)}
-                                  </motion.p>
-                                )}
-                              </div>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
+                  <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price")}</label>
+                  <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
+                      <label htmlFor="custom_price_date_from" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_from")}</label>
+                      <input name="custom_price_date_from" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_from")} />
+                    </div>
 
-                          <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
-                            <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_suggestions")}</label>
-                            <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
-                                <div className="flex flex-col justify-start itemst-start gap-x-6 w-[75%] h-auto gap-y-2 sm:gap-y-1">
-                                  <textarea name="suggestion_input" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_suggestions")}/>
-                                </div>
-                                <Button onClick={()=>handleAddSuggestion("form_update_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
-                            </div>
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
+                      <label htmlFor="custom_price_date_to" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_to")}</label>
+                      <input name="custom_price_date_to" type="date" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_to")} />
+                    </div>
 
-                            <div className="w-full h-auto">
-                              <AnimatePresence>
-                                {suggestions.map((suggestion, index) => (
-                                          <motion.div
-                                            key={index}
-                                            initial="hidden"
-                                            animate="show"
-                                            exit="hidden"
-                                            viewport={{ once: true }}
-                                            variants={fadeIn("up","",0,0.3)}
-                                            className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
-                                          >
-                                            <span className="w-[90%]">
-                                              {`Sug. ${index+1}:`} <label className="text-tertiary ml-2 text-xs">{suggestion}</label>
-                                            </span>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleRemoveSuggestion(index)}
-                                              className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
-                                            >
-                                              {t("experience.experience_suggestion_delete_btn")}
-                                            </button>
-                                          </motion.div>
-                                        ))}
-                              </AnimatePresence>
-                            </div>
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[25%] h-auto gap-y-2 sm:gap-y-1">
+                      <label htmlFor="custom_price_value" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_custom_price_price")}</label>
+                      <input name="custom_price_value" type="number" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_custom_price_price")} />
+                    </div>
+                    <Button onClick={() => handleAddCustomPrice("form_update_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
+                  </div>
+                  <div id="tent_create_container_custom_prices flex flex-col items-start justify-start" className="w-full h-auto">
+                    <AnimatePresence>
+                      {customPrices.map((price, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeIn("up", "", 0, 0.3)}
+                          className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
+                        >
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_from")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateFrom)}</label>
+                          </span>
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_to")}: <label className="text-tertiary ml-2 text-xs">{formatDate(price.dateTo)}</label>
+                          </span>
+                          <span className="w-[30%]">
+                            {t("experience.experience_custom_price_price")}: <label className="text-tertiary ml-2">S/{price.price.toFixed(2)}</label>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomPrice(index)}
+                            className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
+                          >
+                            {t("experience.experience_custom_price_delete_btn")}
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                  <div className="w-full h-6">
+                    {errorMessages.customPrices && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.customPrices)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-                            <div className="w-full h-6">
-                              {errorMessages.suggestions && (
-                                <motion.p 
-                                  initial="hidden"
-                                  animate="show"
-                                  exit="hidden"
-                                  variants={fadeIn("up","", 0, 1)}
-                                  className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
-                                  {t(errorMessages.suggestions)}
-                                </motion.p>
-                              )}
-                            </div>
 
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="status" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.status")}</label>
+                  <select name="status" onChange={(e) => onChangeSelectedExperience(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" value={selectedExperience.status}>
+                    <option value="ACTIVE" >{t("experience.ACTIVE")}</option>
+                    <option value="INACTIVE" >{t("experience.INACTIVE")}</option>
+                  </select>
+                  <div className="w-full h-6">
+                    {errorMessages.status && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.status)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-                          <div className="flex flex-row justify-end gap-x-6 w-full">
-                              <Button type="button" onClick={()=>setCurrentView("L")} size="sm" variant="dark" effect="default" isRound={true}>{t("common.cancel")}</Button>
-                              <Button type="submit" size="sm" variant="dark" effect="default" isRound={true} isLoading={loadingForm}>{t("experience.save_changes")} </Button>
-                          </div>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
+                  <label htmlFor="image" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_images")}</label>
+                  <div className="flex flex-row flex-wrap justify-start items-start w-full h-auto p-4 gap-6">
+                    <AnimatePresence>
+                      {existingImages.map((image, index) => (
+                        <motion.div
+                          key={"ExistantImage" + index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeOnly("", 0, 0.3)}
+                          className="image-selected"
+                          style={{
+                            backgroundImage: `url(${image})`,
+                            backgroundSize: 'cover',
+                            position: 'relative'
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="delete-image-selected"
+                            onClick={() => handleRemoveExistingImage(image)}
+                          >
+                            X
+                          </button>
+                        </motion.div>
+                      ))}
+                      {images.map((image, index) => (
+                        <motion.div
+                          key={"FilesImages" + index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeOnly("", 0, 0.3)}
+                          className="image-selected"
+                          style={{
+                            backgroundImage: `url(${image.url})`,
+                            backgroundSize: 'cover',
+                            position: 'relative'
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="delete-image-selected"
+                            onClick={() => handleRemoveImage(image.url)}
+                          >
+                            X
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                    <div className="file-select" id="src-tent-image" >
+                      <input type="file" name="src-tent-image" aria-label="Archivo" onChange={handleImageChange} multiple />
+                    </div>
 
-                      </div>
-                    </form>
-                </motion.div>
-                )}
+                  </div>
+                  <div className="w-full h-6">
+                    {errorMessages.images && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.images)}
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
 
-        </AnimatePresence>
+                <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-2">
+                  <label htmlFor="price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("experience.experience_suggestions")}</label>
+                  <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                    <div className="flex flex-col justify-start itemst-start gap-x-6 w-[75%] h-auto gap-y-2 sm:gap-y-1">
+                      <textarea name="suggestion_input" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("experience.experience_suggestions")} />
+                    </div>
+                    <Button onClick={() => handleAddSuggestion("form_update_experience")} size="sm" type="button" variant="dark" effect="default" isRound={true} className="w-[10%] my-auto">+</Button>
+                  </div>
+
+                  <div className="w-full h-auto">
+                    <AnimatePresence>
+                      {suggestions.map((suggestion, index) => (
+                        <motion.div
+                          key={index}
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          viewport={{ once: true }}
+                          variants={fadeIn("up", "", 0, 0.3)}
+                          className="w-full h-auto flex flex-row justify-between items-center rounded-xl border border-slate-200 px-4 py-2 my-2 text-sm"
+                        >
+                          <span className="w-[90%]">
+                            {`Sug. ${index + 1}:`} <label className="text-tertiary ml-2 text-xs">{suggestion}</label>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSuggestion(index)}
+                            className="border-2 border-slate-200 p-2 active:scale-95 hover:bg-red-400 hover:text-white rounded-xl duration-300 hover:border-red-400"
+                          >
+                            {t("experience.experience_suggestion_delete_btn")}
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+
+                  <div className="w-full h-6">
+                    {errorMessages.suggestions && (
+                      <motion.p
+                        initial="hidden"
+                        animate="show"
+                        exit="hidden"
+                        variants={fadeIn("up", "", 0, 1)}
+                        className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                        {t(errorMessages.suggestions)}
+                      </motion.p>
+                    )}
+                  </div>
+
+                </div>
+
+                <div className="flex flex-row justify-end gap-x-6 w-full">
+                  <Button type="button" onClick={() => setCurrentView("L")} size="sm" variant="dark" effect="default" isRound={true}>{t("common.cancel")}</Button>
+                  <Button type="submit" size="sm" variant="dark" effect="default" isRound={true} isLoading={loadingForm}>{t("experience.save_changes")} </Button>
+                </div>
+
+              </div>
+            </form>
+          </motion.div>
+        )}
+
+      </AnimatePresence>
     </Dashboard>
-    )
+  )
 }
 
 export default DashboardAdminExperiences;

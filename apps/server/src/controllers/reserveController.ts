@@ -289,9 +289,9 @@ export const createReserveByUser = [
     try {
 
       const language = req.language || 'en';
-      const { external_id, gross_import  } = await reserveService.createReserveByUser(req.body, language);
-      res.status(201).json({ 
-        message: req.t('message.reserveCreatedByUser'), 
+      const { external_id, gross_import } = await reserveService.createReserveByUser(req.body, language);
+      res.status(201).json({
+        message: req.t('message.reserveCreatedByUser'),
         external_id,
         gross_import
       });
@@ -389,36 +389,6 @@ export const deleteReserve = async (req: Request, res: Response) => {
   }
 };
 
-export const createProductReserveByUser = [
-  body('products').isArray().withMessage('validation.productsMustBeArray'),
-
-  async (req: Request, res: Response) => {
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const localizedErrors = errors.array().map((error) => ({
-        ...error,
-        msg: req.t(error.msg)
-      }));
-
-      return res.status(400).json({ error: localizedErrors });
-    }
-
-    try {
-      if (req.user) {
-        await reserveService.AddProductReserveByUser(req.user.id, req.body.products);
-        res.status(201).json({ message: req.t('message.productReserveCreated') });
-      }
-    } catch (error) {
-      if (error instanceof CustomError) {
-        res.status(error.statusCode).json({ error: req.t(error.message) });
-      } else {
-        res.status(500).json({ error: req.t('error.failedToCreateProductReserve') });
-      }
-    }
-  }
-];
-
 
 
 export const createProductReserve = [
@@ -477,39 +447,6 @@ export const deleteProductReserve = [
     }
   }
 ];
-
-
-export const createExperienceReserveByUser = [
-  body('experiences').isArray().withMessage('validation.experiencesMustBeArray'),
-
-  async (req: Request, res: Response) => {
-
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const localizedErrors = errors.array().map((error) => ({
-        ...error,
-        msg: req.t(error.msg)
-      }));
-
-      return res.status(400).json({ error: localizedErrors });
-    }
-
-    try {
-      if (req.user) {
-        await reserveService.AddExperienceReserveByUser(req.user.id, req.body.experiences);
-        res.status(201).json({ message: req.t('message.experienceReserveCreated') });
-      }
-    } catch (error) {
-      console.log(error);
-      if (error instanceof CustomError) {
-        res.status(error.statusCode).json({ error: req.t(error.message) });
-      } else {
-        res.status(500).json({ error: req.t('error.failedToCreateExperienceReserve') });
-      }
-    }
-  }
-];
-
 
 
 export const createExperienceReserve = [

@@ -388,7 +388,7 @@ export const updateReserve = async (reserveId:Number,reserve: ReserveFormData, t
       } else {
         // Handle other types of errors
         if (statusCode) {
-          toast.error(`${errorData?.error || "Error updating the product."} (Code: ${statusCode})`);
+          toast.error(`${errorData?.error || "Error updating the reserve."} (Code: ${statusCode})`);
         } else {
           toast.error(errorData?.error || "An error occurred.");
         }

@@ -100,7 +100,7 @@ export const updateProduct = [
 
       await notificationService.notifyProductUpdate(req, product)
 
-      res.json({ message: req.t("message.productCreated") });
+      res.json({ message: req.t("message.productUpdated") });
     } catch (error) {
       if (error instanceof CustomError) {
         res.status(error.statusCode).json({ error: req.t(error.message) });

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Button from "./Button";
 import { ISOLOGO } from "../../assets/images";
 import { AnimatePresence } from "framer-motion";
-import { CalendarCheck, User, MessageSquare, DoorClosed, Pizza, FlameKindling, Percent, Disc, Tent, AlignJustify, Quote, Home, BarChartHorizontalIcon } from "lucide-react"
+import { CalendarCheck, User, MessageSquare, DoorClosed, Pizza, FlameKindling, Percent, Tent, AlignJustify, Quote, Home, BarChartHorizontalIcon } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext";
 import DropDownListAccount from "../DropDownListAccount";
 import { useNavigate } from "react-router-dom";
@@ -46,11 +46,6 @@ const DashboardButtons: DashboardButtonDataProps[] = [
     "title": "discount.plural",
     "icon": <Percent />,
     "section": "discounts"
-  },
-  {
-    "title": "promotion.plural",
-    "icon": <Disc />,
-    "section": "promotions"
   },
   {
     "title": "faq.plural",

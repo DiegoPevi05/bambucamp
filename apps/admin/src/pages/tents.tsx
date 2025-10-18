@@ -130,11 +130,13 @@ const DashboardAdminGlapings = () => {
     const status = (form.querySelector('select[name="status"]') as HTMLInputElement).value;
     const additional_people_price = Number((form.querySelector('input[name="additional_people_price"]') as HTMLInputElement).value);
     const max_additional_people = Number((form.querySelector('input[name="max_additional_people"]') as HTMLInputElement).value);
+    const max_kids = Number((form.querySelector('input[name="max_kids"]') as HTMLInputElement).value);
+    const kids_bundle_price = Number((form.querySelector('input[name="kids_bundle_price"]') as HTMLInputElement).value);
 
     setErrorMessages({});
 
     try {
-      TentSchema.parse({ title, description, header, existing_images: existingImages, images: images.map(image => image.file), qtypeople, qtykids, price, services: getServices(), custom_price: customPrices, status, additional_people_price, max_additional_people });
+      TentSchema.parse({ title, description, header, existing_images: existingImages, images: images.map(image => image.file), qtypeople, qtykids, price, services: getServices(), custom_price: customPrices, status, additional_people_price, max_additional_people, max_kids, kids_bundle_price });
 
       return {
         title,
@@ -144,6 +146,8 @@ const DashboardAdminGlapings = () => {
         qtykids,
         additional_people_price,
         max_additional_people,
+        max_kids,
+        kids_bundle_price,
         price,
         status,
         custom_price: JSON.stringify(customPrices),
@@ -509,6 +513,18 @@ const DashboardAdminGlapings = () => {
                   </div>
                 </div>
 
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="max_kids" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("glamping.glamping_max_kids")}</label>
+                    <input name="max_kids" value={selectedTent.max_kids} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("glamping.glamping_max_kids")} readOnly />
+                  </div>
+
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="kids_bundle_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("glamping.glamping_kids_bundle_price")}</label>
+                    <input name="kids_bundle_price" value={selectedTent.kids_bundle_price} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("glamping.glamping_kids_bundle_price")} readOnly />
+                  </div>
+                </div>
+
                 <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                   <label htmlFor="services" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("glamping.services")}</label>
                   <div id="input_tent_create_services" className="flex flex-row flex-wrap justify-start items-start w-full h-auto p-2 gap-y-4 gap-x-6">
@@ -851,6 +867,42 @@ const DashboardAdminGlapings = () => {
                           variants={fadeIn("up", "", 0, 1)}
                           className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
                           {t(errorMessages.max_additional_people)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="max_kids" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("glamping.glamping_max_kids")}</label>
+                    <input name="max_kids" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("glamping.glamping_max_kids")} />
+                    <div className="w-full h-6">
+                      {errorMessages.max_kids && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.max_kids)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="kids_bundle_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("glamping.glamping_kids_bundle_price")}</label>
+                    <input name="kids_bundle_price" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("glamping.glamping_kids_bundle_price")} />
+                    <div className="w-full h-6">
+                      {errorMessages.kids_bundle_price && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.kids_bundle_price)}
                         </motion.p>
                       )}
                     </div>
@@ -1220,6 +1272,42 @@ const DashboardAdminGlapings = () => {
                           variants={fadeIn("up", "", 0, 1)}
                           className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
                           {t(errorMessages.max_additional_people)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-row justify-start items-start w-full h-auto overflow-hidden my-1  gap-x-6">
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="max_kids" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("glamping.glamping_max_kids")}</label>
+                    <input name="max_kids" value={selectedTent.max_kids} onChange={(e) => onChangeSelectedTent(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("glamping.glamping_max_kids")} />
+                    <div className="w-full h-6">
+                      {errorMessages.max_kids && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.max_kids)}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
+                    <label htmlFor="kids_bundle_price" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("glamping.glamping_kids_bundle_price")}</label>
+                    <input name="kids_bundle_price" value={selectedTent.kids_bundle_price} onChange={(e) => onChangeSelectedTent(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("glamping.glamping_kids_bundle_price")} />
+                    <div className="w-full h-6">
+                      {errorMessages.kids_bundle_price && (
+                        <motion.p
+                          initial="hidden"
+                          animate="show"
+                          exit="hidden"
+                          variants={fadeIn("up", "", 0, 1)}
+                          className="h-6 text-[10px] sm:text-xs text-primary font-tertiary">
+                          {t(errorMessages.kids_bundle_price)}
                         </motion.p>
                       )}
                     </div>

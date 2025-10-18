@@ -159,6 +159,8 @@ export interface AdminTent {
   custom_price: CustomPriceRange[];
   additional_people_price: number;
   max_additional_people: number;
+  max_kids: number;
+  kids_bundle_price: number;
   status: string;
   createdAt: Date | null;
   updatedAt: Date | null;
@@ -203,6 +205,8 @@ export interface TentFormData<TImage = unknown> {
   price: number;
   additional_people_price: number;
   max_additional_people: number;
+  max_kids: number;
+  kids_bundle_price: number;
   custom_price: string;
   status: string;
   existing_images?: string;
@@ -414,91 +418,6 @@ export interface PaginatedDiscountCodes {
   currentPage: number;
 }
 
-// ------------------------------
-// Promotions
-// ------------------------------
-export interface OptTentPromotionDto {
-  idTent: number;
-  name: string;
-  price: number;
-  nights: number;
-}
-
-export interface OptTentPromotionPublicDto extends OptTentPromotionDto {
-  id: number;
-}
-
-export interface OptProductPromotionDto {
-  idProduct: number;
-  name: string;
-  price: number;
-  quantity: number;
-}
-
-export interface OptProductPromotionPublicDto extends OptProductPromotionDto {
-  id: number;
-}
-
-export interface OptExperiencePromotionDto {
-  idExperience: number;
-  name: string;
-  price: number;
-  quantity: number;
-}
-
-export interface OptExperiencePromotionPublicDto extends OptExperiencePromotionDto {
-  id: number;
-}
-
-export interface OptionsPromotion {
-  tents: AdminTent[];
-  products: AdminProduct[];
-  experiences: AdminExperience[];
-}
-
-export interface Promotion {
-  id: number;
-  title: string;
-  description: string;
-  images: string[];
-  expiredDate: Date;
-  status: string;
-  qtypeople: number;
-  qtykids: number;
-  netImport: number;
-  discount: number;
-  grossImport: number;
-  stock: number;
-  tents: OptTentPromotionPublicDto[];
-  products: OptProductPromotionPublicDto[];
-  experiences: OptExperiencePromotionPublicDto[];
-  createdAt: Date | null;
-  updatedAt: Date | null;
-}
-
-export interface PromotionFilters {
-  title?: string;
-  status?: string;
-}
-
-export interface PromotionFormData<TImage = unknown> {
-  title: string;
-  description: string;
-  images: TImage[];
-  expiredDate: Date;
-  status: string;
-  qtypeople: number;
-  qtykids: number;
-  netImport: number;
-  discount: number;
-  grossImport: number;
-  stock: number;
-  tents: string;
-  products: string;
-  experiences: string;
-  existing_images?: string;
-}
-
 export interface ExtraItem {
   id: number;
   name: string;
@@ -552,9 +471,10 @@ export interface AdminReserveTentDto {
   dateFrom: Date;
   dateTo: Date;
   confirmed: boolean;
-  aditionalPeople: number;
-  aditionalPeoplePrice: number;
-  promotionId?: number;
+  additional_people: number;
+  additional_people_price: number;
+  kids: number;
+  kids_price: number;
   tentDB?: AdminTent;
 }
 
@@ -591,7 +511,6 @@ export interface AdminReserveProductDto {
   price: number;
   quantity: number;
   confirmed: boolean;
-  promotionId?: number;
   productDB?: AdminProduct;
 }
 
@@ -624,7 +543,6 @@ export interface AdminReserveExperienceDto {
   quantity: number;
   day: Date;
   confirmed: boolean;
-  promotionId?: number;
   experienceDB?: AdminExperience;
 }
 
@@ -641,37 +559,22 @@ export interface ServerReserveExperienceDto<TExperience = unknown> {
 
 export interface ClientReserveExtraItemDto {
   id?: number;
-  extraItemId?: number | null;
   name: string;
   price: number;
   quantity: number;
   confirmed: boolean;
-  extraItemDB?: ExtraItem;
 }
 
 export interface AdminReserveExtraItemDto extends ClientReserveExtraItemDto { }
 
 export interface ServerReserveExtraItemDto<TExtraItem = unknown> {
   id?: number;
-  extraItemId?: number | null;
   name: string;
   price: number;
   quantity: number;
   confirmed: boolean;
-  extraItemDB?: TExtraItem;
 }
 
-export interface AdminReservePromotionDto {
-  id?: number;
-  idPromotion: number;
-  name: string;
-  price: number;
-  nights: number;
-  dateFrom: Date;
-  dateTo: Date;
-  confirmed: boolean;
-  promotionDB?: Promotion;
-}
 
 export type BaseCreateReserveProductDto<TReserveProduct> = TReserveProduct & { reserveId: number; };
 
@@ -682,8 +585,6 @@ export type ServerCreateReserveProductDto = BaseCreateReserveProductDto<ServerRe
 export type ClientCreateReserveExperienceDto = BaseCreateReserveProductDto<ClientReserveExperienceDto>;
 export type AdminCreateReserveExperienceDto = BaseCreateReserveProductDto<AdminReserveExperienceDto>;
 export type ServerCreateReserveExperienceDto = BaseCreateReserveProductDto<ServerReserveExperienceDto>;
-
-export type AdminCreateReservePromotionDto = BaseCreateReserveProductDto<AdminReservePromotionDto>;
 
 export type ClientCreateReserveExtraItemDto = BaseCreateReserveProductDto<ClientReserveExtraItemDto>;
 export type AdminCreateReserveExtraItemDto = BaseCreateReserveProductDto<AdminReserveExtraItemDto>;
@@ -751,6 +652,7 @@ export interface BaseReserveForm<
   TPaymentStatus = PaymentStatusValue,
   TReserveStatus = ReserveStatusValue
 > {
+  userId?: number;
   user_email?: string;
   user_firstname?: string;
   user_lastname?: string;
@@ -809,7 +711,6 @@ export interface ReserveOptions {
   tents?: PublicTentDto[];
   products?: ProductPublicDto[];
   experiences?: ExperiencePublicDto[];
-  extraItems?: ExtraItem[];
   discounts?: DiscountCodeDto[];
 }
 

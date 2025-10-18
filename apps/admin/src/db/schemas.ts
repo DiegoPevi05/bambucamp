@@ -48,6 +48,8 @@ const TentSchema = z.object({
   qtykids: z.number().nonnegative({ message: 'glamping.validations.qtykids_positive' }),
   additional_people_price: z.number(),
   max_additional_people: z.number(),
+  max_kids: z.number().nonnegative({ message: 'glamping.validations.max_kids_nonnegative' }),
+  kids_bundle_price: z.number().nonnegative({ message: 'glamping.validations.kids_bundle_price_nonnegative' }),
   price: z.number().positive({ message: 'glamping.validations.price_positive' }),
   services: z.object({
     wifi: z.boolean(),
@@ -111,48 +113,6 @@ const DiscountCodeSchema = z.object({
   status: z.string().nonempty({ message: 'discount.validations.status_required' }),
 });
 
-const TentPromotion = z.object({
-  idTent: z.number().positive({ message: 'promotion.validations.tent_id_positive' }),
-  name: z.string().nonempty({ message: 'promotion.validations.tent_name_required' }),
-  nights: z.number().positive({ message: 'promotion.validations.tent_quantity_positive' }),
-  price: z.number().positive({ message: 'promotion.validations.tent_price_positive' })
-});
-
-const ProductPromotion = z.object({
-  idProduct: z.number().positive({ message: 'promotion.validations.product_id_positive' }),
-  name: z.string().nonempty({ message: 'promotion.validations.product_name_required' }),
-  quantity: z.number().positive({ message: 'promotion.validations.product_quantity_positive' }),
-  price: z.number().positive({ message: 'promotion.validations.product_price_positive' })
-});
-
-const ExperiencePromotion = z.object({
-  idExperience: z.number().positive({ message: 'promotion.validations.experience_id_positive' }),
-  name: z.string().nonempty({ message: 'promotion.validations.experience_name_required' }),
-  quantity: z.number().positive({ message: 'promotion.validations.experience_quantity_positive' }),
-  price: z.number().positive({ message: 'promotion.validations.experience_price_positive' })
-});
-
-const PromotionSchema = z.object({
-  title: z.string().nonempty({ message: 'promotion.validations.title_required' }),
-  description: z.string().nonempty({ message: 'promotion.validations.description_required' }),
-  existing_images: z.array(z.string()).default([]),
-  images: z.array(imageFileSchema).default([]),
-  status: z.string().nonempty({ message: 'promotion.validations.status_required' }),
-  expiredDate: z.date(),
-  qtypeople: z.number().min(1, { message: 'promotion.validations.qtypeople_min' }),
-  qtykids: z.number(),
-  netImport: z.number().min(1, { message: 'promotion.validations.net_import_min' }),
-  discount: z.number().min(1, { message: 'promotion.validations.discount_min' }),
-  grossImport: z.number().min(1, { message: 'promotion.validations.gross_import_min' }),
-  stock: z.number().min(1, { message: 'promotion.validations.stock_min' }),
-  tents: z.array(TentPromotion),
-  products: z.array(ProductPromotion),
-  experiences: z.array(ExperiencePromotion),
-}).refine(data => data.existing_images.length > 0 || data.images.length > 0, {
-  message: 'promotion.validations.images_min',
-  path: ['images'] // This can be any path to indicate where the error should appear
-});
-
 const ReserveTentDtoSchema = z.object({
   idTent: z.number().positive({ message: 'reserve.validations.id_required' }),
   name: z.string().nonempty({ message: 'reserve.validations.name_required' }),
@@ -160,7 +120,10 @@ const ReserveTentDtoSchema = z.object({
   nights: z.number().positive({ message: 'reserve.validations.quantity_positive' }),
   dateFrom: z.date(),
   dateTo: z.date(),
-  aditionalPeople: z.number().nonnegative({ message: "reserve.validations.aditional_people_positive" }).optional()
+  additional_people: z.number().nonnegative({ message: "reserve.validations.aditional_people_positive" }).optional(),
+  additional_people_price: z.number().nonnegative({ message: "reserve.validations.price_positive" }).optional(),
+  kids: z.number().nonnegative({ message: 'reserve.validations.kids_min' }).optional(),
+  kids_price: z.number().nonnegative({ message: 'reserve.validations.price_positive' }).optional(),
 });
 
 const ReserveProductDtoSchema = z.object({
@@ -187,6 +150,7 @@ const ReserveExtraItemDtoSchema = z.object({
 
 const ReserveFormDataSchema = z.object({
   userType: z.string().nonempty({ message: "reserve.validations.user_type_required" }),
+  userId: z.number().positive().optional(),
   user_email: z.string().email({ message: "user.validations.email_invalid" }),
   tents: z.array(ReserveTentDtoSchema).default([]),
   products: z.array(ReserveProductDtoSchema).default([]),
@@ -247,14 +211,19 @@ const ReserveTentItemFormDataSchema = z.object({
   reserve_tent_option_id: z.number().positive({ message: "reserve.validations.id_required" }),
   reserve_tent_option_date_from: z.date({ message: "reserve.validations.date_from_required" }),
   reserve_tent_option_date_to: z.date({ message: "reserve.validations.date_to_required" }),
-  reserve_tent_option_aditional_people: z.number().min(0, { message: "reserve.validations.aditional_people_min" }),
-  reserve_tent_option_aditional_people_max: z.number().min(0, { message: "reserve.validations.aditional_people_max_required" }),
+  reserve_tent_option_additional_people: z.number().min(0, { message: "reserve.validations.aditional_people_min" }),
+  reserve_tent_option_additional_people_max: z.number().min(0, { message: "reserve.validations.aditional_people_max_required" }),
+  reserve_tent_option_kids: z.number().min(0, { message: 'reserve.validations.kids_min' }),
+  reserve_tent_option_kids_max: z.number().min(0, { message: 'reserve.validations.kids_min' }),
 }).refine((data) => data.reserve_tent_option_date_from < data.reserve_tent_option_date_to, {
   message: "reserve.validations.date_from_less_than_date_to",
   path: ["reserve_tent_option_date_from"],
-}).refine((data) => data.reserve_tent_option_aditional_people <= data.reserve_tent_option_aditional_people_max, {
+}).refine((data) => data.reserve_tent_option_additional_people <= data.reserve_tent_option_additional_people_max, {
   message: "reserve.validations.aditional_people_exceed_max",
-  path: ["reserve_tent_option_aditional_people"], // Error will point to this field
+  path: ["reserve_tent_option_additional_people"],
+}).refine((data) => data.reserve_tent_option_kids <= data.reserve_tent_option_kids_max, {
+  message: 'reserve.validations.kids_exceed_max',
+  path: ['reserve_tent_option_kids'],
 });
 
 const ReserveExtraItemFormDataSchema = z.object({
@@ -277,4 +246,4 @@ const ReserveProductItemFormDataSchema = z.object({
 })
 
 
-export { signInSchema, createUserSchema, editUserSchema, TentSchema, ProductSchema, ExperienceSchema, DiscountCodeSchema, PromotionSchema, ReserveFormDataSchema, ReviewSchema, FaqSchema, ReserveTentItemFormDataSchema, ReserveProductItemFormDataSchema, ReserveExperienceItemFormDataSchema, ReserveExtraItemFormDataSchema };
+export { signInSchema, createUserSchema, editUserSchema, TentSchema, ProductSchema, ExperienceSchema, DiscountCodeSchema, ReserveFormDataSchema, ReviewSchema, FaqSchema, ReserveTentItemFormDataSchema, ReserveProductItemFormDataSchema, ReserveExperienceItemFormDataSchema, ReserveExtraItemFormDataSchema };

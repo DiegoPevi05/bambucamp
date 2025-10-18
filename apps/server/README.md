@@ -20,7 +20,7 @@
 </p>
 
 
-This is a full-featured reservation system built with Express.js and TypeScript. It serves as a sales point for making reservations and managing various entities such as products, experiences, discount codes, promotions, and glamping tents (referred to as `tents`). The application also includes authentication and authorization services for secure access to its features.
+This is a full-featured reservation system built with Express.js and TypeScript. It serves as a sales point for making reservations and managing various entities such as products, experiences, discount codes, and glamping tents (referred to as `tents`). The application also includes authentication and authorization services for secure access to its features.
 
 ## Links
 
@@ -35,7 +35,7 @@ This is a full-featured reservation system built with Express.js and TypeScript.
 - **Reservations**: Create, update, delete, and manage reservations for tents, products, and experiences.
 - **Products Management**: Add, edit, delete, and list products available for reservation.
 - **Experiences Management**: Manage experiences tied to reservations.
-- **Discount Codes & Promotions**: Create and apply discount codes and promotions.
+- **Discount Codes**: Create and apply discount codes.
 - **Tents (Glamping)**: Manage glamping tents available for reservation.
 - **Notification System**: Admins and users can receive notifications related to their activities.
 
@@ -143,7 +143,6 @@ The application is structured into different routes to manage various resources:
 - **/experiences**: Manage experiences.
 - **/products**: Manage products.
 - **/discounts**: Manage discount codes.
-- **/promotions**: Manage promotions.
 - **/tents**: Manage glamping tents.
 - **/reserves**: Manage reservations.
 - **/notifications**: Notification system.
