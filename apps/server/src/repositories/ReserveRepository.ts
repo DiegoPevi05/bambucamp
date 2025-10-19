@@ -224,28 +224,32 @@ export const getMyReservesByMonth = async (page: number, userId?: number): Promi
   };
 };
 
-export const getMyReserves = async (pagination: Pagination, userId?: number): Promise<PaginatedReserve> => {
+export const getMyReserves = async (
+  pagination: Pagination,
+  userId?: number,
+  q?: string
+): Promise<PaginatedReserve> => {
   const { page, pageSize } = pagination;
   const skip = (page - 1) * pageSize;
   const take = pageSize;
 
-  // Get the total count of reserves for the user
-  const totalCount = await prisma.reserve.count({
-    where: {
-      ...(userId && { userId: userId }),
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+  const qNumber = q && /^\d+$/.test(q) ? Number(q) : undefined;
+
+  const whereClause: any = {
+    ...(userId && { userId }),
+    ...(q && {
+      OR: [
+        { external_id: { contains: q, mode: 'insensitive' } },
+        ...(qNumber ? [{ id: qNumber }] : [])
+      ]
+    })
+  };
+
+  const totalCount = await prisma.reserve.count({ where: whereClause });
 
   const reserves = await prisma.reserve.findMany({
-    where: {
-      ...(userId && { userId: userId }),
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    where: whereClause,
+    orderBy: { createdAt: 'desc' },
     skip,
     take,
     include: {

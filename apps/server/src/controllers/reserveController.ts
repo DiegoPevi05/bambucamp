@@ -160,14 +160,14 @@ export const getAllMyReservesUser = async (req: Request, res: Response) => {
 
 export const getAllMyReservesAdmin = async (req: Request, res: Response) => {
   try {
-    const { page = '1', pageSize = '10' } = req.query;
+    const { page = '1', pageSize = '10', q } = req.query;
 
     const pagination = {
       page: parseInt(page as string, 10),
       pageSize: parseInt(pageSize as string, 10),
     };
 
-    const PaginatedReserves = await reserveService.getAllMyReserves(pagination);
+    const PaginatedReserves = await reserveService.getAllMyReserves(pagination, undefined, q as string | undefined);
 
     res.json(PaginatedReserves);
 

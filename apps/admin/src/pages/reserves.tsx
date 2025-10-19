@@ -564,6 +564,7 @@ const DashboardAdminReserves = () => {
       if (currentItem == null) return;
 
       const newExtraItemOption: ReserveExtraItemDto = {
+        reserveId: 0,
         name: currentItem.name,
         price: currentItem.price,
         quantity: currentItem.quantity,

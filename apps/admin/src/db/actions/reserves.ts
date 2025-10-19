@@ -156,16 +156,20 @@ export const getAllMyReservesCalendar = async (token: string, page: Number, lang
   return data;
 }
 
-export const getAllMyReserves = async (token: string, page: Number, pageSize: number, language: string): Promise<{ reserves: Reserve[], totalPages: Number, currentPage: Number } | null> => {
-  let data: { reserves: Reserve[], totalPages: Number, currentPage: Number } | null = null;
+export const getAllMyReserves = async (
+  token: string,
+  page: Number,
+  pageSize: number,
+  language: string,
+  q?: string
+): Promise<{ reserves: Reserve[], totalPages: Number, currentPage: Number } | null> => {
+  let data = null;
   try {
-
-    // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('pageSize', pageSize.toString());
+    if (q && q.length > 0) params.append('q', q); // << add
 
-    // Construct the URL with query parameters
     const url = `${import.meta.env.VITE_BACKEND_URL}/reserves/me/admin?${params.toString()}`;
 
     const fetchReserves = await axios.get(url, {
@@ -174,7 +178,6 @@ export const getAllMyReserves = async (token: string, page: Number, pageSize: nu
         'Accept-Language': language
       }
     });
-
 
     data = {
       reserves: fetchReserves.data.reserves.map((reserve: any) => serializeMyReserves(reserve)),

@@ -71,8 +71,8 @@ export const getAllMyReservesUser = async (pagination: Pagination, userId: numbe
   return MyReserves;
 };
 
-export const getAllMyReserves = async (pagination: Pagination, userId?: number) => {
-  const MyReserves = await reserveRepository.getMyReserves(pagination, userId);
+export const getAllMyReserves = async (pagination: Pagination, userId?: number, q?: string) => {
+  const MyReserves = await reserveRepository.getMyReserves(pagination, userId, q);
 
   if (MyReserves?.reserves) {
     utils.parseImagesInReserves(MyReserves.reserves);

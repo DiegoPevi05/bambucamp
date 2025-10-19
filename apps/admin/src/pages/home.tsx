@@ -8,7 +8,7 @@ import { NotificationDto, PublicExperience, PublicProduct, Reserve, ReserveExper
 import Modal from "../components/Modal";
 import Dashboard from "../components/ui/Dashboard";
 import { InputRadio } from "../components/ui/Input";
-import { getTentsNames, getProductsNames, getExperiencesNames, formatPrice, formatDate, getReserveDates, formatDateToYYYYMMDD, getRangeDatesForReserve, countUnconfirmedItems } from "../lib/utils";
+import { getTentsNames, getProductsNames, getExperiencesNames, formatPrice, formatDate, getReserveDates, formatDateToYYYYMMDD, getRangeDatesForReserve, countUnconfirmedItems, computeTentNightlyTotals } from "../lib/utils";
 import ServiceItem from "../components/ServiceItem";
 import Calendar from "../components/Calendar";
 import { useAuth } from "../contexts/AuthContext";
@@ -161,7 +161,7 @@ const ReserveCard = (props: ReserveCardProps) => {
   const handleAddExperienceToBasket = (idExperience: number, quantity: number, day: Date) => {
     const experience = experiencesDB.find(experience => experience.id === Number(idExperience))
     if (experience) {
-      setExperiences(prevExperiences => ([
+      setExperiences((prevExperiences: any) => ([
         ...prevExperiences,
         { reserveId: reserve.id, idExperience, name: experience.name, price: (experience.price == experience.custom_price ? experience.price : experience.custom_price), quantity: quantity, day: day, confirmed: false }
       ]
@@ -177,7 +177,7 @@ const ReserveCard = (props: ReserveCardProps) => {
   const handleAddProductToBasket = (idProduct: number, quantity: number) => {
     const product = productsDB.find(product => product.id === Number(idProduct))
     if (product) {
-      setProducts(prevProduct => ([
+      setProducts((prevProduct: any) => ([
         ...prevProduct,
         { reserveId: reserve.id, idProduct, name: product.name, price: (product.price == product.custom_price ? product.price : product.custom_price), quantity: quantity, confirmed: false }
       ]
@@ -270,7 +270,7 @@ const ReserveCard = (props: ReserveCardProps) => {
               className="w-auto max-sm:text-[12px]"
               size="sm"
               variant="ghostLight"
-              onClick={() => downloadReceipt(reserve.id)}
+              onClick={() => downloadReceipt(reserve.id || 0)}
               rightIcon={<FileDown />}
               disabled={reserve.canceled_status || (reserve.payment_status != "PAID" && reserve.reserve_status != "COMPLETED")}
               isRound={true}>
@@ -288,7 +288,7 @@ const ReserveCard = (props: ReserveCardProps) => {
             </Button>
           </div>
           {reserve.reserve_status == "NOT_CONFIRMED" &&
-            <Button rightIcon={<CheckIcon />} size="sm" isRound={true} effect={"default"} variant="ghostLight" isLoading={loadingConfirmation} onClick={() => HandlerConfirmEntity("RESERVE", reserve.id)} >
+            <Button rightIcon={<CheckIcon />} size="sm" isRound={true} effect={"default"} variant="ghostLight" isLoading={loadingConfirmation} onClick={() => HandlerConfirmEntity("RESERVE", reserve.id || 0)} >
               {t("reserve.confirm")}
             </Button>
           }
@@ -383,6 +383,17 @@ const ReserveCard = (props: ReserveCardProps) => {
             </h2>
             <p className="text-xs font-primary text-slate-400 mt-2">
               {getExperiencesNames(reserve)}
+            </p>
+          </div>
+          <div>
+            <h2 className="text-sm font-secondary text-primary flex flex-row gap-x-2 items-start">
+              <ShoppingBasket className="h-5 w-5" />
+              {t("reserve.extra_items_plural")}:
+            </h2>
+            <p className="text-xs font-primary text-slate-400 mt-2">
+              {reserve.extraItems?.length
+                ? reserve.extraItems.map(x => `${x.name}`).join(", ")
+                : t("reserve.no_extra_items")}
             </p>
           </div>
         </div>
@@ -502,7 +513,7 @@ const ReserveCard = (props: ReserveCardProps) => {
                                   </span>
                                   {t("reserve.pending_product")}
                                 </span>
-                                <Button isLoading={loadingConfirmation} onClick={() => HandlerConfirmEntity("PRODUCT", reserve.id, product.id)} rightIcon={<CheckIcon />} size="sm" isRound={true} effect={"default"} variant="ghostLight">
+                                <Button isLoading={loadingConfirmation} onClick={() => HandlerConfirmEntity("PRODUCT", reserve.id || 0, product.id)} rightIcon={<CheckIcon />} size="sm" isRound={true} effect={"default"} variant="ghostLight">
                                   {t("reserve.confirm")}
                                 </Button>
                               </div>
@@ -792,7 +803,7 @@ const ReserveCard = (props: ReserveCardProps) => {
           )}
           {openDetails === "extraItems" && stateAdd !== "add_extraItem" && (
             <motion.div initial="hidden" animate="show" exit="hidden" variants={fadeIn("left", "", 0.5, 0.5)} className="w-full flex flex-col gap-y-6 py-4">
-              {reserve.extraItems.length > 0 ? (
+              {reserve.extraItems && reserve.extraItems.length > 0 ? (
                 <>
                   <div className="w-full h-auto flex flex-row justify-end items-center">
                     <Button
@@ -889,7 +900,7 @@ const ReserveCard = (props: ReserveCardProps) => {
                         setLoadingCreateExtraItems(true);
                         if (!user) { toast.error(t("reserve.user_log_in_extra_item")); setLoadingCreateExtraItems(false); return; }
                         const ok = await addExtraItemToReserve(
-                          extraItems.map(x => ({ ...x, reserveId: reserve.id, confirmed: false })), // server may auto-confirm for admins
+                          extraItems.map(x => ({ ...x, reserveId: reserve.id || 0, confirmed: false })), // server may auto-confirm for admins
                           user.token,
                           i18n.language
                         );
@@ -964,41 +975,98 @@ const ReserveCard = (props: ReserveCardProps) => {
               variants={fadeIn("", "up", 0.5, 1)}
               className="flex flex-col w-full h-auto lg:h-[400px] mt-4">
               <div className="h-[70%] w-full flex flex-row pb-4">
-                <div className="h-full w-[50%] lg:w-[75%] flex flex-col lg:p-2 gap-y-2">
+                <div className="h-full w-[50%] lg:w-[75%] flex flex-col lg:p-2 gap-y-1">
                   <h2 className="text-secondary">{selectedTent.tentDB?.header}</h2>
                   <h1 className="text-tertiary">{selectedTent.tentDB?.title}</h1>
                   <p className="text-primary text-xs">{selectedTent.tentDB?.description}</p>
-                  <div className="w-full h-auto flex flex-col lg:flex-row gap-x-6 mt-4">
-                    <p className="text-primary text-sm">{t("Check In")}</p>
-                    <p className="text-gray-400 text-sm">
-                      {formatDate(selectedTent.dateFrom)}
-                    </p>
+
+                  <div className="w-full h-auto flex flex-col lg:flex-row gap-x-6 mt-2">
+                    <p className="text-primary text-sm">{t("reserve.check_in")}</p>
+                    <p className="text-gray-400 text-sm">{formatDate(selectedTent.dateFrom)}</p>
                   </div>
-                  <div className="w-full h-auto flex flex-col lg:flex-row gap-x-6 mt-4">
-                    <p className="text-primary text-sm">{t("Check Out")}</p>
-                    <p className="text-gray-400 text-sm">
-                      {formatDate(selectedTent.dateTo)}
-                    </p>
+                  <div className="w-full h-auto flex flex-col lg:flex-row gap-x-6 mt-2">
+                    <p className="text-primary text-sm">{t("reserve.check_out")}</p>
+                    <p className="text-gray-400 text-sm">{formatDate(selectedTent.dateTo)}</p>
                   </div>
-                  <div className="w-full h-auto flex flex-col lg:flex-row gap-x-6 mt-auto">
-                    <p className="text-primary text-sm">{t("reserve.gross_amount")}</p>
-                    <p className="text-gray-400 text-sm">{formatPrice(selectedTent.price)}</p>
-                  </div>
+
+                  {/* --- New: price breakdown --- */}
+                  {(() => {
+                    const nights = selectedTent.nights ?? 0;
+                    const baseRate = selectedTent.price ?? 0;
+                    const addlPrice = selectedTent.additional_people_price ?? 0;
+                    const addlQty = selectedTent.additional_people ?? 0;
+                    const kidsComponent = selectedTent.kids_price ?? 0;
+
+                    const baseTotal = nights * baseRate;
+                    const addlTotal = nights * addlPrice * addlQty;
+                    const kidsTotal = nights * kidsComponent;
+
+                    const grandTotal = baseTotal + addlTotal + kidsTotal;
+
+                    const kids = selectedTent.kids ?? 0;
+                    const kidsBundleApplied = kids >= 2; // per your rule
+                    const kidsBundlePrice = selectedTent.kids_price ?? null;
+
+                    return (
+                      <div className="mt-1 border-t border-gray-200 pt-2">
+                        <ul className="mt-2 space-y-1 text-xs text-gray-400">
+                          <li>
+                            {t("reserve.nights")}: {nights} × {formatPrice(baseRate)} = <span className="text-primary">{formatPrice(baseTotal)}</span>
+                          </li>
+
+                          {addlQty > 0 && (
+                            <li>
+                              {t("reserve.additional_people")}: {nights} × ({addlQty} × {formatPrice(addlPrice)}) ={" "}
+                              <span className="text-primary">{formatPrice(addlTotal)}</span>
+                            </li>
+                          )}
+
+                          {kidsComponent > 0 && (
+                            <li className="flex flex-col">
+                              <span>
+                                {t("reserve.kids")}: {nights} × {formatPrice(kidsComponent)} ={" "}
+                                <span className="text-primary">{formatPrice(kidsTotal)}</span>
+                              </span>
+
+                              {kidsBundleApplied && (
+                                <span className="mt-1 inline-flex items-center w-fit rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800">
+                                  {t("reserve.kids_bundle_applied", {
+                                    count: kids,
+                                    bundle: kidsBundlePrice ? formatPrice(kidsBundlePrice) : "",
+                                  })}
+                                </span>
+                              )}
+                            </li>
+                          )}
+                        </ul>
+
+                        <div className="w-full h-auto flex flex-col lg:flex-row gap-x-6 mt-3">
+                          <p className="text-primary text-sm">{t("reserve.gross_amount")}</p>
+                          <p className="text-gray-400 text-sm">{formatPrice(grandTotal)}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {/* --- End price breakdown --- */}
                 </div>
+
                 <div className="h-full w-[50%] lg:w-[25%] flex justify-center items-center overflow-hidden p-2">
-                  <img src={`${selectedTent.tentDB?.images[0]}`} alt={selectedTent.name} className="w-full h-auto object-cover" />
+                  <img
+                    src={`${selectedTent.tentDB?.images?.[0]}`}
+                    alt={selectedTent.name}
+                    className="w-full h-auto object-cover"
+                  />
                 </div>
               </div>
+
               <div className="h-auto lg:h-[30%] w-full px-4 py-2 flex flex-col bg-secondary">
                 <h3 className="text-white mb-4">{t("reserve.services")}</h3>
                 <div className="w-full h-auto flex flex-row flex-wrap gap-4">
-                  {selectedTent.tentDB?.services && Object.entries(selectedTent.tentDB.services).map(([service, value]) => {
-                    if (value) {
-
-                      return <ServiceItem size="sm" key={service} icon={service} />;
-                    }
-                    return null;
-                  })}
+                  {selectedTent.tentDB?.services &&
+                    Object.entries(selectedTent.tentDB.services).map(([service, value]) => {
+                      if (value) return <ServiceItem size="sm" key={service} icon={service} />;
+                      return null;
+                    })}
                 </div>
               </div>
             </motion.div>
@@ -1020,7 +1088,7 @@ const ReserveCard = (props: ReserveCardProps) => {
                     </span>
                     {t("reserve.pending_experience")}
                   </span>
-                  <Button isLoading={loadingConfirmation} onClick={() => HandlerConfirmEntity("EXPERIENCE", reserve.id, selectedExperience.id)} rightIcon={<CheckIcon />} size="sm" isRound={true} effect={"default"} variant="ghostLight">
+                  <Button isLoading={loadingConfirmation} onClick={() => HandlerConfirmEntity("EXPERIENCE", reserve.id || 0, selectedExperience.id)} rightIcon={<CheckIcon />} size="sm" isRound={true} effect={"default"} variant="ghostLight">
                     {t("reserve.confirm")}
                   </Button>
                 </div>
@@ -1123,6 +1191,8 @@ const DashboardReserves = () => {
   const [dataNotifications, setDataNotifications] = useState<{ notifications: NotificationDto[], totalPages: Number, currentPage: Number }>({ notifications: [], totalPages: 1, currentPage: 1 })
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [pageSize, setPageSize] = useState<{ reserves: number, notifcations: number } | null>(null); // Start with `null` to ensure no data is fetched until pageSize is set.
+  const [searchReserveId, setSearchReserveId] = useState<string>("");
+
 
   useEffect(() => {
     const width = window.innerWidth;
@@ -1147,12 +1217,16 @@ const DashboardReserves = () => {
     getMyNotifications(1);
   }, [pageSize]); // `pageSize` is correctly passed to ensure data fetching with the right page size.
 
-  const getMyReservesHandler = useCallback(async (page: Number) => {
+  const getMyReservesHandler = useCallback(async (page: Number, q?: string) => {
     if (user != null) {
-      const reserves = await getAllMyReserves(user.token, page, pageSize?.reserves as number, i18n.language);
-      if (reserves) {
-        setDataSetReserves(reserves);
-      }
+      const reserves = await getAllMyReserves(
+        user.token,
+        page,
+        pageSize?.reserves as number,
+        i18n.language,
+        q
+      );
+      if (reserves) setDataSetReserves(reserves);
     }
   }, [pageSize]);
 
@@ -1198,6 +1272,7 @@ const DashboardReserves = () => {
   const goToRoute = (route: string) => {
     navigate(route);
   };
+
 
   return (
     <Dashboard>
@@ -1272,6 +1347,24 @@ const DashboardReserves = () => {
           <h1 className="text-sm sm:text-lg flex flex-row gap-x-2 text-secondary max-sm:mt-2"><TentIcon />{t("reserve.reserves")}</h1>
           <p className="font-secondary text-tertiary text-sm sm:text-md max-sm:mt-2">{t("reserve.view_reserves_month")}</p>
 
+          <div className="w-full mt-3 flex gap-2">
+            <input
+              value={searchReserveId}
+              onChange={(e) => setSearchReserveId(e.target.value)}
+              placeholder="BAMBU-XXXXX"
+              className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-secondary"
+            />
+            <Button
+              onClick={() => getMyReservesHandler(1, searchReserveId.trim() || undefined)}
+              size="sm"
+              variant="dark"
+              effect="default"
+              isRound={true}
+            >
+              {t("common.search")}
+            </Button>
+          </div>
+
           <div className="w-full h-[80%] flex flex-col overflow-y-scroll xl:pr-4 gap-y-4 mt-4">
             {datasetReserves.reserves.length === 0 ?
               <div className="w-full h-[400px] sm:h-full flex flex-col items-center justify-center bg-white gap-y-4">
@@ -1297,8 +1390,8 @@ const DashboardReserves = () => {
             }
           </div>
           <div className="flex flex-row justify-between w-full mt-auto max-xl:mt-4">
-            <Button onClick={() => getMyReservesHandler(Number(datasetReserves.currentPage) - 1)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetReserves.currentPage == 1}> <ChevronLeft />  </Button>
-            <Button onClick={() => getMyReservesHandler(Number(datasetReserves.currentPage) + 1)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetReserves.currentPage >= datasetReserves.totalPages}> <ChevronRight /> </Button>
+            <Button onClick={() => getMyReservesHandler(Number(datasetReserves.currentPage) - 1, searchReserveId.trim() || undefined)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetReserves.currentPage == 1}> <ChevronLeft />  </Button>
+            <Button onClick={() => getMyReservesHandler(Number(datasetReserves.currentPage) + 1, searchReserveId.trim() || undefined)} size="sm" variant="dark" effect="default" isRound={true} disabled={datasetReserves.currentPage >= datasetReserves.totalPages}> <ChevronRight /> </Button>
           </div>
         </div>
 
