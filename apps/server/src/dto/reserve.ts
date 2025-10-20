@@ -1,4 +1,4 @@
-import type { Experience, ExtraItem, PaymentStatus, Product, ReserveStatus, Tent } from '@prisma/client';
+import type { Experience, PaymentStatus, Product, ReserveStatus, Tent } from '@prisma/client';
 import type {
   BaseCreateReserveProductDto,
   BaseReserve,
@@ -17,7 +17,7 @@ export { ReserveEntityType } from '@bambucamp/shared-types';
 export type ReserveTentDto = ServerReserveTentDto<Tent>;
 export type ReserveProductDto = ServerReserveProductDto<Product>;
 export type ReserveExperienceDto = ServerReserveExperienceDto<Experience>;
-export type ReserveExtraItemDto = ServerReserveExtraItemDto<ExtraItem>;
+export type ReserveExtraItemDto = ServerReserveExtraItemDto;
 
 export type createReserveProductDto = BaseCreateReserveProductDto<ReserveProductDto>;
 export type createReserveExperienceDto = BaseCreateReserveProductDto<ReserveExperienceDto>;

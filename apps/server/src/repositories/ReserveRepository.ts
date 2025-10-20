@@ -491,7 +491,7 @@ export const createReserve = async (data: ReserveDto): Promise<ReserveDto | null
       })),
     },
     extraItems: {
-      create: (data.extraItems ?? []).map(x => ({
+      create: (data.extraItems ?? []).map((x: any) => ({
         name: x.name,
         price: x.price,
         advanced: x.advanced ?? 0,
