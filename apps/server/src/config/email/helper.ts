@@ -245,6 +245,7 @@ const buildReserveDetailsHTML = (reserve: ReserveDto, language: string) => {
   let tentsHtml = "";
   let experiencesHtml = "";
   let productsHtml = "";
+  let extraItemsHtml = "";
 
   // --- Tents: match the original working structure & classes ---
   reserve.tents.forEach((tent) => {
@@ -379,7 +380,27 @@ const buildReserveDetailsHTML = (reserve: ReserveDto, language: string) => {
       </tr>`;
   });
 
-  return { tentsHtml, experiencesHtml, productsHtml };
+  reserve.extraItems?.forEach((item) => {
+    extraItemsHtml += `
+      <tr>
+        <td class="email-reserve-content-header">
+          <p class="email-reserve-content-product-paragraph">
+            <span class="email-reserve-content-label">${item.name}</span>&nbsp;
+          </p>
+          <p class="email-reserve-content-product-paragraph">
+            <span class="email-reserve-content-label">${language == "es" ? "Precio" : "Price"}</span>:&nbsp;${utils.formatPrice(item.price)}/${language == "es" ? "por" : "per"}&nbsp;${language == "es" ? "cantidad" : "quantity"}
+          </p>
+          <p class="email-reserve-content-product-paragraph">
+              <span class="email-reserve-content-label">${language == "es" ? "Cantidad" : "Quantity"}</span>:&nbsp;${item.quantity}&nbsp;
+          </p>
+          <p class="email-reserve-content-product-paragraph">
+              <span class="email-reserve-content-label">${language == "es" ? "Total" : "Total"}</span>:&nbsp;${utils.formatPrice(item.quantity * item.price)}
+          </p>
+        </td>
+      </tr>`;
+  });
+
+  return { tentsHtml, experiencesHtml, productsHtml, extraItemsHtml };
 };
 
 export const generateNewReservationTemplateUser = (
@@ -428,6 +449,7 @@ export const generateNewReservationTemplateUser = (
         reserve_label: "RESERVA",
         experiences_label: "Experiencias",
         products_label: "Productos",
+        extra_items_label: "Extras",
         subtotal_label: "SubTotal",
         discount_label: "Descuento",
         total_label: "Total",
@@ -454,6 +476,7 @@ export const generateNewReservationTemplateUser = (
         reserve_label: "RESERVE",
         experiences_label: "Experiences",
         products_label: "Products",
+        extra_items_label: "Extras",
         subtotal_label: "SubTotal",
         discount_label: "Discount",
         total_label: "Total",
@@ -464,7 +487,7 @@ export const generateNewReservationTemplateUser = (
   let emailTemplate = fs.readFileSync(templatePath, "utf8");
 
   // Build detailed sections (tents/experiences/products)
-  const { tentsHtml, experiencesHtml, productsHtml } = buildReserveDetailsHTML(reserve, language);
+  const { tentsHtml, experiencesHtml, productsHtml, extraItemsHtml } = buildReserveDetailsHTML(reserve, language);
 
   // Map placeholders for single-pass replacement
   const data = {
@@ -515,6 +538,8 @@ export const generateNewReservationTemplateUser = (
     experiences: experiencesHtml,
     products_label: i18n.products_label,
     products: productsHtml,
+    extra_items_label: i18n.extra_items_label,
+    extra_items: extraItemsHtml,
 
     // Totals
     grossImport: utils.formatPrice(reserve.gross_import),
@@ -730,7 +755,7 @@ export const generateReservationTemplate = (
   let emailTemplate = fs.readFileSync(templatePath, "utf8");
 
   // Build details once
-  const { tentsHtml, experiencesHtml, productsHtml } = buildReserveDetailsHTML(reserve, language);
+  const { tentsHtml, experiencesHtml, productsHtml, extraItemsHtml } = buildReserveDetailsHTML(reserve, language);
 
   // Labels/i18n
   const labels =
@@ -739,6 +764,7 @@ export const generateReservationTemplate = (
         reserve_label: "RESERVA",
         experiences_label: "Experiencias",
         products_label: "Productos",
+        extra_items_label: "Extras",
         subtotal_label: "SubTotal",
         discount_label: "Descuento",
         total_label: "Total",
@@ -747,6 +773,7 @@ export const generateReservationTemplate = (
         reserve_label: "RESERVE",
         experiences_label: "Experiences",
         products_label: "Products",
+        extra_items_label: "Extras",
         subtotal_label: "SubTotal",
         discount_label: "Discount",
         total_label: "Total",
@@ -764,6 +791,7 @@ export const generateReservationTemplate = (
     reserve_label: labels.reserve_label,
     experiences_label: labels.experiences_label,
     products_label: labels.products_label,
+    extra_items_label: labels.extra_items_label,
     subtotal_label: labels.subtotal_label,
     discount_label: labels.discount_label,
     total_label: labels.total_label,
@@ -771,6 +799,7 @@ export const generateReservationTemplate = (
     tents: tentsHtml,
     experiences: experiencesHtml,
     products: productsHtml,
+    extra_items: extraItemsHtml,
 
     idReserve: reserve.external_id,
     grossImport: utils.formatPrice(reserve.gross_import),

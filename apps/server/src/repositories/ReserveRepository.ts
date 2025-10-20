@@ -330,24 +330,8 @@ export const getReserveDtoById = async (reserveId: number): Promise<ReserveDto |
   });
 
   if (!reserve) return null;
-  // Map over the reserves to ensure the data types match your DTO structure
-  const enrichedReserve = ({
-    ...reserve,
-    user_name: reserve.user.firstName,
-    user_email: reserve.user.email,
-    tents: reserve.tents.map((tent) => ({
-      ...tent,
-    })),
-    products: reserve.products.map((product) => ({
-      ...product,
-    })),
-    experiences: reserve.experiences.map((experience) => ({
-      ...experience,
-    })),
-    extraItems: reserve.extraItems.map((extraItem) => ({
-      ...extraItem,
-    })),
-  });
+
+  const enrichedReserve = await enrichReserve(reserve as ReserveWithRelations);
 
   return enrichedReserve;
 
@@ -688,6 +672,7 @@ export const upsertReserveDetails = async (
       additional_people_price: tent.additional_people_price,
       kids: tent.kids,
       kids_price: tent.kids_price,
+      confirmed: tent.confirmed,
       reserveId: idReserve, // Establish the relationship
     })),
   });
@@ -700,6 +685,7 @@ export const upsertReserveDetails = async (
       price: product.price,
       advanced: product.advanced ?? 0,
       quantity: product.quantity,
+      confirmed: product.confirmed,
       reserveId: idReserve, // Establish the relationship
     })),
   });
@@ -713,6 +699,7 @@ export const upsertReserveDetails = async (
       advanced: experience.advanced ?? 0,
       quantity: experience.quantity,
       day: experience.day,
+      confirmed: experience.confirmed,
       reserveId: idReserve, // Establish the relationship
     })),
   });
@@ -724,6 +711,7 @@ export const upsertReserveDetails = async (
       price: x.price,
       advanced: x.advanced ?? 0,
       quantity: x.quantity,
+      confirmed: x.confirmed,
       reserveId: idReserve,
     })),
   });

@@ -90,6 +90,7 @@
 		}
 	},
 	"reserve": {
+    "no_extra_items":"No extra items",
     "search_by_external_id": "Search by external ID",
     "check_in": "Check In",
     "check_out": "Check Out",

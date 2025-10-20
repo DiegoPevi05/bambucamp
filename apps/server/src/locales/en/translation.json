@@ -132,6 +132,7 @@
 		"reserveCreated": "Reserve created",
 		"reserveUpdated": "Reserve updated",
 		"reserveDeleted": "Reserve deleted",
+    "reserveConfirmed":"Reserve confirmed",
 		"tentCreated": "Glamping created",
 		"tentUpdated": "Glamping updated",
 		"tentDeleted": "Glamping deleted",

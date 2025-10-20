@@ -349,7 +349,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
       additional_people_price,
       kids: t.kids,
       kids_price,
-      confirmed: false,
+      confirmed: existingReserve.reserve_status !== ReserveStatus.NOT_CONFIRMED,
     };
   });
 
@@ -362,7 +362,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
       price: utils.calculatePrice(productDB.price, productDB.custom_price),
       advanced: p.advanced ?? 0,
       quantity: p.quantity,
-      confirmed: false,
+      confirmed: existingReserve.reserve_status !== ReserveStatus.NOT_CONFIRMED,
     };
   });
 
@@ -376,7 +376,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
       advanced: e.advanced ?? 0,
       quantity: e.quantity,
       day: e.day,
-      confirmed: false,
+      confirmed: existingReserve.reserve_status !== ReserveStatus.NOT_CONFIRMED,
     };
   });
 
@@ -386,7 +386,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     price: x.price,
     advanced: x.advanced ?? 0,
     quantity: x.quantity,
-    confirmed: false,
+    confirmed: existingReserve.reserve_status !== ReserveStatus.NOT_CONFIRMED,
   }));
 
   const tentsWithQuantities = data.tents.map(t => {
@@ -448,6 +448,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
   );
 
   return await reserveRepository.updateReserve(id, existingReserve);
+
 };
 
 export const deleteReserve = async (id: number) => {
@@ -594,7 +595,6 @@ export const downloadReserveBill = async (reserveId: number, user: User | undefi
 
 
 export const confirmEntity = async (entityType: ReserveEntityType, reserveId: number, language: string, entityId?: number) => {
-
 
 
   switch (entityType) {
