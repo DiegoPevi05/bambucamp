@@ -120,6 +120,7 @@ const Booking: React.FC = () => {
       idTent,
       name: tent.title,
       price: nightlyBase,
+      advanced: 0,
       nights: getTotalNights(),
       dateFrom: dates.dateFrom,
       dateTo: dates.dateTo,

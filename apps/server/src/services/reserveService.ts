@@ -185,6 +185,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
       idTent: tentDB.id,
       name: tentDB.title,
       price: nightlyBase,
+      advanced: tent.advanced ?? 0,
       nights: tent.nights,
       dateFrom: tent.dateFrom,
       dateTo: tent.dateTo,
@@ -211,6 +212,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
       idProduct: productDB.id,
       name: productDB.name,
       price: utils.calculatePrice(productDB.price, productDB.custom_price),
+      advanced: product.advanced ?? 0,
       quantity: product.quantity,
       confirmed: false,
     });
@@ -231,6 +233,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
       idExperience: experienceDB.id,
       name: experienceDB.name,
       price: utils.calculatePrice(experienceDB.price, experienceDB.custom_price),
+      advanced: experience.advanced ?? 0,
       quantity: experience.quantity,
       day: experience.day,
       confirmed: false,
@@ -247,6 +250,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
       id: x.id,
       name: x.name,
       price: x.price,
+      advanced: x.advanced ?? 0,
       quantity: x.quantity,
       confirmed: false,
     };
@@ -336,6 +340,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
       idTent: t.idTent,
       name: tentDB.title,
       price: nightlyBase,
+      advanced: t.advanced ?? 0,
       nights: t.nights,
       dateFrom: t.dateFrom,
       dateTo: t.dateTo,
@@ -354,6 +359,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
       idProduct: p.idProduct,
       name: productDB.name,
       price: utils.calculatePrice(productDB.price, productDB.custom_price),
+      advanced: p.advanced ?? 0,
       quantity: p.quantity,
       confirmed: false,
     };
@@ -366,6 +372,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
       idExperience: e.idExperience,
       name: experienceDB.name,
       price: utils.calculatePrice(experienceDB.price, experienceDB.custom_price),
+      advanced: e.advanced ?? 0,
       quantity: e.quantity,
       day: e.day,
       confirmed: false,
@@ -376,6 +383,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     id: x.id,
     name: x.name,
     price: x.price,
+    advanced: x.advanced ?? 0,
     quantity: x.quantity,
     confirmed: false,
   }));
@@ -467,6 +475,7 @@ export const AddProductReserve = async (reserve: Reserve | null, data: createRes
     if (priceIsConfirmed) {
       productData.confirmed = true;
     }
+    productData.advanced = productData.advanced ?? 0;
     return productData;
   })
   );
@@ -508,6 +517,7 @@ export const AddExperienceReserve = async (reserve: Reserve | null, data: create
       e.day = d;
     }
     if (priceIsConfirmed) e.confirmed = true;
+    e.advanced = e.advanced ?? 0;
     return e;
   });
 
@@ -542,7 +552,11 @@ export const AddExtraItemReserve = async (
   }
 
   // if admin flow, auto-confirm
-  const processed = data.map(x => ({ ...x, confirmed: priceIsConfirmed ? true : (x.confirmed ?? false) }));
+  const processed = data.map(x => ({
+    ...x,
+    advanced: x.advanced ?? 0,
+    confirmed: priceIsConfirmed ? true : (x.confirmed ?? false),
+  }));
 
   await reserveRepository.AddExtraItemReserve(processed);
   await reserveRepository.recomputeAndUpdateReserveTotals(reserve.id);
