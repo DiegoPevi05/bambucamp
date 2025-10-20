@@ -112,6 +112,7 @@ const Extras: React.FC = () => {
             product.price === product.custom_price
               ? product.price
               : product.custom_price,
+          advanced: 0,
           quantity,
           confirmed: false,
         });
@@ -137,6 +138,7 @@ const Extras: React.FC = () => {
             experience.price === experience.custom_price
               ? experience.price
               : experience.custom_price,
+          advanced: 0,
           quantity,
           day,
           confirmed: false,

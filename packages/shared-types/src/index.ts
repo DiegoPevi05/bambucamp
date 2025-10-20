@@ -448,6 +448,7 @@ export interface ClientReserveTentDto {
   idTent: number;
   name: string;
   price: number;
+  advanced: number;
   nights: number;
   dateFrom: Date;
   dateTo: Date;
@@ -468,6 +469,7 @@ export interface AdminReserveTentDto {
   idTent: number;
   name: string;
   price: number;
+  advanced: number;
   nights: number;
   dateFrom: Date;
   dateTo: Date;
@@ -484,6 +486,7 @@ export interface ServerReserveTentDto<TTent = unknown> {
   idTent: number;
   name: string;
   price: number;
+  advanced: number;
   nights: number;
   dateFrom: Date;
   dateTo: Date;
@@ -500,6 +503,7 @@ export interface ClientReserveProductDto {
   idProduct: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   confirmed: boolean;
   productDB?: PublicProduct;
@@ -510,6 +514,7 @@ export interface AdminReserveProductDto {
   idProduct: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   confirmed: boolean;
   productDB?: AdminProduct;
@@ -520,6 +525,7 @@ export interface ServerReserveProductDto<TProduct = unknown> {
   idProduct: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   confirmed: boolean;
   productDB?: TProduct;
@@ -530,6 +536,7 @@ export interface ClientReserveExperienceDto {
   idExperience: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   day: Date;
   confirmed: boolean;
@@ -541,6 +548,7 @@ export interface AdminReserveExperienceDto {
   idExperience: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   day: Date;
   confirmed: boolean;
@@ -552,6 +560,7 @@ export interface ServerReserveExperienceDto<TExperience = unknown> {
   idExperience: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   day: Date;
   confirmed: boolean;
@@ -563,6 +572,7 @@ export interface ClientReserveExtraItemDto {
   reserveId: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   confirmed: boolean;
 }
@@ -574,6 +584,7 @@ export interface ServerReserveExtraItemDto<TExtraItem = unknown> {
   reserveId: number;
   name: string;
   price: number;
+  advanced: number;
   quantity: number;
   confirmed: boolean;
 }

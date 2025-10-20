@@ -117,6 +117,7 @@ const ReserveTentDtoSchema = z.object({
   idTent: z.number().positive({ message: 'reserve.validations.id_required' }),
   name: z.string().nonempty({ message: 'reserve.validations.name_required' }),
   price: z.number().positive({ message: 'reserve.validations.price_positive' }),
+  advanced: z.number().nonnegative({ message: 'reserve.validations.price_positive' }).default(0),
   nights: z.number().positive({ message: 'reserve.validations.quantity_positive' }),
   dateFrom: z.date(),
   dateTo: z.date(),
@@ -130,6 +131,7 @@ const ReserveProductDtoSchema = z.object({
   idProduct: z.number().positive({ message: "reserve.validations.id_required" }),
   name: z.string().nonempty({ message: "reserve.validations.name_required" }),
   price: z.number().positive({ message: "reserve.validations.price_positive" }),
+  advanced: z.number().nonnegative({ message: "reserve.validations.price_positive" }).default(0),
   quantity: z.number().positive({ message: "reserve.validations.quantity_positive" })
 });
 
@@ -137,6 +139,7 @@ const ReserveExperienceDtoSchema = z.object({
   idExperience: z.number().positive({ message: "reserve.validations.id_required" }),
   name: z.string().nonempty({ message: "reserve.validations.name_required" }),
   price: z.number().positive({ message: "reserve.validations.price_positive" }),
+  advanced: z.number().nonnegative({ message: "reserve.validations.price_positive" }).default(0),
   quantity: z.number().positive({ message: "reserve.validations.quantity_positive" }),
   day: z.date(),
 });
@@ -145,6 +148,7 @@ const ReserveExtraItemDtoSchema = z.object({
   extraItemId: z.number().nonnegative({ message: "reserve.validations.id_required" }).nullable().optional(),
   name: z.string().nonempty({ message: "reserve.validations.name_required" }),
   price: z.number().nonnegative({ message: "reserve.validations.price_positive" }),
+  advanced: z.number().nonnegative({ message: "reserve.validations.price_positive" }).default(0),
   quantity: z.number().positive({ message: "reserve.validations.quantity_positive" }),
 });
 

@@ -504,6 +504,7 @@ const DashboardAdminReserves = () => {
           name: data.title,
           nights,
           price: pricing.nightlyBase,
+          advanced: 0,
           confirmed: true,
           dateFrom: currentItem.dateFrom,
           dateTo: currentItem.dateTo,
@@ -532,6 +533,7 @@ const DashboardAdminReserves = () => {
           name: data.name,
           quantity: currentItem.quantity,
           price: calculatePrice(data.price, data.custom_price, currentItem.no_custom_price),
+          advanced: 0,
           confirmed: true,
         };
         setProducts([...products, newProductOption]);
@@ -553,6 +555,7 @@ const DashboardAdminReserves = () => {
           day: currentItem.day,
           quantity: currentItem.quantity,
           price: calculatePrice(data.price, data.custom_price, currentItem.no_custom_price),
+          advanced: 0,
           confirmed: true,
         };
         setExperiences([...experiences, newExperienceOption]);
@@ -568,6 +571,7 @@ const DashboardAdminReserves = () => {
         name: currentItem.name,
         price: currentItem.price,
         quantity: currentItem.quantity,
+        advanced: 0,
         confirmed: true,
       };
       setExtraItems([...extraItems, newExtraItemOption]);
@@ -591,6 +595,21 @@ const DashboardAdminReserves = () => {
   };
 
 
+  const handleAdvancedChange = (type: "tent" | "product" | "experience" | "extraItem", index: number, value: number) => {
+    const parsedValue = Number.isFinite(value) && value >= 0 ? value : 0;
+
+    if (type === "tent") {
+      setTents(prev => prev.map((item, i) => (i === index ? { ...item, advanced: parsedValue } : item)));
+    } else if (type === "product") {
+      setProducts(prev => prev.map((item, i) => (i === index ? { ...item, advanced: parsedValue } : item)));
+    } else if (type === "experience") {
+      setExperiences(prev => prev.map((item, i) => (i === index ? { ...item, advanced: parsedValue } : item)));
+    } else if (type === "extraItem") {
+      setExtraItems(prev => prev.map((item, i) => (i === index ? { ...item, advanced: parsedValue } : item)));
+    }
+  };
+
+
   const [errorMessages, setErrorMessages] = useState<Record<string, string>>({});
 
   const [totals, setTotals] = useState<{
@@ -598,8 +617,9 @@ const DashboardAdminReserves = () => {
     discount_code_name: string,
     gross_import: number,
     discount: number,
-    net_import: number
-  }>({ discount_code_id: 0, discount_code_name: "", gross_import: 0, discount: 0, net_import: 0 });
+    net_import: number,
+    advanced_total: number,
+  }>({ discount_code_id: 0, discount_code_name: "", gross_import: 0, discount: 0, net_import: 0, advanced_total: 0 });
 
   const [discountCode, setDiscountCode] = useState<{ discount_code_id: number, discount_code_name: string, discount: number }>({ discount_code_id: 0, discount_code_name: "", discount: 0 })
 
@@ -613,46 +633,48 @@ const DashboardAdminReserves = () => {
 
   useEffect(() => {
 
-    let gross_import = 0;
-    let net_import = 0;
-
-    // Sum prices for tents
-    if (extraItems && extraItems.length > 0) {
-      gross_import += extraItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    }
-
-    // Sum prices for tents
-    if (tents && tents.length > 0) {
-      gross_import += tents.reduce((sum, item) => {
+    const gross_import = [
+      extraItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
+      tents.reduce((sum, item) => {
         const nightly = item.price + (item.additional_people_price ?? 0) * item.additional_people + (item.kids_price ?? 0);
         return sum + (nightly * item.nights);
-      }, 0);
-    }
+      }, 0),
+      products.reduce((sum, item) => sum + (item.quantity * item.price), 0),
+      experiences.reduce((sum, item) => sum + (item.quantity * item.price), 0),
+    ].reduce((acc, value) => acc + value, 0);
 
-    // Sum prices for products
-    if (products && products.length > 0) {
-      gross_import += products.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    }
+    const advanced_total = [
+      extraItems.reduce((sum, item) => sum + (item.advanced ?? 0), 0),
+      tents.reduce((sum, item) => sum + (item.advanced ?? 0), 0),
+      products.reduce((sum, item) => sum + (item.advanced ?? 0), 0),
+      experiences.reduce((sum, item) => sum + (item.advanced ?? 0), 0),
+    ].reduce((acc, value) => acc + value, 0);
 
-    // Sum prices for experiences
-    if (experiences && experiences.length > 0) {
-      gross_import += experiences.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    }
+    setTotals((prevTotals) => {
+      let net_import = gross_import;
+      let discountValue = 0;
+      let discountCodeId = 0;
+      let discountCodeName = "";
 
-    setTotals((prevTotals) => ({ ...prevTotals, gross_import }))
+      if (discountCode.discount_code_id > 0 && discountCode.discount > 0 && discountCode.discount <= 100) {
+        discountValue = discountCode.discount;
+        discountCodeId = discountCode.discount_code_id;
+        discountCodeName = discountCode.discount_code_name;
+        net_import = gross_import - ((discountCode.discount / 100) * gross_import);
+      }
 
+      return {
+        ...prevTotals,
+        gross_import,
+        net_import,
+        discount: discountValue,
+        discount_code_id: discountCodeId,
+        discount_code_name: discountCodeName,
+        advanced_total,
+      };
+    });
 
-    if (discountCode.discount_code_id > 0 && discountCode.discount > 0 && discountCode.discount <= 100) {
-      net_import = gross_import - ((discountCode.discount / 100) * gross_import);
-      setTotals((prevTotals) => ({ ...prevTotals, net_import: net_import, discount: discountCode.discount, discount_code_id: discountCode.discount_code_id, discount_code_name: discountCode.discount_code_name }))
-    } else {
-
-      net_import = gross_import;
-      setTotals((prevTotals) => ({ ...prevTotals, net_import: net_import, discount: 0, discount_code_id: 0, discount_code_name: "" }))
-    }
-
-
-  }, [extraItems, tents, experiences, products, discountCode])
+  }, [extraItems, tents, experiences, products, discountCode]);
 
 
   const validateFields = (formname: string): ReserveFormData | null => {
@@ -1038,8 +1060,8 @@ const DashboardAdminReserves = () => {
                         <td className="h-full max-xl:hidden">{reserveItem.createdAt != undefined && reserveItem.createdAt != null ? formatDate(reserveItem.createdAt) : t("reserve.none")}</td>
                         <td className="h-full flex flex-col items-center justify-center">
                           <div className="w-full h-auto flex flex-row flex-wrap gap-x-2">
-                            <button onClick={() => { setSelectedReserve(reserveItem); setTents(reserveItem.tents); setProducts(reserveItem.products); setExperiences(reserveItem.experiences); setExtraItems(reserveItem.extraItems ?? []); setUserType('old'); setCurrentView("V") }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Eye className="h-5 w-5" /></button>
-                            <button onClick={() => { setSelectedReserve(reserveItem); setTents(reserveItem.tents); setProducts(reserveItem.products); setExperiences(reserveItem.experiences); setExtraItems(reserveItem.extraItems ?? []); setUserType('old'); setCurrentView("E"); setErrorMessages({}) }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Pen className="h-5 w-5" /></button>
+                            <button onClick={() => { setSelectedReserve(reserveItem); setTents(reserveItem.tents.map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setProducts(reserveItem.products.map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setExperiences(reserveItem.experiences.map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setExtraItems((reserveItem.extraItems ?? []).map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setUserType('old'); setCurrentView("V") }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Eye className="h-5 w-5" /></button>
+                            <button onClick={() => { setSelectedReserve(reserveItem); setTents(reserveItem.tents.map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setProducts(reserveItem.products.map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setExperiences(reserveItem.experiences.map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setExtraItems((reserveItem.extraItems ?? []).map((item) => ({ ...item, advanced: item.advanced ?? 0 }))); setUserType('old'); setCurrentView("E"); setErrorMessages({}) }} className="border rounded-md hover:bg-primary hover:text-white duration-300 active:scale-75 p-1"><Pen className="h-5 w-5" /></button>
                             <button onClick={() => { setOpenDeleteModal(true), setSelectedReserve(reserveItem) }} className="border rounded-md hover:bg-red-400 hover:text-white duration-300 active:scale-75 p-1"><X className="h-5 w-5" /></button>
                           </div>
                         </td>
@@ -1467,11 +1489,12 @@ const DashboardAdminReserves = () => {
                   <thead className="font-primary text-xs xl:text-sm bg-secondary text-white rounded-t-xl">
                     <tr className="">
                       <th className="w-[5%] rounded-tl-xl py-2">#</th>
-                      <th className="w-[50%] py-2">{t("reserve.item")}</th>
+                      <th className="w-[45%] py-2">{t("reserve.item")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit_price")}</th>
                       <th className="w-[10%] py-2">{t("reserve.qty")}</th>
-                      <th className="w-[10%]   py-2">{t("reserve.price")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.price")}</th>
                     </tr>
                   </thead>
                   <tbody className="font-secondary text-xs xl:text-sm">
@@ -1483,6 +1506,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.advanced ?? 0)}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                       </tr>
                     ))}
@@ -1494,6 +1518,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.advanced ?? 0)}</td>
                         <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                       </tr>
                     ))}
@@ -1505,6 +1530,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.advanced ?? 0)}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                       </tr>
                     ))}
@@ -1516,19 +1542,24 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.advanced ?? 0)}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                       </tr>
                     ))}
                     <tr key={"reserve_key_net_import"} className="text-slate-400">
-                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={5}>{t("reserve.gross_import")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.gross_import")}</td>
                       <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={1}>{formatPrice(totals.gross_import)}</td>
                     </tr>
+                    <tr key={"reserve_key_advanced_total"} className="text-slate-400">
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.advanced_total")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={1}>{formatPrice(totals.advanced_total)}</td>
+                    </tr>
                     <tr key={"reserve_key_total"} className="text-slate-400">
-                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={5}>{t("reserve.discount")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.discount")}</td>
                       <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={1}>{formatPrice(((totals.discount / 100) * totals.gross_import))}</td>
                     </tr>
                     <tr key={"reserve_key_gross_import"} className="text-slate-400">
-                      <td className="" colSpan={5}>{t("reserve.net_import")}</td>
+                      <td className="" colSpan={6}>{t("reserve.net_import")}</td>
                       <td className="" colSpan={1}>{formatPrice(totals.net_import)}</td>
                     </tr>
                   </tbody>
@@ -1786,11 +1817,12 @@ const DashboardAdminReserves = () => {
                   <thead className="font-primary text-xs xl:text-sm bg-secondary text-white rounded-t-xl">
                     <tr className="">
                       <th className="w-[5%] rounded-tl-xl py-2">#</th>
-                      <th className="w-[40%] py-2">{t("reserve.item")}</th>
+                      <th className="w-[35%] py-2">{t("reserve.item")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit_price")}</th>
                       <th className="w-[10%] py-2">{t("reserve.qty")}</th>
-                      <th className="w-[10%]   py-2">{t("reserve.price")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.price")}</th>
                       <th className="w-[10%] py-2 rounded-tr-xl">{t("reserve.actions")}</th>
                     </tr>
                   </thead>
@@ -1803,6 +1835,16 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("extraItem", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "extraItem")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
@@ -1815,6 +1857,16 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("tent", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "tent")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
@@ -1827,6 +1879,16 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("experience", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "experience")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
@@ -1839,20 +1901,34 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("product", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "product")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
                     <tr key={"reserve_key_net_import"} className="text-slate-400">
-                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={5}>{t("reserve.gross_import")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.gross_import")}</td>
                       <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={2}>{formatPrice(totals.gross_import)}</td>
                     </tr>
+                    <tr key={"reserve_key_advanced_total"} className="text-slate-400">
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.advanced_total")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={2}>{formatPrice(totals.advanced_total)}</td>
+                    </tr>
                     <tr key={"reserve_key_total"} className="text-slate-400">
-                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={5}>{t("reserve.discount")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.discount")}</td>
                       <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={2}>{formatPrice(((totals.discount / 100) * totals.gross_import))}</td>
                     </tr>
                     <tr key={"reserve_key_gross_import"} className="text-slate-400">
-                      <td className="" colSpan={5}>{t("reserve.net_import")}</td>
+                      <td className="" colSpan={6}>{t("reserve.net_import")}</td>
                       <td className="" colSpan={2}>{formatPrice(totals.net_import)}</td>
                     </tr>
                   </tbody>
@@ -2185,11 +2261,12 @@ const DashboardAdminReserves = () => {
                   <thead className="font-primary text-xs xl:text-sm bg-secondary text-white rounded-t-xl">
                     <tr className="">
                       <th className="w-[5%] rounded-tl-xl py-2">#</th>
-                      <th className="w-[40%] py-2">{t("reserve.item")}</th>
+                      <th className="w-[35%] py-2">{t("reserve.item")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit_price")}</th>
                       <th className="w-[10%] py-2">{t("reserve.qty")}</th>
-                      <th className="w-[10%]   py-2">{t("reserve.price")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.price")}</th>
                       <th className="w-[10%] py-2 rounded-tr-xl">{t("reserve.actions")}</th>
                     </tr>
                   </thead>
@@ -2202,6 +2279,16 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("extraItem", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "extraItem")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
@@ -2214,6 +2301,16 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("tent", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "tent")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
@@ -2226,6 +2323,16 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("experience", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "experience")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
@@ -2238,20 +2345,34 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.advanced ?? 0}
+                            onChange={(e) => handleAdvancedChange("product", index, Number(e.target.value))}
+                            className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
+                          />
+                        </td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "product")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
                     <tr key={"reserve_key_net_import"} className="text-slate-400">
-                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={5}>{t("reserve.gross_import")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.gross_import")}</td>
                       <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={2}>{formatPrice(totals.gross_import)}</td>
                     </tr>
+                    <tr key={"reserve_key_advanced_total"} className="text-slate-400">
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.advanced_total")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={2}>{formatPrice(totals.advanced_total)}</td>
+                    </tr>
                     <tr key={"reserve_key_total"} className="text-slate-400">
-                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={5}>{t("reserve.discount")}</td>
+                      <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={6}>{t("reserve.discount")}</td>
                       <td className="border-[1px] border-t-secondary border-b-secondary" colSpan={2}>{formatPrice(((totals.discount / 100) * totals.gross_import))}</td>
                     </tr>
                     <tr key={"reserve_key_gross_import"} className="text-slate-400">
-                      <td className="" colSpan={5}>{t("reserve.net_import")}</td>
+                      <td className="" colSpan={6}>{t("reserve.net_import")}</td>
                       <td className="" colSpan={2}>{formatPrice(totals.net_import)}</td>
                     </tr>
                   </tbody>

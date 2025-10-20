@@ -161,9 +161,10 @@ model ReserveTent {
   idTent                  Int
   name                    String    @db.Text
   price                   Float     @default(0)
+  advanced                Float     @default(0)
   nights                  Int       @default(1)
-  dateFrom                 DateTime        
-  dateTo                  DateTime        
+  dateFrom                 DateTime
+  dateTo                  DateTime
   additional_people       Int       @default(0)
   additional_people_price Float     @default(0)
   kids                    Int       @default(0)
@@ -180,6 +181,7 @@ model ReserveProduct {
   idProduct       Int
   name            String    @db.Text
   price           Float     @default(0)
+  advanced        Float     @default(0)
   quantity        Int       @default(1)
   reserve         Reserve   @relation(fields: [reserveId], references: [id], onDelete: Cascade)
   confirmed       Boolean   @default(false)
@@ -193,6 +195,7 @@ model ReserveExperience {
   idExperience    Int
   name            String    @db.Text
   price           Float     @default(0)
+  advanced        Float     @default(0)
   quantity        Int       @default(1)
   day             DateTime  @default(now())
   reserve         Reserve   @relation(fields: [reserveId], references: [id], onDelete: Cascade)
@@ -206,6 +209,7 @@ model ReserveExtraItem {
   reserveId Int
   name      String   @db.Text
   price     Float    @default(0)
+  advanced  Float    @default(0)
   quantity  Int      @default(1)
   confirmed Boolean  @default(false)
   reserve   Reserve  @relation(fields: [reserveId], references: [id], onDelete: Cascade)

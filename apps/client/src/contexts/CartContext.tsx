@@ -47,7 +47,21 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const getInitialCart = (): CartItem => {
     const savedCart = getCookie(CART_COOKIE_NAME);
-    return savedCart ? JSON.parse(savedCart) : { tents: [], products: [], experiences: [], discount: { id: 0, code: "", discount: 0 } };
+    if (!savedCart) {
+      return { tents: [], products: [], experiences: [], discount: { id: 0, code: "", discount: 0 } };
+    }
+
+    try {
+      const parsed = JSON.parse(savedCart);
+      return {
+        tents: (parsed.tents ?? []).map((tent: ReserveTentDto) => ({ ...tent, advanced: tent.advanced ?? 0 })),
+        products: (parsed.products ?? []).map((product: ReserveProductDto) => ({ ...product, advanced: product.advanced ?? 0 })),
+        experiences: (parsed.experiences ?? []).map((experience: ReserveExperienceDto) => ({ ...experience, advanced: experience.advanced ?? 0 })),
+        discount: parsed.discount ?? { id: 0, code: "", discount: 0 },
+      };
+    } catch {
+      return { tents: [], products: [], experiences: [], discount: { id: 0, code: "", discount: 0 } };
+    }
   };
 
   const [cart, setCart] = useState<CartItem>(getInitialCart);

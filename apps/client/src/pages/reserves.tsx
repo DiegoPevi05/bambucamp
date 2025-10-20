@@ -157,7 +157,7 @@ const ReserveCard = (props: ReserveCardProps) => {
     if (experience) {
       setExperiences(prevExperiences => ([
         ...prevExperiences,
-        { reserveId: reserve.id || 0, idExperience, name: experience.name, price: (experience.price == experience.custom_price ? experience.price : experience.custom_price), quantity: quantity, day: day, confirmed: false }
+        { reserveId: reserve.id || 0, idExperience, name: experience.name, price: (experience.price == experience.custom_price ? experience.price : experience.custom_price), advanced: 0, quantity: quantity, day: day, confirmed: false }
       ]
       ));
     }
@@ -173,7 +173,7 @@ const ReserveCard = (props: ReserveCardProps) => {
     if (product) {
       setProducts(prevProduct => ([
         ...prevProduct,
-        { reserveId: reserve.id || 0, idProduct, name: product.name, price: (product.price == product.custom_price ? product.price : product.custom_price), quantity: quantity, confirmed: false }
+        { reserveId: reserve.id || 0, idProduct, name: product.name, price: (product.price == product.custom_price ? product.price : product.custom_price), advanced: 0, quantity: quantity, confirmed: false }
       ]
       ));
     }

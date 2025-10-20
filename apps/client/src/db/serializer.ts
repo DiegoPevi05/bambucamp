@@ -102,6 +102,7 @@ const serializeReserveTent = (data: any): ReserveTentDto => {
     idTent: data.idTent,
     name: data.name,
     price: data.price || 0,
+    advanced: data.advanced ?? 0,
     nights: data.nights || 0,
     dateFrom: new Date(data.dateFrom),
     dateTo: new Date(data.dateTo),
@@ -127,6 +128,7 @@ const serializeReserveProduct = (data: any): ReserveProductDto => {
     idProduct: data.idProduct,
     name: data.name,
     price: data.price || 0,
+    advanced: data.advanced ?? 0,
     quantity: data.quantity || 0,
     confirmed: data.confirmed,
     productDB: product_db_parsed != null ? product_db_parsed : undefined
@@ -145,6 +147,7 @@ const serializeReserveExperience = (data: any): ReserveExperienceDto => {
     idExperience: data.idExperience,
     name: data.name,
     price: data.price || 0,
+    advanced: data.advanced ?? 0,
     day: new Date(data.day),
     quantity: data.quantity || 0,
     confirmed: data.confirmed,
