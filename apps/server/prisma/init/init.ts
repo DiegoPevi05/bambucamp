@@ -82,6 +82,9 @@ async function main() {
   await prisma.reserve.deleteMany();
   //Delete All Users
   await prisma.user.deleteMany();
+  //Delete All Notifications
+  await prisma.notification.deleteMany();
+
   //Create Admin User
   const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD ?? "password", 10);
 

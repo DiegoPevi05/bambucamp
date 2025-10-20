@@ -24,14 +24,20 @@
 			font-family: "Roboto", sans-serif;
 			margin: 0;
 			padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
 		}
 
-		.container {
-			max-width: 800px;
-			margin: 0 auto;
-			padding: 40px 40px;
-			border: 1px solid #000;
-		}
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between; 
+      min-height: 100%;               
+      width: 800px;
+      padding: 40px;
+      box-sizing: border-box;
+    }
 
 		.header {
 			text-align: center;
@@ -253,7 +259,7 @@
 	<div class="container">
 		<div class="header">
 			<div class="column1">
-				<img src="http://104.236.199.84/backend-public/logo.png" class="logo">
+        <img src="{{logo_data_uri}}" class="logo">
 			</div>
 			<div class="column2">
 				<div class="header_description">
@@ -307,9 +313,10 @@
 					</tr>
 				</thead>
 				<tbody>
-										{{{tents_items}}}
+					{{{tents_items}}}
 					{{{experiences_items}}}
 					{{{products_items}}}
+          {{{extra_items}}} 
 				</tbody>
 			</table>
 		</div>

@@ -579,7 +579,7 @@ export interface ClientReserveExtraItemDto {
 
 export interface AdminReserveExtraItemDto extends ClientReserveExtraItemDto { }
 
-export interface ServerReserveExtraItemDto<TExtraItem = unknown> {
+export interface ServerReserveExtraItemDto {
   id?: number;
   reserveId: number;
   name: string;

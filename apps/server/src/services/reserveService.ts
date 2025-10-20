@@ -246,7 +246,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
   });
 
   const reserveExtraItems: ReserveExtraItemDto[] = (data.extraItems ?? []).map(x => {
-    const payload: ReserveExtraItemDto = {
+    const payload: any = {
       id: x.id,
       name: x.name,
       price: x.price,
@@ -323,6 +323,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     utils.getExperiences(data.experiences),
   ]);
 
+
   const tentsAvailable = await utils.checkAvailability(data.tents);
   if (!tentsAvailable) throw new BadRequestError("error.noTentsAvailable");
 
@@ -379,7 +380,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     };
   });
 
-  const reserve_extraItems: ReserveExtraItemDto[] = (data.extraItems ?? []).map(x => ({
+  const reserve_extraItems: any[] = (data.extraItems ?? []).map(x => ({
     id: x.id,
     name: x.name,
     price: x.price,
@@ -547,6 +548,7 @@ export const AddExtraItemReserve = async (
   if (!reserve) {
     priceIsConfirmed = true;
     const reserveId = data[0]?.reserveId;
+    if (!reserveId) throw new NotFoundError('error.noReservefoundInDB');
     reserve = await reserveRepository.getReserveById(reserveId);
     if (!reserve) throw new NotFoundError('error.noReservefoundInDB');
   }

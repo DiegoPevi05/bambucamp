@@ -2,8 +2,22 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install Puppeteer dependencies for Chromium
+# (based on: https://pptr.dev/troubleshooting)
+RUN apk add --no-cache \
+  chromium \
+  nss \
+  freetype \
+  harfbuzz \
+  ca-certificates \
+  ttf-freefont \
+  mesa-gbm
+
 # Install system dependencies for Prisma
 RUN apk add --no-cache openssl
+
+# Puppeteer expects chromium to be here by default on Alpine
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Copy root package files (for build:shared)
 COPY package*.json ./

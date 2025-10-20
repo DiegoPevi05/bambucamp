@@ -1095,7 +1095,7 @@ const DashboardAdminReserves = () => {
           <AnimatePresence>
             {openReserveOption != null && (
               <Modal isOpen={openReserveOption != null} onClose={() => setOpenReserveOption(null)}>
-                <div id="modal_reserve_items" className="w-[100%] xl:w-[800px] max-xl:min-h-[600px] xl:h-[600px] flex flex-col items-start justify-start text-secondary py-16 px-4 sm:p-6 overflow-hidden">
+                <div id="modal_reserve_items" className="w-[100%] xl:w-[800px] max-xl:min-h-[600px] xl:h-[600px] flex flex-col items-start justify-start text-secondary py-16 px-4 sm:p-6 overflow-hidden max-xl:overflow-y-scroll">
                   <div className="w-[100%] h-auto flex overflow-x-croll">
                     <div className="w-full h-auto flex flex-row gap-x-4 sm:gap-x-6 pb-4 border-b-2 border-secondary">
                       <InputRadio
@@ -1138,7 +1138,7 @@ const DashboardAdminReserves = () => {
                   </div>
                   {openReserveOption == "tent" && (
 
-                    <div className="flex flex-col justify-start items-start w-full h-auto mt-6 gap-y-2 sm:gap-y-2">
+                    <div className="flex flex-col justify-start items-start w-full h-auto mt-6 gap-y-2 sm:gap-y-2 xl:overflow-y-scroll xl:pr-4">
                       <div className="flex flex-row justify-start items-start w-full h-auto my-1  gap-x-6">
 
                         <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">

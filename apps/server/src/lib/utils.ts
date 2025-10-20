@@ -211,16 +211,20 @@ export const computeTentNightly = (
 };
 
 export const checkAvailability = async (tents: ReserveTentDto[]): Promise<boolean> => {
-  // Find reservations that overlap with the provided tents' date ranges
-  const overlappingReserves = await reserveRepository.getAvailableReserves(tents);
+  // Only check *new* tents (no `id`) with valid ranges
+  const newTents = tents.filter(t =>
+    !t.id &&
+    t.idTent != null &&
+    t.dateFrom instanceof Date &&
+    t.dateTo instanceof Date &&
+    t.dateFrom < t.dateTo
+  );
 
-  // Create a Set of overlapping tent IDs for fast lookup
-  const overlappingTentIds = new Set(overlappingReserves.map((reservedTent: { reserveId: number, idTent: number }) => reservedTent.idTent));
+  // If nothing new to check, they’re “available” by definition
+  if (newTents.length === 0) return true;
 
-  // Check if any of the provided tents are in the set of overlapping tents
-  const isAvailable = tents.every(tent => !overlappingTentIds.has(tent.idTent));
-
-  return isAvailable;
+  const conflicts = await reserveRepository.getAvailableReserves(newTents);
+  return conflicts.length === 0;
 };
 
 export const getPeopleInReserve = (tents: Tent[]): { qtypeople: number, qtykids: number } => {

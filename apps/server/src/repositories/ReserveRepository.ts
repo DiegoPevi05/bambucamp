@@ -621,30 +621,23 @@ export const deleteExperienceReserve = async (id: number): Promise<ReserveExperi
 }
 
 
+// reserveRepository.ts
 export const getAvailableReserves = async (
-  tents: ReserveTentDto[],
-  excludeReserveId?: number
+  tents: ReserveTentDto[]
 ): Promise<{ reserveId: number; idTent: number; dateFrom: Date; dateTo: Date }[]> => {
-  // only well-formed tents
-  const items = tents.filter(t => t.idTent != null && t.dateFrom && t.dateTo);
-
-  if (items.length === 0) return [];
-
+  // Only new, well-formed tents
   return prisma.reserveTent.findMany({
     where: {
-      OR: items.map(t => ({
+      OR: tents.map(t => ({
         idTent: t.idTent!,
-        ...(excludeReserveId ? { reserveId: { not: excludeReserveId } } : {}),
         AND: [
-          // true overlap: start < otherEnd AND end > otherStart
-          { dateFrom: { lt: t.dateTo } },
-          { dateTo: { gt: t.dateFrom } },
-          // count only blocking reserve statuses (optional but recommended)
+          // overlap: start < otherEnd && end > otherStart
+          { dateFrom: { lt: t.dateTo! } },
+          { dateTo: { gt: t.dateFrom! } },
           {
             reserve: {
-              reserve_status: {
-                in: [ReserveStatus.CONFIRMED, ReserveStatus.NOT_CONFIRMED],
-              },
+              // Only count blocking statuses; adjust as needed
+              reserve_status: { in: [ReserveStatus.CONFIRMED, ReserveStatus.NOT_CONFIRMED] },
             },
           },
         ],
