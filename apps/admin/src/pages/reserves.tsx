@@ -1493,8 +1493,8 @@ const DashboardAdminReserves = () => {
                       <th className="w-[10%] py-2">{t("reserve.unit")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit_price")}</th>
                       <th className="w-[10%] py-2">{t("reserve.qty")}</th>
-                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
                       <th className="w-[10%] py-2">{t("reserve.price")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
                     </tr>
                   </thead>
                   <tbody className="font-secondary text-xs xl:text-sm">
@@ -1821,8 +1821,8 @@ const DashboardAdminReserves = () => {
                       <th className="w-[10%] py-2">{t("reserve.unit")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit_price")}</th>
                       <th className="w-[10%] py-2">{t("reserve.qty")}</th>
-                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
                       <th className="w-[10%] py-2">{t("reserve.price")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
                       <th className="w-[10%] py-2 rounded-tr-xl">{t("reserve.actions")}</th>
                     </tr>
                   </thead>
@@ -1835,6 +1835,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -1845,7 +1846,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "extraItem")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -1857,6 +1857,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -1867,7 +1868,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "tent")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -1879,6 +1879,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -1889,7 +1890,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "experience")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -1901,6 +1901,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -1911,7 +1912,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "product")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -2265,8 +2265,8 @@ const DashboardAdminReserves = () => {
                       <th className="w-[10%] py-2">{t("reserve.unit")}</th>
                       <th className="w-[10%] py-2">{t("reserve.unit_price")}</th>
                       <th className="w-[10%] py-2">{t("reserve.qty")}</th>
-                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
                       <th className="w-[10%] py-2">{t("reserve.price")}</th>
+                      <th className="w-[10%] py-2">{t("reserve.advanced")}</th>
                       <th className="w-[10%] py-2 rounded-tr-xl">{t("reserve.actions")}</th>
                     </tr>
                   </thead>
@@ -2279,6 +2279,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -2289,7 +2290,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "extraItem")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -2301,6 +2301,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.nights")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price + ((item.additional_people_price ?? 0) * item.additional_people) + (item.kids_price ?? 0))}</td>
                         <td className="border border-slate-300 text-center">{item.nights}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -2311,7 +2312,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice((item.price + (item.kids_price ?? 0) + ((item.additional_people_price ?? 0) * item.additional_people)) * item.nights)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "tent")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -2323,6 +2323,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -2333,7 +2334,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "experience")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}
@@ -2345,6 +2345,7 @@ const DashboardAdminReserves = () => {
                         <td className="border border-slate-300 text-center">{t("reserve.unit")}</td>
                         <td className="border border-slate-300 text-center">{formatPrice(item.price)}</td>
                         <td className="border border-slate-300 text-center">{item.quantity}</td>
+                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">
                           <input
                             type="number"
@@ -2355,7 +2356,6 @@ const DashboardAdminReserves = () => {
                             className="w-full h-8 text-xs sm:text-sm font-tertiary px-2 border border-secondary rounded focus:outline-none focus:border-primary"
                           />
                         </td>
-                        <td className="border border-slate-300 text-center">{formatPrice(item.price * item.quantity)}</td>
                         <td className="border border-slate-300 text-center">{<button onClick={() => handleRemoveReserveOption(index, "product")} className="h-auto w-auto hover:text-tertiary"><CircleX /></button>}</td>
                       </tr>
                     ))}

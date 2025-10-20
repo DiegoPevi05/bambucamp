@@ -3,9 +3,9 @@ import axios from "axios";
 import { Reserve, NotificationDto, notifcationFilters } from "../../lib/interfaces";
 import { serializeMyReserves, serializeMyReservesCalendar, serializeNotification, serializeCalendarDays } from "../serializer";
 
-export const getCalendarDates = async(page:Number, language:string):Promise<{ date: Date, label: string, available: boolean }[] | null> => {
-  let data:{ date: Date, label: string, available: boolean }[]|null = null;
-  try{
+export const getCalendarDates = async (page: Number, language: string): Promise<{ date: Date, label: string, available: boolean }[] | null> => {
+  let data: { date: Date, label: string, available: boolean }[] | null = null;
+  try {
 
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
@@ -16,14 +16,14 @@ export const getCalendarDates = async(page:Number, language:string):Promise<{ da
 
     const fetchedDays = await axios.get(url, {
       headers: {
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
     data = serializeCalendarDays(fetchedDays.data);
 
 
-  }catch(error){
+  } catch (error) {
     console.log(error)
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
@@ -52,9 +52,9 @@ export const getCalendarDates = async(page:Number, language:string):Promise<{ da
   return data;
 }
 
-export const getAllMyReservesCalendar = async(token:string, page:Number, language:string):Promise<{reserves:{ id:number, external_id:string, dateFrom:Date, dateTo:Date }[]} |null> => {
-  let data:{ reserves:{ id:number, external_id:string, dateFrom:Date, dateTo:Date }[]}  | null = null;
-  try{
+export const getAllMyReservesCalendar = async (token: string, page: Number, language: string): Promise<{ reserves: { id: number, external_id: string, dateFrom: Date, dateTo: Date }[] } | null> => {
+  let data: { reserves: { id: number, external_id: string, dateFrom: Date, dateTo: Date }[] } | null = null;
+  try {
 
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
@@ -66,7 +66,7 @@ export const getAllMyReservesCalendar = async(token:string, page:Number, languag
     const fetchReserves = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -76,7 +76,7 @@ export const getAllMyReservesCalendar = async(token:string, page:Number, languag
 
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -104,14 +104,14 @@ export const getAllMyReservesCalendar = async(token:string, page:Number, languag
   return data;
 }
 
-export const getAllMyReserves = async(token:string, page:Number,pageSize:Number,language:string):Promise<{reserves:Reserve[], totalPages:Number ,currentPage:Number}|null> => {
-  let data:{ reserves:Reserve[],totalPages:Number,currentPage:Number } | null = null;
-  try{
+export const getAllMyReserves = async (token: string, page: Number, pageSize: Number, language: string): Promise<{ reserves: Reserve[], totalPages: Number, currentPage: Number } | null> => {
+  let data: { reserves: Reserve[], totalPages: Number, currentPage: Number } | null = null;
+  try {
 
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
     params.append('page', page.toString());
-    params.append('pageSize',pageSize.toString())
+    params.append('pageSize', pageSize.toString())
 
     // Construct the URL with query parameters
     const url = `${import.meta.env.VITE_BACKEND_URL}/reserves/me?${params.toString()}`;
@@ -119,7 +119,7 @@ export const getAllMyReserves = async(token:string, page:Number,pageSize:Number,
     const fetchReserves = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
@@ -127,12 +127,12 @@ export const getAllMyReserves = async(token:string, page:Number,pageSize:Number,
     data = {
       reserves: fetchReserves.data.reserves.map((reserve: any) => serializeMyReserves(reserve)),
       currentPage: parseInt(fetchReserves.data.currentPage as string, 10),
-      totalPages:parseInt(fetchReserves.data.totalPages as string, 10)
+      totalPages: parseInt(fetchReserves.data.totalPages as string, 10)
     }
 
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -161,10 +161,10 @@ export const getAllMyReserves = async(token:string, page:Number,pageSize:Number,
 }
 
 
-export const getAllNotifications = async( token: string, page:Number, pageSize:Number, language:string, filters?:notifcationFilters ): Promise<{notifications:NotificationDto[], totalPages:Number ,currentPage:Number}|null> => {
+export const getAllNotifications = async (token: string, page: Number, pageSize: Number, language: string, filters?: notifcationFilters): Promise<{ notifications: NotificationDto[], totalPages: Number, currentPage: Number } | null> => {
 
-  let data:{ notifications:NotificationDto[],totalPages:Number,currentPage:Number } | null = null;
-  try{
+  let data: { notifications: NotificationDto[], totalPages: Number, currentPage: Number } | null = null;
+  try {
     // Create a URLSearchParams object to construct the query string
     const params = new URLSearchParams();
     params.append('page', page.toString());
@@ -185,18 +185,18 @@ export const getAllNotifications = async( token: string, page:Number, pageSize:N
     const fetchProducts = await axios.get(url, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       }
     });
 
     data = {
       notifications: fetchProducts.data.notifications.map((notification: any) => serializeNotification(notification)),
       currentPage: parseInt(fetchProducts.data.currentPage as string, 10),
-      totalPages:parseInt(fetchProducts.data.totalPages as string, 10)
+      totalPages: parseInt(fetchProducts.data.totalPages as string, 10)
     }
 
 
-  }catch(error){
+  } catch (error) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const errorData = error.response?.data;
@@ -224,13 +224,13 @@ export const getAllNotifications = async( token: string, page:Number, pageSize:N
   return data;
 }
 
-export const downloadBillForReserve = async(idReserve:Number, token:string, language:string ):Promise<void> => {
+export const downloadBillForReserve = async (idReserve: Number, token: string, language: string): Promise<void> => {
 
   try {
     const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/reserves/bill/${idReserve}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Accept-Language':language
+        'Accept-Language': language
       },
       responseType: 'arraybuffer'
     });

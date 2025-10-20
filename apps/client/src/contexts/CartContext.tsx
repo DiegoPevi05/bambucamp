@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { ReserveTentDto, ReserveProductDto, ReserveExperienceDto, DiscountCode } from '../lib/interfaces';
+import { ReserveFormTentDto, ReserveProductDto, ReserveExperienceDto, DiscountCode } from '../lib/interfaces';
 import { getCookie, setCookie } from '../lib/cookies';
 import { computeTentNightly } from '../lib/utils.ts';
 
 interface CartItem {
-  tents: ReserveTentDto[];
+  tents: ReserveFormTentDto[];
   products: ReserveProductDto[];
   experiences: ReserveExperienceDto[];
   discount: DiscountCode;
@@ -16,7 +16,7 @@ interface CartContextType {
   totalItems: number;
   getTotalCost: () => number;
   addDiscountCode: (discountCode: DiscountCode) => void;
-  addTent: (tent: ReserveTentDto) => void;
+  addTent: (tent: ReserveFormTentDto) => void;
   removeTent: (idTent: number) => void;
   updateTentNights: (idTent: number, nights: number) => void;
   addProduct: (product: ReserveProductDto) => void;
@@ -54,7 +54,7 @@ export function CartProvider({ children }: CartProviderProps) {
     try {
       const parsed = JSON.parse(savedCart);
       return {
-        tents: (parsed.tents ?? []).map((tent: ReserveTentDto) => ({ ...tent, advanced: tent.advanced ?? 0 })),
+        tents: (parsed.tents ?? []).map((tent: ReserveFormTentDto) => ({ ...tent, advanced: tent.advanced ?? 0 })),
         products: (parsed.products ?? []).map((product: ReserveProductDto) => ({ ...product, advanced: product.advanced ?? 0 })),
         experiences: (parsed.experiences ?? []).map((experience: ReserveExperienceDto) => ({ ...experience, advanced: experience.advanced ?? 0 })),
         discount: parsed.discount ?? { id: 0, code: "", discount: 0 },
@@ -104,7 +104,7 @@ export function CartProvider({ children }: CartProviderProps) {
     setCart(prevCart => updateFn(prevCart));
   };
 
-  const addTent = (tent: ReserveTentDto) => {
+  const addTent = (tent: ReserveFormTentDto) => {
     updateCart(prevCart => ({
       ...prevCart,
       tents: [...prevCart.tents, tent],

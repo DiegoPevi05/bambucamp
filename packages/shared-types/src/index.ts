@@ -443,6 +443,23 @@ export interface OptionsReserve {
 export type PaymentStatusValue = string;
 export type ReserveStatusValue = string;
 
+export interface ClientReserveDashboardTentDto {
+  id: number;
+  idTent: number;
+  name: string;
+  price: number;
+  advanced: number;
+  nights: number;
+  dateFrom: Date;
+  dateTo: Date;
+  confirmed: boolean;
+  additional_people: number;
+  additional_people_price: number;
+  kids: number;
+  kids_price: number;
+  tentDB?: PublicTent;
+}
+
 export interface ClientReserveTentDto {
   id?: number;
   idTent: number;
@@ -638,7 +655,7 @@ export interface BaseReserve<
 }
 
 export type ClientReserve = BaseReserve<
-  ClientReserveTentDto,
+  ClientReserveDashboardTentDto,
   ClientReserveProductDto,
   ClientReserveExperienceDto,
   ClientReserveExtraItemDto

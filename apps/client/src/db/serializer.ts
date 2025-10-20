@@ -1,4 +1,4 @@
-import { User, Tent, Product, Experience, NotificationDto, Reserve, ReserveTentDto, ReserveProductDto, ReserveExperienceDto, Review, Faq } from "../lib/interfaces"
+import { User, Tent, Product, Experience, NotificationDto, Reserve, ReserveProductDto, ReserveExperienceDto, ReserveTentDto, Review, Faq } from "../lib/interfaces"
 import { convertStrToCurrentTimezoneDate } from "../lib/utils";
 
 export const serializeUser = (data: any): User | null => {
@@ -107,11 +107,10 @@ const serializeReserveTent = (data: any): ReserveTentDto => {
     dateFrom: new Date(data.dateFrom),
     dateTo: new Date(data.dateTo),
     confirmed: data.confirmed,
-    qtykids: data.qtykids || 0,
-    qtypeople: data.qtypeople || 0,
+    kids: data.kids || 0,
+    kids_price: data.kids_price || 0,
     additional_people: data.additional_people || 0,
     additional_people_price: data.additional_people_price || 0,
-    max_additional_people: data.max_additional_people || 0,
     tentDB: tent_db_parsed != null ? tent_db_parsed : undefined
   }
   return reserveTent;
