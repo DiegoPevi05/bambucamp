@@ -99,7 +99,7 @@
     "nights": "Nights",
     "additional_people": "Additional people",
     "kids": "Kids",
-    "kids_bundle_applied": "{{count}} kids — bundle pricing applied{{bundle, select, ''{} other{ ({{bundle}}/night)}}",
+    "kids_bundle_applied": "{{count}} kids — bundle pricing applied {{bundle}}/night",
 		"user_old": "Existente",
 		"user_new": "New",
 		"user_log_in_experience": "User must be authorize to create the experience",

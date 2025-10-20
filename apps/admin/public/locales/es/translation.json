@@ -98,7 +98,7 @@
     "nights": "Noches",
     "additional_people": "Personas adicionales",
     "kids": "Niños",
-    "kids_bundle_applied": "{{count}} niños — se aplicó precio por paquete{{bundle, select, ''{} other{ ({{bundle}}/noche)}}",
+    "kids_bundle_applied": "{{count}} niños — se aplicó precio por paquete {{bundle}}/noche",
 		"user_old": "Existente",
 		"user_new": "Nuevo",
 		"user_log_in_experience": "El usuario debe estar autorizado para poder crear una experiencia",
