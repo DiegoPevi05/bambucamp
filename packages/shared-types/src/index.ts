@@ -340,6 +340,26 @@ export interface CreateInventoryTransactionForm {
 }
 
 // ------------------------------
+// Reports domain
+// ------------------------------
+
+export type ReportFormat = 'pdf' | 'csv';
+
+export interface InventoryReportFilters {
+  dateFrom: string;
+  dateTo: string;
+  format: ReportFormat;
+  sortBy: 'stock_desc' | 'stock_asc' | 'qty_desc' | 'qty_asc';
+  productIds?: number[];
+}
+
+export interface SalesReportFilters {
+  dateFrom: string;
+  dateTo: string;
+  format: ReportFormat;
+}
+
+// ------------------------------
 // Experience domain
 // ------------------------------
 export interface ExperienceCategory {

@@ -824,348 +824,351 @@ export const confirmExperience = async (reserveExperienceId: number): Promise<vo
 interface SalesFilters {
   step: "W" | "M" | "Y";
   type: "A" | "P";
+  anchor: Date;
+  offset: number;
+  tz: string;
 }
 
-export const getNetSalesStatistics = async (filters: SalesFilters, language: string): Promise<{ date: string; amount: number }[]> => {
-  const { step, type } = filters;
-  const today = new Date();
-  let startDate: Date | undefined;
+type MoneyPoint = { date: string; amount: number };
+type QtyPoint = { date: string; quantity: number };
 
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function endOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+function startOfWeek(d: Date) { // Sunday start; change if needed
+  const x = startOfDay(d);
+  const day = x.getDay(); // 0=Sun
+  x.setDate(x.getDate() - day);
+  return x;
+}
+function endOfWeek(d: Date) {
+  const s = startOfWeek(d);
+  const e = new Date(s);
+  e.setDate(s.getDate() + 6);
+  e.setHours(23, 59, 59, 999);
+  return e;
+}
+function startOfMonth(d: Date) {
+  const x = startOfDay(d);
+  x.setDate(1);
+  return x;
+}
+function endOfMonth(d: Date) {
+  const x = startOfMonth(d);
+  x.setMonth(x.getMonth() + 1);
+  x.setDate(0);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+/** Compute visible window based on step+anchor+offset */
+function computeWindow(step: SalesFilters['step'], anchor: Date, offset: number) {
+  const a = new Date(anchor);
   if (step === "W") {
-    // Weekly - Last 7 days
-    startDate = new Date(today);
-    startDate.setDate(today.getDate() - 7);
-  } else if (step === "M") {
-    // Monthly - Last 5 weeks
-    startDate = new Date(today);
-    startDate.setDate(today.getDate() - (7 * 5));
-  } else if (step === "Y") {
-    // Yearly - Last 12 months
-    startDate = new Date(today);
-    startDate.setFullYear(today.getFullYear() - 1);
+    // shift anchor by 7 * offset days
+    a.setDate(a.getDate() + (offset * 7));
+    const ws = startOfWeek(a);
+    const we = endOfWeek(a);
+    // we’ll show 7 daily buckets
+    const days: Date[] = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(ws);
+      d.setDate(ws.getDate() + i);
+      return d;
+    });
+    return { windowStart: ws, windowEnd: we, bucketDates: days };
   }
 
-  const reservedTentIds = await prisma.reserveTent.findMany({
+  if (step === "M") {
+    // Interpret as a 5-week strip ending at the end of the anchor's week
+    a.setDate(a.getDate() + (offset * 7 * 5)); // jump 5 weeks each page
+    const end = endOfWeek(a);
+    const start = new Date(end);
+    start.setDate(end.getDate() - (7 * 5) + 1); // inclusive 5*7 days
+
+    // produce 5 weekly buckets [Mon-Sun] or [Sun-Sat] aligned
+    const weeks: { start: Date; end: Date }[] = [];
+    let curEnd = end;
+    for (let i = 0; i < 5; i++) {
+      const wkEnd = new Date(curEnd);
+      const wkStart = startOfWeek(wkEnd);
+      weeks.unshift({ start: wkStart, end: wkEnd });
+      curEnd = new Date(wkStart);
+      curEnd.setDate(wkStart.getDate() - 1);
+    }
+    return { windowStart: start, windowEnd: end, weekBuckets: weeks };
+  }
+
+  // "Y": 12 months view; offset jumps by 12 months
+  const base = startOfMonth(a);
+  base.setMonth(base.getMonth() + (offset * 12));
+  const months: { start: Date; end: Date; label: string }[] = [];
+  let cur = new Date(base);
+  for (let i = 0; i < 12; i++) {
+    const ms = startOfMonth(cur);
+    const me = endOfMonth(cur);
+    months.push({ start: ms, end: me, label: ms.toISOString().slice(0, 7) }); // YYYY-MM
+    cur.setMonth(cur.getMonth() - 1); // go backwards
+  }
+  months.reverse(); // oldest → newest
+  const windowStart = months[0].start;
+  const windowEnd = months[months.length - 1].end;
+  return { windowStart, windowEnd, monthBuckets: months };
+}
+
+/** Common overlap where-clause:
+ * tent overlaps the window if (dateFrom <= windowEnd) && (dateTo >= windowStart)
+ */
+function tentOverlapWhere(windowStart: Date, windowEnd: Date) {
+  return {
+    AND: [
+      { dateFrom: { lte: windowEnd } },
+      { dateTo: { gte: windowStart } },
+    ],
+  };
+}
+
+/** Reduce to one record per reserve (pick the LATEST dateFrom per reserve) */
+function collapseToLatestPerReserve<T extends { reserveId: number | string; dateFrom: Date }>(
+  rows: T[]
+) {
+  const map: Record<string, T> = {};
+  for (const r of rows) {
+    const key = String(r.reserveId);
+    if (!map[key] || map[key].dateFrom < r.dateFrom) { // pick LATEST
+      map[key] = r;
+    }
+  }
+  return Object.values(map);
+}
+
+export const getNetSalesStatistics = async (
+  filters: SalesFilters,
+  language: string
+): Promise<MoneyPoint[]> => {
+  const { step, type, anchor, offset } = filters;
+  const w = computeWindow(step, anchor, offset);
+  const windowStart = w.windowStart;
+  const windowEnd = w.windowEnd;
+
+  const tentRows = await prisma.reserveTent.findMany({
     where: {
-      AND: [
-        {
-          dateFrom: {
-            lte: startDate,
-          },
-        },
-        {
-          dateTo: {
-            gte: today,
-          },
-        },
-        {
-          reserve: {
-            reserve_status: {
-              in: ["COMPLETE"],
-            },
-          },
-        },
-      ],
+      ...tentOverlapWhere(windowStart, windowEnd),
+      reserve: { reserve_status: { in: ['COMPLETE'] } },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { dateFrom: 'asc' },
     select: {
-      reserve: {
-        select: {
-          net_import: true, // Ensure external_id is selected
-        },
-      },
       reserveId: true,
       dateFrom: true,
       dateTo: true,
+      reserve: { select: { net_import: true } },
     },
   });
 
-  // Aggregate the latest dateFrom per reserveId
-  const reserveMap: Record<string, { dateFrom: Date; net_import: number }> = {};
+  const latestPerReserve = collapseToLatestPerReserve(
+    tentRows.map(r => ({
+      reserveId: r.reserveId,
+      dateFrom: r.dateFrom,
+      net_import: r.reserve?.net_import ?? 0,
+    }))
+  );
 
-  reservedTentIds.forEach(({ reserveId, dateFrom, reserve }) => {
-    if (
-      !reserveMap[reserveId] ||
-      reserveMap[reserveId].dateFrom > dateFrom
-    ) {
-      reserveMap[reserveId] = {
-        dateFrom,
-        net_import: reserve?.net_import || 0,
-      };
-    }
-  });
+  let series: MoneyPoint[] = [];
 
-  // Convert the dictionary to an array of objects
-  const reservesWithLatestDate = Object.entries(reserveMap).map(([reserveId, data]) => ({
-    reserveId,
-    dateFrom: data.dateFrom,
-    net_import: data.net_import,
-  }));
-
-  // Aggregate results based on the step
-  let salesData: { date: string; amount: number }[] = [];
-
-  if (step === "W") {
-    // Group by day for the last 7 days
-    const dailyData: Record<string, number> = {};
-    for (const reserve of reservesWithLatestDate) {
-      const dateKey = reserve.dateFrom.toISOString().slice(0, 10); // YYYY-MM-DD
-      dailyData[dateKey] = (dailyData[dateKey] || 0) + reserve.net_import;
-    }
-
-    // Generate the last 7 days with a default quantity of 0
-    const weekDays = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateKey = date.toISOString().slice(0, 10);
-      return { date: dateKey, amount: 0 };
-    });
-
-    weekDays.forEach(day => {
-      if (dailyData[day.date]) {
-        day.amount = dailyData[day.date];
+  if (step === 'W') {
+    // 7 daily buckets inside the window
+    const daily: Record<string, number> = {};
+    for (const row of latestPerReserve) {
+      const key = row.dateFrom.toISOString().slice(0, 10);
+      if (row.dateFrom >= startOfDay(windowStart) && row.dateFrom <= endOfDay(windowEnd)) {
+        daily[key] = (daily[key] || 0) + row.net_import;
       }
-    });
-
-    if (type === "P") {
-      salesData = weekDays;
+    }
+    const buckets = (w as any).bucketDates as Date[];
+    const base = buckets.map(d => ({ date: d.toISOString().slice(0, 10), amount: daily[d.toISOString().slice(0, 10)] || 0 }));
+    if (type === 'P') {
+      series = base;
     } else {
-      let accumulatedAmount = 0;
-      for (const day of weekDays) {
-        accumulatedAmount += day.amount;
-        salesData.push({ date: day.date, amount: accumulatedAmount });
+      let acc = 0;
+      series = base.map(b => ({ date: b.date, amount: (acc += b.amount) }));
+    }
+  } else if (step === 'M') {
+    const weeks = (w as any).weekBuckets as { start: Date; end: Date }[];
+    let acc = 0;
+    for (const wk of weeks) {
+      const sum = latestPerReserve
+        .filter(r => r.dateFrom >= wk.start && r.dateFrom <= wk.end)
+        .reduce((s, r) => s + r.net_import, 0);
+      const label = wk.start.toISOString().slice(0, 10); // start-of-week
+      if (type === 'A') {
+        acc += sum;
+        series.push({ date: label, amount: acc });
+      } else {
+        series.push({ date: label, amount: sum });
       }
     }
-
-  } else if (step === "M") {
-    // Group by week for the last 5 weeks
-    let currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
-
-    const weekIntervals = [];
-    for (let i = 0; i < 5; i++) {
-      const weekEnd = new Date(currentWeekStart); // End of the current week
-      const weekStart = new Date(currentWeekStart);
-      weekStart.setDate(weekStart.getDate() - 6); // Start of the week (7-day range)
-
-      weekIntervals.push({ start: new Date(weekStart), end: new Date(weekEnd) });
-
-      // Move back one week
-      currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    }
-
-    let accumulatedAmount = 0;
-    for (const { start, end } of weekIntervals) {
-      const weeklyAmount = reservesWithLatestDate
-        .filter(reserve => reserve.dateFrom >= start && reserve.dateFrom <= end)
-        .reduce((sum, reserve) => sum + reserve.net_import, 0);
-
-      const dateLabel = `${start.toISOString().slice(0, 10)}`;
-
-      if (type === "A") {
-        accumulatedAmount += weeklyAmount;
-        salesData.push({ date: dateLabel, amount: accumulatedAmount });
+  } else {
+    const months = (w as any).monthBuckets as { start: Date; end: Date; label: string }[];
+    let acc = 0;
+    for (const m of months) {
+      const sum = latestPerReserve
+        .filter(r => r.dateFrom >= m.start && r.dateFrom <= m.end)
+        .reduce((s, r) => s + r.net_import, 0);
+      const label = m.start.toLocaleString(language || 'default', { month: 'long' });
+      if (type === 'A') {
+        acc += sum;
+        series.push({ date: label, amount: acc });
       } else {
-        salesData.push({ date: dateLabel, amount: weeklyAmount });
-      }
-    }
-  } else if (step === "Y") {
-    // Group by month for the last 12 months
-    const monthIntervals = [];
-    let currentMonth = new Date(today);
-    currentMonth.setDate(1); // Set to the first day of the current month
-
-    for (let i = 0; i < 12; i++) {
-      const monthStart = new Date(currentMonth);
-      const monthEnd = new Date(currentMonth);
-      monthEnd.setMonth(monthEnd.getMonth() + 1);
-      monthEnd.setDate(0); // Last day of the current month
-
-      monthIntervals.push({ start: new Date(monthStart), end: new Date(monthEnd) });
-
-      currentMonth.setMonth(currentMonth.getMonth() - 1); // Move back one month
-    }
-
-    let accumulatedAmount = 0;
-    for (const { start, end } of monthIntervals) {
-      const monthlyAmount = reservesWithLatestDate
-        .filter(reserve => reserve.dateFrom >= start && reserve.dateFrom <= end)
-        .reduce((sum, reserve) => sum + reserve.net_import, 0);
-
-      const dateLabel = start.toLocaleString('default', { month: 'long' });
-
-      if (type === "A") {
-        accumulatedAmount += monthlyAmount;
-        salesData.push({ date: dateLabel, amount: accumulatedAmount });
-      } else {
-        salesData.push({ date: dateLabel, amount: monthlyAmount });
+        series.push({ date: label, amount: sum });
       }
     }
   }
 
-  return salesData.reverse(); // Reverse to order from oldest to newest
+  return series;
 };
 
+export const getReserveQuantityStatistics = async (
+  filters: SalesFilters,
+  language: string
+): Promise<QtyPoint[]> => {
+  const { step, type, anchor, offset } = filters;
+  const w = computeWindow(step, anchor, offset);
+  const windowStart = w.windowStart;
+  const windowEnd = w.windowEnd;
 
-export const getReserveQuantityStatistics = async (filters: SalesFilters, language: string): Promise<{ date: string; quantity: number }[]> => {
-  const { step, type } = filters;
-  const today = new Date();
-  let startDate: Date | undefined;
-
-  if (step === "W") {
-    startDate = new Date(today);
-    startDate.setDate(today.getDate() - 7); // Weekly - Last 7 days
-  } else if (step === "M") {
-    startDate = new Date(today);
-    startDate.setDate(today.getDate() - (7 * 5)); // Monthly - Last 5 weeks
-  } else if (step === "Y") {
-    startDate = new Date(today);
-    startDate.setFullYear(today.getFullYear() - 1); // Yearly - Last 12 months
-  }
-
-  const reservedTentIds = await prisma.reserveTent.findMany({
+  const tentRows = await prisma.reserveTent.findMany({
     where: {
-      AND: [
-        {
-          dateFrom: {
-            lte: startDate,
-          },
-        },
-        {
-          dateTo: {
-            gte: today,
-          },
-        },
-        {
-          reserve: {
-            reserve_status: {
-              in: ["COMPLETE"],
-            },
-          },
-        },
-      ],
+      ...tentOverlapWhere(windowStart, windowEnd),
+      reserve: { reserve_status: { in: ['COMPLETE'] } },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    select: {
-      reserveId: true,
-      dateFrom: true,
-      dateTo: true,
-    },
+    orderBy: { dateFrom: 'asc' },
+    select: { reserveId: true, dateFrom: true },
   });
 
-  // Aggregate the latest dateFrom per reserveId
-  const reserveMap: Record<string, Date> = {};
+  const latestPerReserve = collapseToLatestPerReserve(tentRows);
 
-  reservedTentIds.forEach(({ reserveId, dateFrom }) => {
-    if (!reserveMap[reserveId] || reserveMap[reserveId] > dateFrom) {
-      reserveMap[reserveId] = dateFrom;
-    }
-  });
+  let series: QtyPoint[] = [];
 
-  const reservesWithLatestDate = Object.entries(reserveMap).map(([reserveId, dateFrom]) => ({
-    reserveId,
-    dateFrom,
-  }));
-
-  let quantityData: { date: string; quantity: number }[] = [];
-
-  if (step === "W") {
-    const dailyData: Record<string, number> = {};
-    for (const reserve of reservesWithLatestDate) {
-      const dateKey = reserve.dateFrom.toISOString().slice(0, 10);
-      dailyData[dateKey] = (dailyData[dateKey] || 0) + 1;
-    }
-
-    // Generate the last 7 days with a default quantity of 0
-    const weekDays = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateKey = date.toISOString().slice(0, 10);
-      return { date: dateKey, quantity: 0 };
-    });
-
-    weekDays.forEach(day => {
-      if (dailyData[day.date]) {
-        day.quantity = dailyData[day.date];
+  if (step === 'W') {
+    const dayKeys: Record<string, number> = {};
+    for (const r of latestPerReserve) {
+      const key = r.dateFrom.toISOString().slice(0, 10);
+      if (r.dateFrom >= startOfDay(windowStart) && r.dateFrom <= endOfDay(windowEnd)) {
+        dayKeys[key] = (dayKeys[key] || 0) + 1;
       }
-    });
-
-    if (type === "P") {
-      quantityData = weekDays;
+    }
+    const buckets = (w as any).bucketDates as Date[];
+    const base = buckets.map(d => ({ date: d.toISOString().slice(0, 10), quantity: dayKeys[d.toISOString().slice(0, 10)] || 0 }));
+    if (type === 'P') {
+      series = base;
     } else {
-      let accumulatedQuantity = 0;
-      for (const day of weekDays) {
-        accumulatedQuantity += day.quantity;
-        quantityData.push({ date: day.date, quantity: accumulatedQuantity });
+      let acc = 0;
+      series = base.map(b => ({ date: b.date, quantity: (acc += b.quantity) }));
+    }
+  } else if (step === 'M') {
+    const weeks = (w as any).weekBuckets as { start: Date; end: Date }[];
+    let acc = 0;
+    for (const wk of weeks) {
+      const q = latestPerReserve.filter(r => r.dateFrom >= wk.start && r.dateFrom <= wk.end).length;
+      const label = wk.start.toISOString().slice(0, 10);
+      if (type === 'A') {
+        acc += q;
+        series.push({ date: label, quantity: acc });
+      } else {
+        series.push({ date: label, quantity: q });
       }
     }
-
-  } else if (step === "M") {
-    let currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - today.getDay());
-
-    const weekIntervals = [];
-    for (let i = 0; i < 5; i++) {
-      const weekEnd = new Date(currentWeekStart);
-      const weekStart = new Date(currentWeekStart);
-      weekStart.setDate(weekStart.getDate() - 6);
-
-      weekIntervals.push({ start: new Date(weekStart), end: new Date(weekEnd) });
-      currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    }
-
-    let accumulatedQuantity = 0;
-    for (const { start, end } of weekIntervals) {
-      const weeklyQuantity = reservesWithLatestDate
-        .filter(reserve => reserve.dateFrom >= start && reserve.dateFrom <= end)
-        .length;
-
-      const dateLabel = `${start.toISOString().slice(0, 10)}`;
-
-      if (type === "A") {
-        accumulatedQuantity += weeklyQuantity;
-        quantityData.push({ date: dateLabel, quantity: accumulatedQuantity });
+  } else {
+    const months = (w as any).monthBuckets as { start: Date; end: Date; label: string }[];
+    let acc = 0;
+    for (const m of months) {
+      const q = latestPerReserve.filter(r => r.dateFrom >= m.start && r.dateFrom <= m.end).length;
+      const label = m.start.toLocaleString(language || 'default', { month: 'long' });
+      if (type === 'A') {
+        acc += q;
+        series.push({ date: label, quantity: acc });
       } else {
-        quantityData.push({ date: dateLabel, quantity: weeklyQuantity });
-      }
-    }
-  } else if (step === "Y") {
-    const monthIntervals = [];
-    let currentMonth = new Date(today);
-    currentMonth.setDate(1);
-
-    for (let i = 0; i < 12; i++) {
-      const monthStart = new Date(currentMonth);
-      const monthEnd = new Date(currentMonth);
-      monthEnd.setMonth(monthEnd.getMonth() + 1);
-      monthEnd.setDate(0);
-
-      monthIntervals.push({ start: new Date(monthStart), end: new Date(monthEnd) });
-      currentMonth.setMonth(currentMonth.getMonth() - 1);
-    }
-
-    let accumulatedQuantity = 0;
-    for (const { start, end } of monthIntervals) {
-      const monthlyQuantity = reservesWithLatestDate
-        .filter(reserve => reserve.dateFrom >= start && reserve.dateFrom <= end)
-        .length;
-
-      const dateLabel = start.toLocaleString(language || 'default', { month: 'long' });
-
-      if (type === "A") {
-        accumulatedQuantity += monthlyQuantity;
-        quantityData.push({ date: dateLabel, quantity: accumulatedQuantity });
-      } else {
-        quantityData.push({ date: dateLabel, quantity: monthlyQuantity });
+        series.push({ date: label, quantity: q });
       }
     }
   }
 
-  return quantityData.reverse();
+  return series;
+};
+
+export interface SalesReportReserveRow {
+  id: number;
+  externalId: string;
+  grossImport: number;
+  netImport: number;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  paymentStatus: PaymentStatus;
+  reserveStatus: ReserveStatus;
+  createdAt: Date;
+}
+
+export const getReservesForReport = async (
+  params: { dateFrom: Date; dateTo: Date },
+): Promise<SalesReportReserveRow[]> => {
+  const reserves = await prisma.reserve.findMany({
+    where: {
+      canceled_status: false,
+      tents: {
+        some: {
+          AND: [
+            { dateFrom: { lte: params.dateTo } },
+            { dateTo: { gte: params.dateFrom } },
+          ],
+        },
+      },
+    },
+    include: {
+      tents: {
+        select: {
+          dateFrom: true,
+          dateTo: true,
+        },
+      },
+    },
+    orderBy: { dateSale: 'asc' },
+  });
+
+  return reserves.map((reserve) => {
+    const rangeStart = reserve.tents.reduce<Date | null>((acc, tent) => {
+      if (!tent.dateFrom) return acc;
+      if (!acc || tent.dateFrom < acc) {
+        return tent.dateFrom;
+      }
+      return acc;
+    }, null);
+
+    const rangeEnd = reserve.tents.reduce<Date | null>((acc, tent) => {
+      if (!tent.dateTo) return acc;
+      if (!acc || tent.dateTo > acc) {
+        return tent.dateTo;
+      }
+      return acc;
+    }, null);
+
+    return {
+      id: reserve.id,
+      externalId: reserve.external_id,
+      grossImport: reserve.gross_import,
+      netImport: reserve.net_import,
+      dateFrom: rangeStart ?? reserve.dateSale ?? null,
+      dateTo: rangeEnd ?? reserve.dateSale ?? null,
+      paymentStatus: reserve.payment_status,
+      reserveStatus: reserve.reserve_status,
+      createdAt: reserve.dateSale,
+    };
+  });
 };
 
 // reserveRepository.ts

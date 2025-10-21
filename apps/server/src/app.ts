@@ -12,6 +12,7 @@ import reserveRoutes from './routes/reserveRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import discountRoutes from './routes/discountCodesRoutes';
 import inventoryRoutes from './routes/inventoryRoutes';
+import reportRoutes from './routes/reportRoutes';
 import path from 'path';
 import i18nextMiddleware from 'i18next-http-middleware';
 import i18next from './config/i18n';
@@ -54,6 +55,7 @@ app.use('/notifications', notificationRoutes);
 app.use('/web', webRoutes);
 app.use('/statistics', statisticRoutes);
 app.use('/inventory', inventoryRoutes);
+app.use('/reports', reportRoutes);
 
 /************************* CHAT IS NOT ENABLE FOR THIS PROJECT ******************************/
 //app.use('/chats', chatRoutes);

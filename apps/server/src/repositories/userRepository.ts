@@ -1,5 +1,5 @@
-import { PrismaClient, User } from '@prisma/client';
-import { UserFilters, PaginatedUsers, UserDto, UserFormDto } from '../dto/user';
+import { Prisma, PrismaClient, User } from '@prisma/client';
+import { UserFilters, PaginatedUsers, UserFormDto } from '../dto/user';
 
 const prisma = new PrismaClient();
 
@@ -82,11 +82,11 @@ export const getUserById = async (id: number): Promise<User | null> => {
 
 export const getUserByEmail = async (email: string): Promise<User | null> => {
   return await prisma.user.findUnique({
-    where: { email }
+    where: { email: email.toLowerCase().trim() }
   });
 };
 
-export const createUser = async (data: UserDto): Promise<User> => {
+export const createUser = async (data: Prisma.UserCreateInput): Promise<User> => {
   return await prisma.user.create({
     data
   });
@@ -99,7 +99,7 @@ export const createClientUser = async (data: UserFormDto): Promise<User> => {
 }
 
 
-export const updateUser = async (userId: Number, data: UserDto): Promise<User> => {
+export const updateUser = async (userId: Number, data: Prisma.UserUpdateInput): Promise<User> => {
   return await prisma.user.update({
     where: { id: Number(userId) },
     data: data

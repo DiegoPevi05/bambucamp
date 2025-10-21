@@ -10,7 +10,8 @@
 		"failedToConfirmEntity": "No se pudo confirmar la entidad.",
 		"reserveNotPayOrComplete": "La reserva no esta pagada o completa",
 		"failedToDownloadBill": "Error al generar el comprobante de pago",
-		"failedToGeneratePDF": "Error al generar el pdf",
+                "failedToGeneratePDF": "Error al generar el pdf",
+                "failedToGenerateReport": "Error al generar el reporte",
 		"failedToFetchNotifications": "Error al obtener las notificaciones",
 		"badRequest": "Solicitud incorrecta",
 		"unauthorized": "No autorizado",
@@ -232,7 +233,80 @@
 		"faqCreated": "Faq creada",
 		"faqDeleted": "Faq borrada"
 	},
-	"validation": {
+        "reports": {
+                "generated_at": "Generado el",
+                "generated_by": "Generado por",
+                "date_range": "Rango de fechas",
+                "unknown_user": "Usuario desconocido",
+                "category_with_value": "Categoría: {{value}}",
+                "category_unknown": "Categoría: Sin asignar",
+                "stock_label": "Stock actual",
+                "movement_label": "Movimiento total",
+                "footer_note": "Documento generado automáticamente por el sistema administrativo de BambuCamp.",
+                "movements": {
+                        "in": "Entrada",
+                        "out": "Salida",
+                        "adjustment": "Ajuste"
+                },
+                "table": {
+                        "date": "Fecha",
+                        "type": "Tipo",
+                        "quantity": "Cantidad",
+                        "note": "Nota",
+                        "reference": "Referencia",
+                        "user": "Usuario",
+                        "empty": "No se registraron movimientos en este periodo."
+                },
+                "csv": {
+                        "product": "Producto",
+                        "category": "Categoría",
+                        "stock": "Stock",
+                        "movement": "Movimiento",
+                        "date": "Fecha",
+                        "type": "Tipo",
+                        "quantity": "Cantidad",
+                        "note": "Nota",
+                        "reference": "Referencia",
+                        "user": "Usuario"
+                },
+                "inventory": {
+                        "document_title": "Reporte de inventario",
+                        "title": "Reporte de inventario",
+                        "subtitle": "Libro de inventario para {{range}}"
+                },
+                "sales": {
+                        "document_title": "Reporte de ventas",
+                        "title": "Reporte de ventas",
+                        "subtitle": "Resumen de reservas para {{range}}",
+                        "table": {
+                                "externalId": "ID de reserva",
+                                "gross": "Importe bruto",
+                                "net": "Importe neto",
+                                "range": "Rango de fechas",
+                                "reserveStatus": "Estado de la reserva",
+                                "paymentStatus": "Estado de pago",
+                                "empty": "No se encontraron reservas para este periodo."
+                        },
+                        "csv": {
+                                "externalId": "ID de reserva",
+                                "gross": "Importe bruto",
+                                "net": "Importe neto",
+                                "range": "Rango de fechas",
+                                "reserveStatus": "Estado de la reserva",
+                                "paymentStatus": "Estado de pago"
+                        },
+                        "reserve_status": {
+                                "NOT_CONFIRMED": "No confirmada",
+                                "CONFIRMED": "Confirmada",
+                                "COMPLETE": "Completada"
+                        },
+                        "payment_status": {
+                                "UNPAID": "Pendiente de pago",
+                                "PAID": "Pagada"
+                        }
+                }
+        },
+        "validation": {
 		"InvalidTypeProvided": "Tipo de entidad invalido",
 		"entityTypeRequired": "El tipo de entidad es obligatorio.",
 		"reserveIdRequired": "El ID de la reserva es obligatorio.",
@@ -269,9 +343,11 @@
 		"passwordLength": "La contraseña debe tener al menos 8 caracteres",
 		"passwordLetter": "La contraseña debe contener al menos una letra",
 		"passwordNumber": "La contraseña debe contener al menos un número",
-		"passwordSpecial": "La contraseña debe contener al menos un carácter especial",
-		"passwordRequired": "La contraseña es requerida",
-		"roleInvalid": "El Rol debe ser SUPERVISOR or CLIENTE",
+                "passwordSpecial": "La contraseña debe contener al menos un carácter especial",
+                "passwordRequired": "La contraseña es obligatoria",
+                "invalidRole": "El rol no es válido",
+                "emailAlreadyExists": "El correo ya está registrado",
+                "roleInvalid": "El rol debe ser Supervisor o Común",
 		"dayRequired": "El dia es requerido",
 		"starsRequired": "Las estrellas son requeridas",
 		"confirmedRequired": "Confirmacion es requerida",
@@ -287,6 +363,8 @@
                 "complaintDescriptionRequired": "La descripción del reclamo es obligatoria",
                 "productIdRequired": "El ID del producto es obligatorio",
                 "movementTypeRequired": "El tipo de movimiento es obligatorio",
-                "quantityPositive": "La cantidad debe ser mayor que cero"
+                "quantityPositive": "La cantidad debe ser mayor que cero",
+                "dateInvalid": "La fecha debe ser válida",
+                "dateRangeInvalid": "La fecha final debe ser igual o posterior a la fecha inicial"
         }
 }

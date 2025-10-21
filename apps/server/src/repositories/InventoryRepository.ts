@@ -173,3 +173,119 @@ export const createTransaction = async (
     };
   });
 };
+
+export interface InventoryReportEntry {
+  id: number;
+  productId: number;
+  type: InventoryMovementType;
+  quantity: number;
+  note: string | null;
+  reference: string | null;
+  createdAt: Date;
+  createdBy: {
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+  } | null;
+}
+
+export interface InventoryReportProductRow {
+  id: number;
+  name: string;
+  categoryName: string | null;
+  stock: number;
+  totalMovement: number;
+  transactions: InventoryReportEntry[];
+}
+
+export const getInventoryReportProducts = async (
+  params: { productIds?: number[]; dateFrom: Date; dateTo: Date },
+): Promise<InventoryReportProductRow[]> => {
+  const productWhere: Prisma.ProductWhereInput = {};
+
+  if (params.productIds && params.productIds.length > 0) {
+    productWhere.id = { in: params.productIds };
+  }
+
+  const products = await prisma.product.findMany({
+    where: productWhere,
+    select: {
+      id: true,
+      name: true,
+      category: {
+        select: { name: true },
+      },
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  if (products.length === 0) {
+    return [];
+  }
+
+  const productIds = products.map((product) => product.id);
+
+  const [transactions, stockMap] = await Promise.all([
+    prisma.inventoryTransaction.findMany({
+      where: {
+        productId: { in: productIds },
+        createdAt: {
+          gte: params.dateFrom,
+          lte: params.dateTo,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        createdBy: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    }),
+    getStockForProductIds(productIds),
+  ]);
+
+  const grouped = new Map<number, InventoryReportEntry[]>();
+
+  for (const transaction of transactions) {
+    const entry: InventoryReportEntry = {
+      id: transaction.id,
+      productId: transaction.productId,
+      type: transaction.type,
+      quantity: transaction.quantity,
+      note: transaction.note ?? null,
+      reference: transaction.reference ?? null,
+      createdAt: transaction.createdAt,
+      createdBy: transaction.createdBy
+        ? {
+            firstName: transaction.createdBy.firstName ?? null,
+            lastName: transaction.createdBy.lastName ?? null,
+            email: transaction.createdBy.email ?? null,
+          }
+        : null,
+    };
+
+    if (!grouped.has(transaction.productId)) {
+      grouped.set(transaction.productId, []);
+    }
+
+    grouped.get(transaction.productId)!.push(entry);
+  }
+
+  return products.map((product) => {
+    const productTransactions = grouped.get(product.id) ?? [];
+    const totalMovement = productTransactions.reduce((sum, entry) => sum + Math.abs(entry.quantity), 0);
+
+    return {
+      id: product.id,
+      name: product.name,
+      categoryName: product.category?.name ?? null,
+      stock: stockMap.get(product.id) ?? 0,
+      transactions: productTransactions,
+      totalMovement,
+    };
+  });
+};
