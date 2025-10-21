@@ -1,5 +1,5 @@
 import { CreateInventoryTransactionForm, InventoryTransactionFilters, PaginatedInventoryTransactions } from '../dto/inventory';
-import * as inventoryRepository from '../repositories/inventory.repo';
+import * as inventoryRepository from '../repositories/InventoryRepository';
 
 interface Pagination {
   page: number;

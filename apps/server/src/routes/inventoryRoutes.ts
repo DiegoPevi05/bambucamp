@@ -1,5 +1,5 @@
 import express from 'express';
-import * as inventoryController from '../controllers/inventory.controller';
+import * as inventoryController from '../controllers/inventoryController';
 import { authenticateToken, checkRole } from '../middleware/auth';
 
 const router = express.Router();

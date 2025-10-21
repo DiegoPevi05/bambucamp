@@ -9,7 +9,7 @@ import * as tentRepository from '../repositories/TentRepository';
 import * as productRepository from '../repositories/ProductRepository';
 import * as experienceRepository from '../repositories/ExperienceRepository';
 import * as productService from '../services/productService';
-import * as inventoryService from '../services/inventory.service';
+import * as inventoryService from '../services/inventoryService';
 import { BadRequestError, NotFoundError } from '../middleware/errors';
 import { processImage, NORMAL_VARIANT_DIR, SMALL_VARIANT_DIR } from './image';
 
@@ -630,11 +630,12 @@ export async function postOuts(
   reserveId: number,
   outs: { idProduct: number; qty: number }[],
   note = "Reserve allocation",
+  reference?: string,
   createdById?: number
 ) {
   for (const o of outs) {
     await productService.checkProductStock(o.idProduct, o.qty, {
-      reference: `RESERVE-${reserveId}`,
+      reference: reference ? reference : `RESERVE-${reserveId}`,
       note,
       createdById,
     });
@@ -645,6 +646,7 @@ export async function postIns(
   reserveId: number,
   ins: { idProduct: number; qty: number }[],
   note = "Reserve adjustment rollback",
+  reference?: string,
   createdById?: number
 ) {
   for (const i of ins) {
@@ -652,7 +654,7 @@ export async function postIns(
       productId: i.idProduct,
       type: "IN",
       quantity: i.qty,
-      reference: `RESERVE-${reserveId}`,
+      reference: reference ? reference : `RESERVE-${reserveId}`,
       note,
       createdById,
     });

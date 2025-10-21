@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { InventoryMovementType } from '../dto/inventory';
-import * as inventoryService from '../services/inventory.service';
+import * as inventoryService from '../services/inventoryService';
 import { CustomError } from '../middleware/errors';
 
 const parseMovementType = (value: string | undefined): InventoryMovementType | undefined => {

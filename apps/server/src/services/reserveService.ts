@@ -2,7 +2,7 @@ import * as reserveRepository from '../repositories/ReserveRepository';
 import { PaginatedReserve, ReserveDto, ReserveEntityType, ReserveExperienceDto, ReserveExtraItemDto, ReserveFilters, ReserveFormDto, ReserveOptions, ReserveProductDto, ReserveTentDto, createReserveExperienceDto, createReserveProductDto } from "../dto/reserve";
 import *  as userRepository from '../repositories/userRepository';
 import * as productService from './productService';
-import * as inventoryService from './inventory.service';
+import * as inventoryService from './inventoryService';
 import * as authService from './authService';
 import * as utils from '../lib/utils';
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../middleware/errors";
@@ -300,7 +300,7 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
     // Post inventory AFTER we have the reserve id
     if (isConfirmed && reserve.products?.length) {
       const outs = reserve.products.map(p => ({ idProduct: p.idProduct, qty: p.quantity }));
-      await postOuts(reserve.id, outs, "Reserve confirmed on creation");
+      await postOuts(reserve.id, outs, "Reserve confirmed on creation", reserve.external_id);
     }
 
   }
@@ -421,12 +421,12 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
   if (wasConfirmed && willBeConfirmed) {
     // Diff old vs new and post deltas
     const { toOut, toIn } = diffProducts(beforeProducts, afterProducts);
-    if (toOut.length) await postOuts(id, toOut, "Reserve update increase");
-    if (toIn.length) await postIns(id, toIn, "Reserve update decrease/ removal");
+    if (toOut.length) await postOuts(id, toOut, "Reserve update increase", existingReserve.external_id);
+    if (toIn.length) await postIns(id, toIn, "Reserve update decrease/ removal", existingReserve.external_id);
   } else if (!wasConfirmed && willBeConfirmed) {
     // Newly confirmed → OUT everything in 'after'
     const outsAll = afterProducts.map(p => ({ idProduct: p.idProduct, qty: p.quantity }));
-    if (outsAll.length) await postOuts(id, outsAll, "Reserve confirmed on update");
+    if (outsAll.length) await postOuts(id, outsAll, "Reserve confirmed on update", existingReserve.external_id);
   } else {
     // Staying NOT_CONFIRMED → no inventory movements now
   }
@@ -515,7 +515,7 @@ export const AddProductReserve = async (reserve: Reserve | null, data: createRes
   }
 
   const processedProducts = await Promise.all(data.map(async productData => {
-    const reference = reserve ? `RESERVE-${reserve.id}` : `RESERVE-${productData.reserveId}`;
+    const reference = reserve ? reserve.external_id : `RESERVE-${productData.reserveId}`;
 
     await productService.checkProductStock(productData.idProduct, productData.quantity, {
       reference,
@@ -655,15 +655,15 @@ export const confirmEntity = async (entityType: ReserveEntityType, reserveId: nu
   switch (entityType) {
     case ReserveEntityType.RESERVE:
 
-      const dto = await reserveRepository.getReserveDtoById(reserveId);
-      if (!dto) throw new NotFoundError('error.noReservefoundInDB');
+      const reserve = await reserveRepository.getReserveDtoById(reserveId);
+      if (!reserve) throw new NotFoundError('error.noReservefoundInDB');
 
       await authService.confirmReservation(reserveId, language);
       await reserveRepository.confirmReserve(reserveId);
 
-      if (dto.products?.length) {
-        const outs = dto.products.map(p => ({ idProduct: p.idProduct, qty: p.quantity }));
-        await postOuts(reserveId, outs, "Reserve confirmed via confirmEntity");
+      if (reserve.products?.length) {
+        const outs = reserve.products.map(p => ({ idProduct: p.idProduct, qty: p.quantity }));
+        await postOuts(reserveId, outs, "Reserve confirmed via confirmEntity", reserve.external_id);
       }
 
     case ReserveEntityType.TENT:

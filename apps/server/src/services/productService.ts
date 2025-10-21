@@ -1,28 +1,28 @@
 import * as productRepository from '../repositories/ProductRepository';
 import * as utils from '../lib/utils';
 import { ProductDto, ProductFilters, PaginatedProducts, PublicProduct } from "../dto/product";
-import * as inventoryRepository from '../repositories/inventory.repo';
-import * as inventoryService from './inventory.service';
+import * as inventoryRepository from '../repositories/InventoryRepository';
+import * as inventoryService from './inventoryService';
 import { deleteSubFolder, serializeImagesTodb, moveImagesToSubFolder, deleteImages } from '../lib/utils';
-import {NotFoundError} from '../middleware/errors';
+import { NotFoundError } from '../middleware/errors';
 
 
-export const getAllPublicProducts = async (categories?:string[]) => {
+export const getAllPublicProducts = async (categories?: string[]) => {
   const products = await productRepository.getAllPublicProducts(categories);
   const stockMap = await inventoryRepository.getStockForProductIds(products.map((product) => product.id));
 
-  const ProductsPublic:PublicProduct[]  = [];
+  const ProductsPublic: PublicProduct[] = [];
 
   products.forEach((product) => {
-    const productPublic:PublicProduct = {
-      id:product.id,
+    const productPublic: PublicProduct = {
+      id: product.id,
       categoryId: product.categoryId,
-      category:product.category,
+      category: product.category,
       name: product.name,
       description: product.description,
       price: product.price,
-      images : JSON.parse(product.images ? product.images : '[]'),
-      custom_price: product.custom_price != undefined ? utils.calculatePrice(product.price,product.custom_price) :product.price,
+      images: JSON.parse(product.images ? product.images : '[]'),
+      custom_price: product.custom_price != undefined ? utils.calculatePrice(product.price, product.custom_price) : product.price,
       stock: stockMap.get(product.id) ?? 0,
     };
     ProductsPublic.push(productPublic);
@@ -93,21 +93,21 @@ export const getProductById = async (id: number) => {
 // Define a custom type for the Multer file
 type MulterFile = Express.Multer.File;
 
-export const createProduct = async (data: ProductDto, files: MulterFile[] | { [fieldname:string] :MulterFile[]; } | undefined) => {
+export const createProduct = async (data: ProductDto, files: MulterFile[] | { [fieldname: string]: MulterFile[]; } | undefined) => {
 
- const images = serializeImagesTodb(files as { [fieldname: string]: MulterFile[] });
+  const images = serializeImagesTodb(files as { [fieldname: string]: MulterFile[] });
 
-  if(images){
-    data.images   = images;
+  if (images) {
+    data.images = images;
   }
-  data.categoryId     = Number(data.categoryId);
-  data.price          = Number(data.price);
+  data.categoryId = Number(data.categoryId);
+  data.price = Number(data.price);
   const stock = Number(data.stock ?? 0);
   delete data.stock;
 
   const product = await productRepository.createProduct(data);
 
-  if(images){
+  if (images) {
     // Move images to the new folder
     const movedImages = await moveImagesToSubFolder(product.id, "products", JSON.parse(images || '[]'));
 
@@ -129,42 +129,42 @@ export const createProduct = async (data: ProductDto, files: MulterFile[] | { [f
 
 };
 
-export const updateProduct = async (id:number, data: ProductDto, files: MulterFile[] | { [fieldname:string] :MulterFile[]; } | undefined) => {
+export const updateProduct = async (id: number, data: ProductDto, files: MulterFile[] | { [fieldname: string]: MulterFile[]; } | undefined) => {
 
 
   const product = await productRepository.getProductById(id);
 
-  if(!product){
+  if (!product) {
     throw new NotFoundError("error.noProductFoundInDB");
   }
 
   const categoryId = data.categoryId != null ? Number(data.categoryId) : undefined;
   const price = data.price != null ? Number(data.price) : undefined;
 
-  if(categoryId != null && categoryId !== product.categoryId ){
+  if (categoryId != null && categoryId !== product.categoryId) {
     product.categoryId = categoryId;
   }
 
-  if(data.name &&  data.name != product.name){
-    product.name   = data.name;
+  if (data.name && data.name != product.name) {
+    product.name = data.name;
   }
 
-  if(data.description &&  data.description != product.description){
-    product.description   = data.description;
+  if (data.description && data.description != product.description) {
+    product.description = data.description;
   }
 
-  if(files || data.existing_images){
+  if (files || data.existing_images) {
 
-    
-    let imagesToConserve:string[] = product.images ? JSON.parse(product.images) : [];
+
+    let imagesToConserve: string[] = product.images ? JSON.parse(product.images) : [];
     // Normalize paths to use forward slashes
     imagesToConserve = imagesToConserve.map(image => image.replace(/\\/g, '/'));
 
-    if(data.existing_images){
+    if (data.existing_images) {
 
       const imageToReplace: string[] = data.existing_images ? JSON.parse(data.existing_images) : [];
 
-      if (imageToReplace.length >= 0  && imagesToConserve.length != imageToReplace.length ) {
+      if (imageToReplace.length >= 0 && imagesToConserve.length != imageToReplace.length) {
         // Find the images that need to be removed
         const imagesToRemove = imagesToConserve.filter(dbImage => !imageToReplace.includes(dbImage));
         // Perform the removal of images
@@ -172,14 +172,14 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
           deleteImages(imagesToRemove);
         }
 
-        imagesToConserve  = imagesToConserve.filter(dbImage => imageToReplace.includes(dbImage));
+        imagesToConserve = imagesToConserve.filter(dbImage => imageToReplace.includes(dbImage));
       }
 
     }
 
-    let NewMovedImages:any[] = [];
+    let NewMovedImages: any[] = [];
 
-    if(files){
+    if (files) {
 
       const imagesFiles = serializeImagesTodb(files as { [fieldname: string]: MulterFile[] });
 
@@ -194,15 +194,15 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
     product.images = JSON.stringify(formattedImages);
   }
 
-  if(price != null && price !== product.price){
+  if (price != null && price !== product.price) {
     product.price = price;
   }
 
-  if(data.status && data.status != product.status){
-    product.status   = data.status;
+  if (data.status && data.status != product.status) {
+    product.status = data.status;
   }
 
-  if(data.custom_price && data.custom_price != product.custom_price){
+  if (data.custom_price && data.custom_price != product.custom_price) {
     product.custom_price = data.custom_price;
   }
 
@@ -216,7 +216,7 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
 export const deleteProduct = async (id: number) => {
   const product = await productRepository.getProductById(id);
   if (product?.images) {
-      deleteSubFolder(product.id,"products");
+    deleteSubFolder(product.id, "products");
   }
   return await productRepository.deleteProduct(id);
 };
@@ -226,11 +226,11 @@ export const updateProductImages = async (productId: number, images: string) => 
   await productRepository.updateProductImages(productId, images);
 };
 
-export const checkProductStock = async(idProduct:number, quantity:number, options?: { reference?: string; note?: string; createdById?: number } ):Promise<boolean> => {
+export const checkProductStock = async (idProduct: number, quantity: number, options?: { reference?: string; note?: string; createdById?: number }): Promise<boolean> => {
 
   const product = await productRepository.getProductById(idProduct);
 
-  if(!product){
+  if (!product) {
     throw new NotFoundError("error.noProductFoundInDB");
   }
 
