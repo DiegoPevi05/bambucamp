@@ -290,6 +290,11 @@ export const getAllReserveOptions = async (): Promise<ReserveOptions> => {
     },
   });
 
+  const normalizedProducts = products.map((product) => ({
+    ...product,
+    stock: product.stock ?? undefined,
+  }));
+
   const experiences = await prisma.experience.findMany({
     where: {
       status: 'ACTIVE'
@@ -307,7 +312,7 @@ export const getAllReserveOptions = async (): Promise<ReserveOptions> => {
 
   return {
     tents,
-    products,
+    products: normalizedProducts,
     experiences,
     discounts
   }

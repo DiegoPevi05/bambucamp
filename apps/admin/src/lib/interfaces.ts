@@ -17,6 +17,11 @@ import type {
   AdminReserve,
   AdminReserveFormData,
   ReserveFilters as SharedReserveFilters,
+  InventoryTransaction as SharedInventoryTransaction,
+  PaginatedInventoryTransactions as SharedPaginatedInventoryTransactions,
+  CreateInventoryTransactionForm as SharedCreateInventoryTransactionForm,
+  InventoryTransactionFilters as SharedInventoryTransactionFilters,
+  InventoryMovementType,
 } from '@bambucamp/shared-types';
 
 export type ImageInterface = ImageAsset<File>;
@@ -69,3 +74,9 @@ export type createReserveExtraItemDto = AdminCreateReserveExtraItemDto;
 export type Reserve = AdminReserve;
 export type ReserveFormData = AdminReserveFormData;
 export type ReserveFilters = SharedReserveFilters<string, string>;
+
+export type InventoryTransaction = SharedInventoryTransaction;
+export type PaginatedInventoryTransactions = SharedPaginatedInventoryTransactions;
+export type CreateInventoryTransactionForm = SharedCreateInventoryTransactionForm;
+export type InventoryTransactionFilters = SharedInventoryTransactionFilters;
+export type { InventoryMovementType } from '@bambucamp/shared-types';

@@ -168,17 +168,33 @@ async function main() {
     }
   });
 
-  for (let product of ProductsData) {
+  for (const product of ProductsData) {
     const currentCategory = productCategories.find(category => category.name === product.categoryId);
 
     if (!currentCategory) {
       continue;
     }
-    product.categoryId = currentCategory.id;
 
-    await prisma.product.create({
-      data: product,
-    })
+    const { stock, categoryId: _categoryName, ...productPayload } = product;
+
+    const createdProduct = await prisma.product.create({
+      data: {
+        ...productPayload,
+        categoryId: currentCategory.id,
+      },
+    });
+
+    if ((stock ?? 0) > 0) {
+      await prisma.inventoryTransaction.create({
+        data: {
+          productId: createdProduct.id,
+          type: 'IN',
+          quantity: stock ?? 0,
+          note: 'Opening balance seed',
+          reference: 'SEED',
+        },
+      });
+    }
   };
 
 

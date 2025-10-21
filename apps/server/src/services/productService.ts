@@ -1,17 +1,20 @@
 import * as productRepository from '../repositories/ProductRepository';
 import * as utils from '../lib/utils';
 import { ProductDto, ProductFilters, PaginatedProducts, PublicProduct } from "../dto/product";
+import * as inventoryRepository from '../repositories/inventory.repo';
+import * as inventoryService from './inventory.service';
 import { deleteSubFolder, serializeImagesTodb, moveImagesToSubFolder, deleteImages } from '../lib/utils';
 import {NotFoundError} from '../middleware/errors';
 
 
 export const getAllPublicProducts = async (categories?:string[]) => {
   const products = await productRepository.getAllPublicProducts(categories);
+  const stockMap = await inventoryRepository.getStockForProductIds(products.map((product) => product.id));
 
-  const ProductsPublic:PublicProduct[]  = [] 
+  const ProductsPublic:PublicProduct[]  = [];
 
   products.forEach((product) => {
-    let productPublic:PublicProduct = {
+    const productPublic:PublicProduct = {
       id:product.id,
       categoryId: product.categoryId,
       category:product.category,
@@ -19,8 +22,9 @@ export const getAllPublicProducts = async (categories?:string[]) => {
       description: product.description,
       price: product.price,
       images : JSON.parse(product.images ? product.images : '[]'),
-      custom_price: product.custom_price != undefined ? utils.calculatePrice(product.price,product.custom_price) :product.price 
-    }
+      custom_price: product.custom_price != undefined ? utils.calculatePrice(product.price,product.custom_price) :product.price,
+      stock: stockMap.get(product.id) ?? 0,
+    };
     ProductsPublic.push(productPublic);
   });
 
@@ -34,11 +38,51 @@ interface Pagination {
 }
 
 export const getAllProducts = async (filters: ProductFilters, pagination: Pagination): Promise<PaginatedProducts> => {
-  const productsPaginated = await productRepository.getAllProducts(filters,pagination);
-  productsPaginated.products.forEach((product) => {
-    product.images = JSON.parse(product.images ? product.images : '[]');
+  const products = await productRepository.getAllProducts(filters);
+  const stockMap = await inventoryRepository.getStockForProductIds(products.map((product) => product.id));
+
+  const enriched = products.map((product) => {
+    const parsedImages = JSON.parse(product.images ? product.images : '[]');
+    const stock = stockMap.get(product.id) ?? 0;
+
+    return {
+      ...product,
+      images: parsedImages,
+      stock,
+    };
   });
-  return productsPaginated;
+
+  const filtered = enriched.filter((product) => {
+    if (filters.stockStatus === 'in' && product.stock <= 0) {
+      return false;
+    }
+
+    if (filters.stockStatus === 'out' && product.stock > 0) {
+      return false;
+    }
+
+    if (typeof filters.minStock === 'number' && product.stock < filters.minStock) {
+      return false;
+    }
+
+    if (typeof filters.maxStock === 'number' && product.stock > filters.maxStock) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const totalPages = filtered.length === 0 ? 0 : Math.ceil(filtered.length / pagination.pageSize);
+  const desiredPage = totalPages === 0 ? pagination.page : Math.min(pagination.page, totalPages);
+  const currentPage = desiredPage <= 0 ? 1 : desiredPage;
+  const start = (currentPage - 1) * pagination.pageSize;
+  const paginatedProducts = totalPages === 0 ? filtered.slice(0, pagination.pageSize) : filtered.slice(start, start + pagination.pageSize);
+
+  return {
+    products: paginatedProducts,
+    totalPages,
+    currentPage,
+  };
 };
 
 export const getProductById = async (id: number) => {
@@ -58,7 +102,8 @@ export const createProduct = async (data: ProductDto, files: MulterFile[] | { [f
   }
   data.categoryId     = Number(data.categoryId);
   data.price          = Number(data.price);
-  data.stock       = Number(data.stock);
+  const stock = Number(data.stock ?? 0);
+  delete data.stock;
 
   const product = await productRepository.createProduct(data);
 
@@ -67,6 +112,16 @@ export const createProduct = async (data: ProductDto, files: MulterFile[] | { [f
     const movedImages = await moveImagesToSubFolder(product.id, "products", JSON.parse(images || '[]'));
 
     await updateProductImages(product.id, JSON.stringify(movedImages));
+  }
+
+  if (stock > 0) {
+    await inventoryService.createTransaction({
+      productId: product.id,
+      type: 'IN',
+      quantity: stock,
+      note: 'Initial stock on creation',
+      reference: 'PRODUCT-CREATE',
+    });
   }
 
   return product;
@@ -84,7 +139,6 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
   }
 
   const categoryId = data.categoryId != null ? Number(data.categoryId) : undefined;
-  const stock = data.stock != null ? Number(data.stock) : undefined;
   const price = data.price != null ? Number(data.price) : undefined;
 
   if(categoryId != null && categoryId !== product.categoryId ){
@@ -97,10 +151,6 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
 
   if(data.description &&  data.description != product.description){
     product.description   = data.description;
-  }
-
-  if(stock != null && stock !== product.stock ){
-    product.stock = stock;
   }
 
   if(files || data.existing_images){
@@ -158,7 +208,9 @@ export const updateProduct = async (id:number, data: ProductDto, files: MulterFi
 
   product.updatedAt = new Date();
 
-  return await productRepository.updateProduct(id,product);
+  const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, stock: _stock, ...productData } = product;
+
+  return await productRepository.updateProduct(id, productData);
 };
 
 export const deleteProduct = async (id: number) => {
@@ -174,7 +226,7 @@ export const updateProductImages = async (productId: number, images: string) => 
   await productRepository.updateProductImages(productId, images);
 };
 
-export const checkProductStock = async(idProduct:number, quantity:number ):Promise<boolean> => {
+export const checkProductStock = async(idProduct:number, quantity:number, options?: { reference?: string; note?: string; createdById?: number } ):Promise<boolean> => {
 
   const product = await productRepository.getProductById(idProduct);
 
@@ -182,12 +234,15 @@ export const checkProductStock = async(idProduct:number, quantity:number ):Promi
     throw new NotFoundError("error.noProductFoundInDB");
   }
 
-  if(product.stock >= quantity){
-    const newStock = product.stock - quantity;
-    await productRepository.updateStock(product.id,newStock);
-    return true;
-  }
+  await inventoryService.createTransaction({
+    productId: product.id,
+    type: 'OUT',
+    quantity,
+    reference: options?.reference,
+    note: options?.note ?? 'Reserve allocation',
+    createdById: options?.createdById,
+  });
 
-  return false;
+  return true;
 
 }

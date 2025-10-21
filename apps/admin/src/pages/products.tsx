@@ -1013,7 +1013,14 @@ const DashboardAdminProducts = () => {
                   <div className="flex flex-col justify-start itemst-start gap-x-6 w-full h-auto gap-y-2 sm:gap-y-1">
 
                     <label htmlFor="stock" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("product.product_stock")}</label>
-                    <input name="stock" value={selectedProduct.stock} onChange={(e) => onChangeSelectedProduct(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("product.product_stock")} />
+                    <input
+                      name="stock"
+                      value={selectedProduct.stock}
+                      readOnly
+                      className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary bg-gray-100 text-secondary"
+                      placeholder={t("product.product_stock")}
+                    />
+                    <p className="text-[10px] sm:text-xs text-secondary italic">{t('inventory.manage_stock_from_inventory')}</p>
 
                     <div className="w-full h-6">
                       {errorMessages.stock && (

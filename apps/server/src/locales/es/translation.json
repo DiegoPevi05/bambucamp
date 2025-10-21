@@ -116,9 +116,12 @@
 		"failedToCreateExperienceReserve": "Fallo al agregar la experiencia en la reserva",
 		"failedToDeleteProductReserve": "Fallo al borrar el producto de la reserva",
 		"failedToDeleteExperienceReserve": "Fallo al borrar la experiencia de la reserva",
-		"failedToUpdateProductReserveStatus": "Fallo al confirmar el producto en la reserva",
-		"failedToUpdateExperienceReserveStatus": "Fallo al confirmar la experiencia en la reserva"
-	},
+                "failedToUpdateProductReserveStatus": "Fallo al confirmar el producto en la reserva",
+                "failedToUpdateExperienceReserveStatus": "Fallo al confirmar la experiencia en la reserva",
+                "failedToFetchInventoryLedger": "Error al obtener el historial de inventario",
+                "failedToCreateInventoryTransaction": "Error al crear la transacción de inventario",
+                "invalidInventoryQuantity": "La cantidad debe ser mayor que cero"
+        },
 	"message": {
 		"entityConfirmed": "{{entityType}} ha sido confirmado exitosamente.",
     "reserveCreatedByUser":"Reserva creada exitosamente",
@@ -137,7 +140,8 @@
 		"tentDeleted": "Glamping eliminado",
 		"productCreated": "Producto creado",
 		"productUpdated": "Producto actualizado",
-		"productDeleted": "Producto eliminado",
+                "productDeleted": "Producto eliminado",
+                "inventoryTransactionCreated": "Transacción de inventario creada",
 		"discountCodeCreated": "Código de descuento creado",
 		"discountCodeUpdated": "Código de descuento actualizado",
 		"discountCodeDeleted": "Código de descuento eliminado",
@@ -280,6 +284,9 @@
                 "phoneRequired": "El teléfono es obligatorio",
                 "documentIdRequired": "El documento es obligatorio",
                 "claimTypeRequired": "El tipo de reclamo es obligatorio",
-                "complaintDescriptionRequired": "La descripción del reclamo es obligatoria"
+                "complaintDescriptionRequired": "La descripción del reclamo es obligatoria",
+                "productIdRequired": "El ID del producto es obligatorio",
+                "movementTypeRequired": "El tipo de movimiento es obligatorio",
+                "quantityPositive": "La cantidad debe ser mayor que cero"
         }
 }

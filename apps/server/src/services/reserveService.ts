@@ -2,6 +2,7 @@ import * as reserveRepository from '../repositories/ReserveRepository';
 import { PaginatedReserve, ReserveDto, ReserveEntityType, ReserveExperienceDto, ReserveExtraItemDto, ReserveFilters, ReserveFormDto, ReserveOptions, ReserveProductDto, ReserveTentDto, createReserveExperienceDto, createReserveProductDto } from "../dto/reserve";
 import *  as userRepository from '../repositories/userRepository';
 import * as productService from './productService';
+import * as inventoryService from './inventory.service';
 import * as authService from './authService';
 import * as utils from '../lib/utils';
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../middleware/errors";
@@ -470,10 +471,12 @@ export const AddProductReserve = async (reserve: Reserve | null, data: createRes
   }
 
   const processedProducts = await Promise.all(data.map(async productData => {
-    const isStock = await productService.checkProductStock(productData.idProduct, productData.quantity);
-    if (!isStock) {
-      throw new NotFoundError('error.noProductsFoundInStock');
-    }
+    const reference = reserve ? `RESERVE-${reserve.id}` : `RESERVE-${productData.reserveId}`;
+
+    await productService.checkProductStock(productData.idProduct, productData.quantity, {
+      reference,
+      note: `Reserve allocation ${reference}`,
+    });
     if (priceIsConfirmed) {
       productData.confirmed = true;
     }
@@ -492,6 +495,14 @@ export const AddProductReserve = async (reserve: Reserve | null, data: createRes
 export const deleteProductReserve = async (id: number) => {
 
   const deleted = await reserveRepository.deleteProductReserve(id);
+
+  await inventoryService.createTransaction({
+    productId: deleted.idProduct,
+    type: 'IN',
+    quantity: deleted.quantity,
+    reference: `RESERVE-${deleted.reserveId}`,
+    note: 'Reserve product removal',
+  });
 
   await reserveRepository.recomputeAndUpdateReserveTotals(deleted.reserveId);
 
