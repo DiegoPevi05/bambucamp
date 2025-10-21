@@ -393,7 +393,7 @@ const DashboardAdminStatistics = () => {
             </div>
             <div className="h-auto w-full flex flex-col items-end justify-end bg-white duration-800 transition-all transition-opacity rounded-b-xl">
               <p className="text-secondary text-md">{t("statistic.reserves_chart_title")}</p>
-              <h1 className="text-5xl">{formatPrice(totalValues.reserves)}</h1>
+              <h1 className="text-5xl">{totalValues.reserves}</h1>
             </div>
             <AnimatePresence>
               <motion.div

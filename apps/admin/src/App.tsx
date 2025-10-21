@@ -1,7 +1,7 @@
-import {Suspense} from 'react';
+import { Suspense } from 'react';
 import Providers from './components/Providers';
-import  LoadingComponent from './components/ui/Loader';
-import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
+import LoadingComponent from './components/ui/Loader';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import SignIn from './pages/signin';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -9,7 +9,7 @@ import DashboardAdmin from './pages/home';
 import DashboardAdminUsers from './pages/users';
 import DashboardAdminGlapings from './pages/tents';
 import DashboardAdminProducts from './pages/products';
-import DashboardAdminInventory from './pages/Inventory';
+import DashboardAdminInventory from './pages/inventory';
 import DashboardAdminExperiences from './pages/experiences';
 import DashboardAdminDiscounts from './pages/discounts';
 import DashboardAdminReserves from './pages/reserves';
@@ -33,9 +33,9 @@ const AppRoutes: React.FC = () => {
         path="/"
         element={
           <ProtectedRoute
-            isAllowed={!!user && user.role != undefined &&  (user.role == "ADMIN" || user.role =="SUPERVISOR") }
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdmin/>
+            <DashboardAdmin />
           </ProtectedRoute>
         }
       />
@@ -47,7 +47,7 @@ const AppRoutes: React.FC = () => {
             redirectPath="/"
             isAllowed={!!user && user.role != undefined && user.role == "ADMIN"}
           >
-            <DashboardAdminUsers/>
+            <DashboardAdminUsers />
           </ProtectedRoute>
         }
       />
@@ -57,9 +57,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminGlapings/>
+            <DashboardAdminGlapings />
           </ProtectedRoute>
         }
       />
@@ -69,9 +69,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminProducts/>
+            <DashboardAdminProducts />
           </ProtectedRoute>
         }
       />
@@ -81,9 +81,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminInventory/>
+            <DashboardAdminInventory />
           </ProtectedRoute>
         }
       />
@@ -93,9 +93,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminExperiences/>
+            <DashboardAdminExperiences />
           </ProtectedRoute>
         }
       />
@@ -105,9 +105,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminDiscounts/>
+            <DashboardAdminDiscounts />
           </ProtectedRoute>
         }
       />
@@ -117,9 +117,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminReserves/>
+            <DashboardAdminReserves />
           </ProtectedRoute>
         }
       />
@@ -129,9 +129,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminFaqs/>
+            <DashboardAdminFaqs />
           </ProtectedRoute>
         }
       />
@@ -141,9 +141,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminReviews/>
+            <DashboardAdminReviews />
           </ProtectedRoute>
         }
       />
@@ -153,14 +153,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute
             redirectPath="/"
-            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role == "SUPERVISOR")}
           >
-            <DashboardAdminStatistics/>
+            <DashboardAdminStatistics />
           </ProtectedRoute>
         }
       />
 
-      <Route path="/signin" element={<ProtectedRoute  redirectPath="/" isAllowed={user == null || user == undefined}><SignIn /></ProtectedRoute>} />
+      <Route path="/signin" element={<ProtectedRoute redirectPath="/" isAllowed={user == null || user == undefined}><SignIn /></ProtectedRoute>} />
     </Routes>
   );
 };

@@ -1,17 +1,17 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import Dashboard from '../../components/ui/Dashboard';
-import Button from '../../components/ui/Button';
-import Modal from '../../components/Modal';
+import { useAuth } from '../contexts/AuthContext';
+import Dashboard from '../components/ui/Dashboard';
+import Button from '../components/ui/Button';
+import Modal from '../components/Modal';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, ClipboardList, RefreshCw, Scale, PlusCircle, FileDown } from 'lucide-react';
-import { Product, InventoryTransaction, InventoryMovementType, ProductFilters } from '../../lib/interfaces';
-import { getInventoryProducts, getProductLedger, createInventoryTransaction } from '../../db/actions/inventory';
-import { InventoryTransactionSchema } from '../../lib/schemas/inventory';
+import { Product, InventoryTransaction, InventoryMovementType, ProductFilters } from '../lib/interfaces';
+import { getInventoryProducts, getProductLedger, createInventoryTransaction } from '../db/actions/inventory';
+import { InventoryTransactionSchema } from '../lib/schemas/inventory';
 import { ZodError } from 'zod';
-import { formatDate, formatPrice } from '../../lib/utils';
-import { inventoryReportSchema, InventoryReportForm } from '../../lib/schemas/reports';
-import { downloadInventoryReport } from '../../db/actions/reports';
+import { formatDate, formatPrice } from '../lib/utils';
+import { inventoryReportSchema, InventoryReportForm } from '../lib/schemas/reports';
+import { downloadInventoryReport } from '../db/actions/reports';
 
 interface ProductFiltersState {
   name: string;
