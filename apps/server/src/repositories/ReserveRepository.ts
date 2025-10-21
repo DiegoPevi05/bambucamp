@@ -1168,6 +1168,75 @@ export const getReserveQuantityStatistics = async (filters: SalesFilters, langua
   return quantityData.reverse();
 };
 
+export interface SalesReportReserveRow {
+  id: number;
+  externalId: string;
+  grossImport: number;
+  netImport: number;
+  dateFrom: Date | null;
+  dateTo: Date | null;
+  paymentStatus: PaymentStatus;
+  reserveStatus: ReserveStatus;
+  createdAt: Date;
+}
+
+export const getReservesForReport = async (
+  params: { dateFrom: Date; dateTo: Date },
+): Promise<SalesReportReserveRow[]> => {
+  const reserves = await prisma.reserve.findMany({
+    where: {
+      canceled_status: false,
+      tents: {
+        some: {
+          AND: [
+            { dateFrom: { lte: params.dateTo } },
+            { dateTo: { gte: params.dateFrom } },
+          ],
+        },
+      },
+    },
+    include: {
+      tents: {
+        select: {
+          dateFrom: true,
+          dateTo: true,
+        },
+      },
+    },
+    orderBy: { dateSale: 'asc' },
+  });
+
+  return reserves.map((reserve) => {
+    const rangeStart = reserve.tents.reduce<Date | null>((acc, tent) => {
+      if (!tent.dateFrom) return acc;
+      if (!acc || tent.dateFrom < acc) {
+        return tent.dateFrom;
+      }
+      return acc;
+    }, null);
+
+    const rangeEnd = reserve.tents.reduce<Date | null>((acc, tent) => {
+      if (!tent.dateTo) return acc;
+      if (!acc || tent.dateTo > acc) {
+        return tent.dateTo;
+      }
+      return acc;
+    }, null);
+
+    return {
+      id: reserve.id,
+      externalId: reserve.external_id,
+      grossImport: reserve.gross_import,
+      netImport: reserve.net_import,
+      dateFrom: rangeStart ?? reserve.dateSale ?? null,
+      dateTo: rangeEnd ?? reserve.dateSale ?? null,
+      paymentStatus: reserve.payment_status,
+      reserveStatus: reserve.reserve_status,
+      createdAt: reserve.dateSale,
+    };
+  });
+};
+
 // reserveRepository.ts
 export async function recomputeAndUpdateReserveTotals(reserveId: number) {
   const reserve = await prisma.reserve.findUnique({

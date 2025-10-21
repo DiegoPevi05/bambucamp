@@ -1,5 +1,6 @@
 import {toast} from 'sonner';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { User, UserFilters, UserFormData } from '../../lib/interfaces';
 import { serializeUser } from '../serializer';
 

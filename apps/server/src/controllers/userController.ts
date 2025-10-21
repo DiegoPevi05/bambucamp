@@ -63,7 +63,7 @@ export const getUserById = async (req: Request, res: Response) => {
 export const createUser = [
   body('firstName').notEmpty().withMessage('validation.nameRequired'),
   body('email').isEmail().withMessage('validation.emailInvalid'),
-  body('role').isIn(['SUPERVISOR', 'CLIENT']).withMessage('validation.roleInvalid'),
+  body('role').isIn(['SUPERVISOR', 'CLIENT', 'COMMON']).withMessage('validation.roleInvalid'),
   body('lastName').optional(),
   body('phoneNumber').optional(),
   body('document_id').optional(),
@@ -89,7 +89,7 @@ export const createUser = [
       res.status(201).json({ message: req.t("message.userCreated") });
     } catch (error) {
       if (error instanceof CustomError) {
-        res.status(error.statusCode).json({ error: error.message });
+        res.status(error.statusCode).json({ error: req.t(error.message) });
       } else {
         res.status(500).json({ error: req.t("error.failedToCreateUser") });
       }
@@ -102,7 +102,7 @@ export const createUser = [
 export const updateUser = [
   body('firstName').notEmpty().withMessage('validation.nameRequired'),
   body('email').isEmail().withMessage('validation.emailInvalid'),
-  body('role').isIn(['SUPERVISOR', 'CLIENT']).withMessage('validation.roleInvalid'),
+  body('role').isIn(['SUPERVISOR', 'CLIENT', 'COMMON']).withMessage('validation.roleInvalid'),
   body('lastName').optional(),
   body('phoneNumber').optional(),
   body('document_id').optional(),
@@ -130,7 +130,7 @@ export const updateUser = [
       res.status(200).json({ message: req.t("message.userUpdated") });
     } catch (error) {
       if (error instanceof CustomError) {
-        res.status(error.statusCode).json({ error: error.message });
+        res.status(error.statusCode).json({ error: req.t(error.message) });
       } else {
         res.status(500).json({ error: req.t("error.failedToUpdateUser") });
       }

@@ -1,5 +1,5 @@
 import Dashboard from "../components/ui/Dashboard";
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useRef } from "react";
 import { Eye, Pen, X, ChevronLeft, ChevronRight, UserPlus, EyeOff, CircleX, UserX, UserRoundCheck, User as UserIcon, MailCheck, UserPen } from "lucide-react";
 import Button from "../components/ui/Button";
 import { InputRadio } from "../components/ui/Input";
@@ -13,6 +13,7 @@ import { ZodError } from 'zod';
 import { createUserSchema, editUserSchema } from "../db/schemas";
 import Modal from "../components/Modal";
 import {useTranslation} from "react-i18next";
+import { toast } from 'sonner';
 
 
 const DashboardAdminUsers = () => {
@@ -39,6 +40,9 @@ const DashboardAdminUsers = () => {
 
     const [loadingForm, setLoadingForm] = useState<boolean>(false);
     const [showPassword, setShowPassword] = useState<boolean>(false);
+
+    const createPasswordRef = useRef<HTMLInputElement | null>(null);
+    const editPasswordRef = useRef<HTMLInputElement | null>(null);
 
     const [errorMessages, setErrorMessages] = useState<Record<string, string>>({});
 
@@ -121,6 +125,55 @@ const DashboardAdminUsers = () => {
     const [openDeleteModal, setOpenDeleteModal] = useState<boolean>(false);
 
     const [selectedUser, setSelectedUser] = useState<User|null>(null);
+
+    const clearPasswordError = () => {
+        setErrorMessages(prev => {
+            const { password, ...rest } = prev;
+            return rest;
+        });
+    };
+
+    const generateRandomPassword = () => {
+        const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        const lowercase = 'abcdefghijkmnopqrstuvwxyz';
+        const digits = '23456789';
+        const symbols = '!@#$%^&*()-_=+[]{}';
+        const all = uppercase + lowercase + digits + symbols;
+        const pick = (source: string) => source.charAt(Math.floor(Math.random() * source.length));
+
+        const passwordCharacters = [
+            pick(uppercase),
+            pick(lowercase),
+            pick(digits),
+            pick(symbols),
+        ];
+
+        for (let index = passwordCharacters.length; index < 12; index += 1) {
+            passwordCharacters.push(pick(all));
+        }
+
+        return passwordCharacters.sort(() => Math.random() - 0.5).join('');
+    };
+
+    const handleGeneratePassword = (target: 'create' | 'edit') => {
+        const newPassword = generateRandomPassword();
+
+        if (target === 'create') {
+            if (createPasswordRef.current) {
+                createPasswordRef.current.value = newPassword;
+                createPasswordRef.current.focus();
+            }
+        } else {
+            setSelectedUser(prev => (prev ? { ...prev, password: newPassword } : prev));
+            if (editPasswordRef.current) {
+                editPasswordRef.current.focus();
+            }
+        }
+
+        setShowPassword(true);
+        clearPasswordError();
+        toast.success(t('user.password_generated'));
+    };
 
     const searchUserHandler = async() => {
         // Get the input value
@@ -262,7 +315,7 @@ const DashboardAdminUsers = () => {
                                 <option value="">{t("user.select_rol")}</option>
                                 <option value="ADMIN">{t("user.ADMIN")}</option>
                                 <option value="SUPERVISOR">{t("user.SUPERVISOR")}</option>
-                                <option value="CLIENT">{t("user.CLIENT")}</option>
+                                <option value="CLIENT">{t("user.COMMON")}</option>
                               </select>
                             </label>
                               <Button  variant="ghostLight" isRound={true} effect="default" className="md:ml-4 mt-4 md:mt-0" onClick={()=>searchUserHandler()}>
@@ -297,7 +350,7 @@ const DashboardAdminUsers = () => {
                                         <td className="">{userItem.id}</td>
                                         <td className="">{formatFullName(userItem.firstName, userItem.lastName)}</td>
                                         <td className="">{userItem.email}</td>
-                                        <td className="">{userItem.role != "SUPERVISOR" ? (userItem.role  != "CLIENT" ? t("user.ADMIN") : t("user.CLIENT") ) : t("user.SUPERVISOR") }</td>
+                                        <td className="">{userItem.role === "ADMIN" ? t("user.ADMIN") : userItem.role === "SUPERVISOR" ? t("user.SUPERVISOR") : t("user.COMMON") }</td>
                                         <td className="">{userItem.phoneNumber != undefined && userItem.phoneNumber != null ? userItem.phoneNumber : t("user.none")}</td>
                                         <td className="">{userItem.isDisabled ? t("user.disabled") : t("user.enabled")}</td>
                                         <td className="">{userItem.lastLogin != undefined && userItem.lastLogin != null ? formatDate(userItem.lastLogin) : t("user.none")}</td>
@@ -387,7 +440,7 @@ const DashboardAdminUsers = () => {
                                 <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                                   <label htmlFor="role" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("user.user_rol")}</label>
                                   <select name="role" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" >
-                                    <option value={selectedUser?.role}>{selectedUser?.role != "SUPERVISOR" ? (selectedUser?.role  != "CLIENT" ? t("user.ADMIN") : t("user.CLIENT") ) : t("user.SUPERVISOR") }</option>
+                                    <option value={selectedUser?.role}>{selectedUser?.role === "ADMIN" ? t("user.ADMIN") : selectedUser?.role === "SUPERVISOR" ? t("user.SUPERVISOR") : t("user.COMMON") }</option>
                                   </select>
                                </div>
                               <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
@@ -475,13 +528,18 @@ const DashboardAdminUsers = () => {
 
                               <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                                 <label htmlFor="password" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("user.user_password")}</label>
-                                <div className="h-auto w-full relative">
-                                  <input name="password" type={showPassword ? "text" : "password"} className="relative w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("user.user_password")}/>
-                                  <div onClick={()=>setShowPassword(!showPassword)} className="absolute top-0 right-2 h-full w-8 flex justify-center items-center cursor-pointer z-50">{ showPassword ? <EyeOff/> : <Eye />} </div>
+                                <div className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                  <div className="h-auto w-full relative">
+                                    <input ref={createPasswordRef} name="password" type={showPassword ? "text" : "password"} className="relative w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("user.user_password")}/>
+                                    <div onClick={()=>setShowPassword(!showPassword)} className="absolute top-0 right-2 h-full w-8 flex justify-center items-center cursor-pointer z-50">{ showPassword ? <EyeOff/> : <Eye />} </div>
+                                  </div>
+                                  <Button type="button" variant="ghostLight" size="sm" isRound={true} className="whitespace-nowrap" onClick={() => handleGeneratePassword('create')}>
+                                    {t('user.generate_password')}
+                                  </Button>
                                 </div>
                                 <div className="w-full h-6">
-                                  {errorMessages.password && 
-                                    <motion.p 
+                                  {errorMessages.password &&
+                                    <motion.p
                                       initial="hidden"
                                       animate="show"
                                       exit="hidden"
@@ -531,7 +589,7 @@ const DashboardAdminUsers = () => {
                                 <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                                   <label htmlFor="role" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("user.user_rol")}</label>
                                   <select name="role" className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary">
-                                    <option value="CLIENT">{t("user.CLIENT")}</option>
+                                    <option value="CLIENT">{t("user.COMMON")}</option>
                                     <option value="SUPERVISOR">{t("user.SUPERVISOR")}</option>
                                   </select>
                                   <div className="w-full h-6">
@@ -672,17 +730,26 @@ const DashboardAdminUsers = () => {
 
                               <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                                 <label htmlFor="password" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("user.user_password")}</label>
-                                <div className="h-auto w-full relative">
-                                  <input  name="password"
-                                    value={selectedUser.password}
+                                <div className="w-full flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                  <div className="h-auto w-full relative">
+                                    <input
+                                      ref={editPasswordRef}
+                                      name="password"
+                                      value={selectedUser.password ?? ''}
                                       onChange={(e)=>onChangeSelectedUser(e)}
-
-                                    type={showPassword ? "text" : "password"}  className="relative w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" placeholder={t("user.user_password")}/>
-                                  <div onClick={()=>setShowPassword(!showPassword)} className="absolute top-0 right-2 h-full w-8 flex justify-center items-center cursor-pointer z-50">{ showPassword ? <EyeOff/> : <Eye />} </div>
+                                      type={showPassword ? "text" : "password"}
+                                      className="relative w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary"
+                                      placeholder={t("user.user_password")}
+                                    />
+                                    <div onClick={()=>setShowPassword(!showPassword)} className="absolute top-0 right-2 h-full w-8 flex justify-center items-center cursor-pointer z-50">{ showPassword ? <EyeOff/> : <Eye />} </div>
+                                  </div>
+                                  <Button type="button" variant="ghostLight" size="sm" isRound={true} className="whitespace-nowrap" onClick={() => handleGeneratePassword('edit')}>
+                                    {t('user.generate_password')}
+                                  </Button>
                                 </div>
                                 <div className="w-full h-6">
-                                  {errorMessages.password && 
-                                    <motion.p 
+                                  {errorMessages.password &&
+                                    <motion.p
                                       initial="hidden"
                                       animate="show"
                                       exit="hidden"
@@ -731,7 +798,7 @@ const DashboardAdminUsers = () => {
                                 <div className="flex flex-col justify-start items-start w-full h-auto overflow-hidden my-1 gap-y-2 sm:gap-y-1">
                                   <label htmlFor="role" className="font-primary text-secondary text-xs xl:text-lg h-3 sm:h-6">{t("user.user_rol")}</label>
                                     <select name="role" onChange={(e)=>onChangeSelectedUser(e)} className="w-full h-8 sm:h-10 text-xs sm:text-md font-tertiary px-2 border-b-2 border-secondary focus:outline-none focus:border-b-2 focus:border-b-primary" value={selectedUser.role}>
-                                    <option value="CLIENT">{t("user.CLIENT")}</option>
+                                    <option value="CLIENT">{t("user.COMMON")}</option>
                                     <option value="SUPERVISOR">{t("user.SUPERVISOR")}</option>
                                   </select>
                                   <div className="w-full h-6">

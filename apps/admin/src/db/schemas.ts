@@ -10,7 +10,7 @@ const createUserSchema = z.object({
   firstName: z.string().nonempty({ message: 'user.validations.name_required' }),
   email: z.string().email({ message: 'user.validations.email_invalid' }),
   role: z.string().refine(
-    (value) => value === 'SUPERVISOR' || value === 'CLIENT',
+    (value) => value === 'SUPERVISOR' || value === 'CLIENT' || value === 'COMMON',
     { message: 'user.validations.rol_invalid' }
   ),
   password: z.string()

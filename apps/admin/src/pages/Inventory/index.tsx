@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Dashboard from '../../components/ui/Dashboard';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/Modal';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, ClipboardList, RefreshCw, Scale, PlusCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardList, RefreshCw, Scale, PlusCircle, FileDown } from 'lucide-react';
 import { Product, InventoryTransaction, InventoryMovementType, ProductFilters } from '../../lib/interfaces';
 import { getInventoryProducts, getProductLedger, createInventoryTransaction } from '../../db/actions/inventory';
 import { InventoryTransactionSchema } from '../../lib/schemas/inventory';
 import { ZodError } from 'zod';
 import { formatDate, formatPrice } from '../../lib/utils';
+import { inventoryReportSchema, InventoryReportForm } from '../../lib/schemas/reports';
+import { downloadInventoryReport } from '../../db/actions/reports';
 
 interface ProductFiltersState {
   name: string;
@@ -25,6 +27,14 @@ interface LedgerFiltersState {
 
 const PAGE_SIZE = 10;
 const LEDGER_PAGE_SIZE = 10;
+
+const createDefaultInventoryReportForm = (): InventoryReportForm => ({
+  dateFrom: '',
+  dateTo: '',
+  format: 'pdf',
+  sortBy: 'stock_desc',
+  productIds: [],
+});
 
 const InventoryPage = () => {
   const { user } = useAuth();
@@ -50,6 +60,11 @@ const InventoryPage = () => {
   const [transactionReference, setTransactionReference] = useState('');
   const [transactionLoading, setTransactionLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportForm, setReportForm] = useState<InventoryReportForm>(createDefaultInventoryReportForm);
+  const [reportErrors, setReportErrors] = useState<Record<string, string>>({});
+  const [reportLoading, setReportLoading] = useState(false);
 
   const appliedProductFilters = useMemo<ProductFilters>(() => {
     const filterPayload: ProductFilters = {};
@@ -130,6 +145,20 @@ const InventoryPage = () => {
     }
   }, [products, selectedProduct]);
 
+  useEffect(() => {
+    if (reportModalOpen) {
+      const today = new Date();
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 7);
+      setReportErrors({});
+      setReportForm((prev) => ({
+        ...prev,
+        dateFrom: prev.dateFrom || lastWeek.toISOString().slice(0, 10),
+        dateTo: prev.dateTo || today.toISOString().slice(0, 10),
+      }));
+    }
+  }, [reportModalOpen]);
+
   const resetTransactionForm = () => {
     setTransactionType('IN');
     setTransactionQuantity('');
@@ -200,20 +229,117 @@ const InventoryPage = () => {
     setFilters({ name: '', stockStatus: '', minStock: '', maxStock: '' });
   };
 
+  const handleReportFieldChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = event.target;
+    setReportForm(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const toggleReportProduct = (productId: number) => {
+    setReportForm(prev => {
+      const set = new Set(prev.productIds ?? []);
+      if (set.has(productId)) {
+        set.delete(productId);
+      } else {
+        set.add(productId);
+      }
+
+      return { ...prev, productIds: Array.from(set.values()) };
+    });
+  };
+
+  const selectAllReportProducts = () => {
+    setReportForm(prev => ({
+      ...prev,
+      productIds: products.map(product => product.id),
+    }));
+  };
+
+  const clearReportProducts = () => {
+    setReportForm(prev => ({
+      ...prev,
+      productIds: [],
+    }));
+  };
+
+  const handleDownloadInventoryReport = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user) return;
+
+    setReportLoading(true);
+    setReportErrors({});
+
+    try {
+      const parsed = inventoryReportSchema.parse({
+        ...reportForm,
+        productIds: reportForm.productIds && reportForm.productIds.length ? reportForm.productIds : undefined,
+      });
+
+      const success = await downloadInventoryReport(user.token, parsed, i18n.language);
+      if (success) {
+        handleCloseReportModal();
+      }
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errorMap: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          const field = err.path[0];
+          if (typeof field === 'string') {
+            errorMap[field] = err.message;
+          }
+        });
+        setReportErrors(errorMap);
+      } else {
+        console.error(error);
+      }
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleOpenReportModal = () => {
+    setReportModalOpen(true);
+  };
+
+  const resetReportForm = () => {
+    setReportForm(createDefaultInventoryReportForm());
+    setReportErrors({});
+  };
+
+  const handleCloseReportModal = () => {
+    setReportModalOpen(false);
+    resetReportForm();
+  };
+
+  const selectedReportProducts = new Set(reportForm.productIds ?? []);
+
   return (
     <Dashboard>
       <div className="w-full h-auto flex flex-col gap-6">
         <div className="flex flex-row items-center justify-between">
           <h1 className="text-2xl font-primary text-secondary">{t('inventory.title')}</h1>
-          <Button
-            onClick={() => fetchProducts(productPage)}
-            variant="ghostLight"
-            size="sm"
-            isRound
-            rightIcon={<RefreshCw className="h-4 w-4" />}
-          >
-            {t('inventory.refresh')}
-          </Button>
+          <div className="flex flex-row gap-2">
+            <Button
+              onClick={handleOpenReportModal}
+              variant="default"
+              size="sm"
+              isRound
+              rightIcon={<FileDown className="h-4 w-4" />}
+            >
+              {t('reports.download')}
+            </Button>
+            <Button
+              onClick={() => fetchProducts(productPage)}
+              variant="ghostLight"
+              size="sm"
+              isRound
+              rightIcon={<RefreshCw className="h-4 w-4" />}
+            >
+              {t('inventory.refresh')}
+            </Button>
+          </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
@@ -536,6 +662,145 @@ const InventoryPage = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal isOpen={reportModalOpen} onClose={handleCloseReportModal}>
+        <form onSubmit={handleDownloadInventoryReport} className="w-full max-w-2xl p-6 flex flex-col gap-4">
+          <div className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-primary text-secondary">{t('reports.inventory_title')}</h3>
+              <p className="text-xs text-gray-500">{t('reports.inventory_description')}</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghostLight"
+              size="sm"
+              isRound
+              onClick={handleCloseReportModal}
+            >
+              {t('common.cancel')}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-secondary" htmlFor="inventory-report-date-from">{t('reports.date_from')}</label>
+              <input
+                id="inventory-report-date-from"
+                name="dateFrom"
+                type="date"
+                className="border-b-2 border-secondary focus:outline-none focus:border-b-primary px-2 py-1 text-sm"
+                value={reportForm.dateFrom}
+                onChange={handleReportFieldChange}
+              />
+              {reportErrors.dateFrom && <span className="text-[10px] text-tertiary">{t(reportErrors.dateFrom)}</span>}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-secondary" htmlFor="inventory-report-date-to">{t('reports.date_to')}</label>
+              <input
+                id="inventory-report-date-to"
+                name="dateTo"
+                type="date"
+                className="border-b-2 border-secondary focus:outline-none focus:border-b-primary px-2 py-1 text-sm"
+                value={reportForm.dateTo}
+                onChange={handleReportFieldChange}
+              />
+              {reportErrors.dateTo && <span className="text-[10px] text-tertiary">{t(reportErrors.dateTo)}</span>}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-secondary" htmlFor="inventory-report-format">{t('reports.format')}</label>
+              <select
+                id="inventory-report-format"
+                name="format"
+                className="border-b-2 border-secondary focus:outline-none focus:border-b-primary px-2 py-1 text-sm"
+                value={reportForm.format}
+                onChange={handleReportFieldChange}
+              >
+                <option value="pdf">{t('reports.pdf')}</option>
+                <option value="csv">{t('reports.csv')}</option>
+              </select>
+              {reportErrors.format && <span className="text-[10px] text-tertiary">{t(reportErrors.format)}</span>}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-secondary" htmlFor="inventory-report-sort">{t('reports.sort')}</label>
+              <select
+                id="inventory-report-sort"
+                name="sortBy"
+                className="border-b-2 border-secondary focus:outline-none focus:border-b-primary px-2 py-1 text-sm"
+                value={reportForm.sortBy}
+                onChange={handleReportFieldChange}
+              >
+                <option value="stock_desc">{t('reports.sort_stock_desc')}</option>
+                <option value="stock_asc">{t('reports.sort_stock_asc')}</option>
+                <option value="qty_desc">{t('reports.sort_qty_desc')}</option>
+                <option value="qty_asc">{t('reports.sort_qty_asc')}</option>
+              </select>
+              {reportErrors.sortBy && <span className="text-[10px] text-tertiary">{t(reportErrors.sortBy)}</span>}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-row items-center justify-between">
+              <label className="text-xs text-secondary">{t('reports.products')}</label>
+              <div className="flex flex-row gap-2">
+                <Button
+                  type="button"
+                  variant="ghostLight"
+                  size="sm"
+                  isRound
+                  className="px-3 py-1 h-auto text-xs"
+                  onClick={selectAllReportProducts}
+                >
+                  {t('reports.select_all')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghostLight"
+                  size="sm"
+                  isRound
+                  className="px-3 py-1 h-auto text-xs"
+                  onClick={clearReportProducts}
+                >
+                  {t('reports.clear_selection')}
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-52 overflow-y-auto border border-gray-200 rounded-md divide-y divide-gray-100">
+              {products.length === 0 && (
+                <div className="px-3 py-2 text-xs text-gray-500">{t('reports.no_products')}</div>
+              )}
+              {products.map((product) => (
+                <label
+                  key={product.id}
+                  htmlFor={`inventory-report-product-${product.id}`}
+                  className="flex items-center justify-between px-3 py-2 text-sm text-secondary gap-2 cursor-pointer hover:bg-gray-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={`inventory-report-product-${product.id}`}
+                      type="checkbox"
+                      checked={selectedReportProducts.has(product.id)}
+                      onChange={() => toggleReportProduct(product.id)}
+                      className="h-4 w-4"
+                    />
+                    <span>{product.name}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">#{product.id}</span>
+                </label>
+              ))}
+            </div>
+            {reportErrors.productIds && <span className="text-[10px] text-tertiary">{t(reportErrors.productIds)}</span>}
+          </div>
+
+          <div className="flex flex-row justify-end gap-2">
+            <Button type="button" variant="ghostLight" size="sm" isRound onClick={handleCloseReportModal}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" variant="default" size="sm" isRound isLoading={reportLoading}>
+              {t('reports.generate')}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </Dashboard>
   );
