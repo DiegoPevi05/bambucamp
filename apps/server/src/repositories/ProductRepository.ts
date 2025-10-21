@@ -1,19 +1,14 @@
 import { PrismaClient, Product   } from "@prisma/client";
-import { ProductDto, ProductFilters, PaginatedProducts, ProductPublicDto } from "../dto/product";
+import { ProductDto, ProductFilters, ProductPublicDto } from "../dto/product";
 import {BadRequestError} from "../middleware/errors";
 
 const prisma = new PrismaClient();
 
-interface Pagination {
-  page: number;
-  pageSize: number;
-}
-
-export const getAllPublicProducts = async (categories?:string[]): Promise<ProductPublicDto[]> => {
-  return await prisma.product.findMany({
+export const getAllPublicProducts = async (categories?: string[]): Promise<ProductPublicDto[]> => {
+  const products = await prisma.product.findMany({
     where: {
       status: 'ACTIVE',
-      ...(categories && { 
+      ...(categories && {
         category: {
           name: {
             in: categories, // Filter experiences by the category names array
@@ -29,24 +24,15 @@ export const getAllPublicProducts = async (categories?:string[]): Promise<Produc
       category: true, // Include the category object
     },
   });
+
+  return products.map((product) => ({
+    ...product,
+    stock: product.stock ?? undefined,
+  }));
 };
 
-export const getAllProducts = async (filters:ProductFilters, pagination:Pagination): Promise<PaginatedProducts> => {
+export const getAllProducts = async (filters: ProductFilters): Promise<ProductPublicDto[]> => {
   const { name, status } = filters;
-  const { page, pageSize } = pagination;
-  
-  const skip = (page - 1) * pageSize;
-  const take = pageSize;
-
-  const totalCount = await prisma.product.count({
-    where: {
-      ...(name && { name: { contains: name, mode: 'insensitive' } }),
-      ...(status && { status: { contains: status, mode: 'insensitive' } }),
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
 
   const products = await prisma.product.findMany({
     where: {
@@ -56,20 +42,15 @@ export const getAllProducts = async (filters:ProductFilters, pagination:Paginati
     orderBy: {
       createdAt: 'desc',
     },
-    skip,
-    take,
     include: {
-      category: true, // Include the category object
+      category: true,
     },
   });
 
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  return {
-    products,
-    totalPages,
-    currentPage: page,
-  };
+  return products.map((product) => ({
+    ...product,
+    stock: product.stock ?? undefined,
+  }));
 };
 
 export const getProductById = async (id: number): Promise<Product | null> => {
@@ -117,15 +98,6 @@ export const updateProductImages = async (productId: number, images: string) => 
     throw new BadRequestError("error.noUpdateImages");
   }
 };
-
-export const updateStock = async(productId:number,newStock:number) => {
-  return await prisma.product.update({
-    where: { id: productId },
-    data:{
-      stock:newStock,
-    }
-  });
-}
 
 
 

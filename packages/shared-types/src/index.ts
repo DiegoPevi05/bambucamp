@@ -257,7 +257,7 @@ export interface ProductDto {
   name: string;
   description: string;
   price: number;
-  stock: number;
+  stock?: number;
   images: string;
   status?: string;
   custom_price?: string;
@@ -290,6 +290,53 @@ export interface PaginatedProducts {
 export interface ProductFilters {
   name?: string;
   status?: string;
+  stockStatus?: 'in' | 'out';
+  minStock?: number;
+  maxStock?: number;
+}
+
+// ------------------------------
+// Inventory domain
+// ------------------------------
+
+export type InventoryMovementType = 'IN' | 'OUT' | 'ADJUSTMENT';
+
+export interface InventoryTransactionUser {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+}
+
+export interface InventoryTransaction {
+  id: number;
+  productId: number;
+  type: InventoryMovementType;
+  quantity: number;
+  note?: string | null;
+  reference?: string | null;
+  createdById?: number | null;
+  createdAt: Date | string;
+  createdBy?: InventoryTransactionUser | null;
+}
+
+export interface PaginatedInventoryTransactions {
+  transactions: InventoryTransaction[];
+  totalPages: number;
+  currentPage: number;
+}
+
+export interface InventoryTransactionFilters {
+  type?: InventoryMovementType;
+  search?: string;
+}
+
+export interface CreateInventoryTransactionForm {
+  productId: number;
+  type: InventoryMovementType;
+  quantity: number;
+  note?: string;
+  reference?: string;
 }
 
 // ------------------------------

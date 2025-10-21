@@ -342,11 +342,11 @@
 			"images_min": "Must be at least 1 image per glamping"
 		}
 	},
-	"product": {
-		"plural": "Products",
-		"status": "Status",
-		"search_product": "Search Product",
-		"select_status": "Select Status",
+        "product": {
+                "plural": "Products",
+                "status": "Status",
+                "search_product": "Search Product",
+                "select_status": "Select Status",
 		"ACTIVE": "ACTIVE",
 		"INACTIVE": "INACTIVE",
 		"categories": "Categories",
@@ -390,12 +390,85 @@
 			"images_min": "Must be at least 1 image per experience",
 			"start_date_lower_than_end_date": "Start date should start before end date",
 			"input_valid_date": "Input a valid date please",
-			"category_name": "Category must have a name"
-		}
-	},
-	"experience": {
-		"suggestions": "Suggestions",
-		"day": "Experience Day",
+                        "category_name": "Category must have a name"
+                }
+        },
+        "inventory": {
+                "title": "Inventory",
+                "refresh": "Refresh",
+                "loading": "Loading inventory...",
+                "manage_stock_from_inventory": "Manage stock from the inventory page.",
+                "filters": {
+                        "title": "Filters",
+                        "name": "Product name",
+                        "stock_status": "Stock status",
+                        "stock_status_all": "All",
+                        "stock_status_in": "In stock",
+                        "stock_status_out": "Out of stock",
+                        "min_stock": "Min stock",
+                        "max_stock": "Max stock",
+                        "apply": "Apply",
+                        "reset": "Reset"
+                },
+                "table": {
+                        "product": "Product",
+                        "category": "Category",
+                        "price": "Price",
+                        "stock": "Current stock",
+                        "actions": "Actions",
+                        "empty": "No products found"
+                },
+                "actions": {
+                        "view_ledger": "View ledger",
+                        "add_transaction": "Add transaction"
+                },
+                "pagination": {
+                        "page": "Page {{current}} of {{total}}",
+                        "previous": "Previous",
+                        "next": "Next"
+                },
+                "ledger": {
+                        "title": "Ledger for {{name}}",
+                        "current_stock": "Current stock: {{stock}}",
+                        "filters": {
+                                "all": "All movements",
+                                "search": "Search note or reference",
+                                "apply": "Apply"
+                        },
+                        "columns": {
+                                "date": "Date",
+                                "type": "Movement",
+                                "quantity": "Quantity",
+                                "note": "Note",
+                                "reference": "Reference",
+                                "user": "User"
+                        },
+                        "empty": "No transactions found"
+                },
+                "transaction": {
+                        "modal_title": "New transaction for {{name}}",
+                        "current_stock": "Current stock: {{stock}}",
+                        "type": "Movement type",
+                        "quantity": "Quantity",
+                        "note": "Note",
+                        "reference": "Reference",
+                        "submit": "Create transaction",
+                        "cancel": "Cancel",
+                        "in": "Add stock",
+                        "out": "Remove stock",
+                        "adjustment": "Adjustment"
+                },
+                "validation": {
+                        "productId": "Select a product",
+                        "movementType": "Select a movement type",
+                        "quantityPositive": "Quantity must be greater than zero",
+                        "noteMax": "Note must be 255 characters or less",
+                        "referenceMax": "Reference must be 255 characters or less"
+                }
+        },
+        "experience": {
+                "suggestions": "Suggestions",
+                "day": "Experience Day",
 		"limit_age": "Limit of age for this experience",
 		"qty_people": "Quantity of people allowed by experience",
 		"plural": "Experiences",

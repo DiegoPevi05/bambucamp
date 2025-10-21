@@ -116,9 +116,12 @@
 		"failedToCreateExperienceReserve": "Failed to add experience to reserve",
 		"failedToDeleteProductReserve": "Failed to delete the product from the reserve",
 		"failedToDeleteExperienceReserve": "Failed to delete the experience from the reserve",
-		"failedToUpdateProductReserveStatus": "Failed to confirm the product in the reserve",
-		"failedToUpdateExperienceReserveStatus": "Failed to confirm the experience in the reserve"
-	},
+                "failedToUpdateProductReserveStatus": "Failed to confirm the product in the reserve",
+                "failedToUpdateExperienceReserveStatus": "Failed to confirm the experience in the reserve",
+                "failedToFetchInventoryLedger": "Failed to fetch inventory ledger",
+                "failedToCreateInventoryTransaction": "Failed to create inventory transaction",
+                "invalidInventoryQuantity": "Quantity must be greater than zero"
+        },
 	"message": {
 		"entityConfirmed": "{{entityType}} has been successfully confirmed.",
 		"reviewDeleted": "Review deleted",
@@ -199,7 +202,8 @@
 		"NotificationTentUpdatedDescription": "Tent with ID {{id}} was updated by {{user}}.",
 		"NotificationTentDeleted": "Tent deleted",
 		"NotificationTentDeletedPreview": "A tent with ID {{id}} was deleted.",
-		"NotificationTentDeletedDescription": "Tent with ID {{id}} was deleted by {{user}}.",
+                "NotificationTentDeletedDescription": "Tent with ID {{id}} was deleted by {{user}}.",
+                "inventoryTransactionCreated": "Inventory transaction created",
 		"NotificationReserveCreated": "Reservation created",
 		"NotificationReserveCreatedPreview": "A new reservation named {{name}} was created.",
 		"NotificationReserveCreatedDescription": "Reservation with ID {{id}} was created by {{user}}.",
@@ -274,6 +278,9 @@
                 "phoneRequired": "Phone is required",
                 "documentIdRequired": "Document ID is required",
                 "claimTypeRequired": "Claim type is required",
-                "complaintDescriptionRequired": "Complaint description is required"
+                "complaintDescriptionRequired": "Complaint description is required",
+                "productIdRequired": "Product ID is required",
+                "movementTypeRequired": "Movement type is required",
+                "quantityPositive": "Quantity must be greater than zero"
         }
 }

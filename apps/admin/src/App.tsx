@@ -9,6 +9,7 @@ import DashboardAdmin from './pages/home';
 import DashboardAdminUsers from './pages/users';
 import DashboardAdminGlapings from './pages/tents';
 import DashboardAdminProducts from './pages/products';
+import DashboardAdminInventory from './pages/Inventory';
 import DashboardAdminExperiences from './pages/experiences';
 import DashboardAdminDiscounts from './pages/discounts';
 import DashboardAdminReserves from './pages/reserves';
@@ -71,6 +72,18 @@ const AppRoutes: React.FC = () => {
             isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
           >
             <DashboardAdminProducts/>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/inventory"
+        element={
+          <ProtectedRoute
+            redirectPath="/"
+            isAllowed={!!user && user.role != undefined && (user.role == "ADMIN" || user.role =="SUPERVISOR")}
+          >
+            <DashboardAdminInventory/>
           </ProtectedRoute>
         }
       />

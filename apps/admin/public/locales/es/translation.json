@@ -341,11 +341,11 @@
 			"images_min": "Debe haber al menos 1 imagen por glamping"
 		}
 	},
-	"product": {
-		"plural": "Productos",
-		"status": "Estado",
-		"search_product": "Buscar Producto",
-		"select_status": "Seleccionar Estado",
+        "product": {
+                "plural": "Productos",
+                "status": "Estado",
+                "search_product": "Buscar Producto",
+                "select_status": "Seleccionar Estado",
 		"ACTIVE": "ACTIVO",
 		"INACTIVE": "INACTIVO",
 		"categories": "Categorías",
@@ -388,13 +388,86 @@
 			"status_required": "El estado es obligatorio",
 			"images_min": "Debe haber al menos 1 imagen por producto",
 			"start_date_lower_than_end_date": "La fecha de inicio debe ser anterior a la fecha de finalización",
-			"input_valid_date": "Por favor, ingresa una fecha válida",
-			"category_name": "La categoría debe tener un nombre"
-		}
-	},
-	"experience": {
-		"suggestions": "Sugerencias",
-		"day": "Dia de la Experiencia",
+                        "input_valid_date": "Por favor, ingresa una fecha válida",
+                        "category_name": "La categoría debe tener un nombre"
+                }
+        },
+        "inventory": {
+                "title": "Inventario",
+                "refresh": "Actualizar",
+                "loading": "Cargando inventario...",
+                "manage_stock_from_inventory": "Gestiona el stock desde la página de inventario.",
+                "filters": {
+                        "title": "Filtros",
+                        "name": "Nombre del producto",
+                        "stock_status": "Estado de stock",
+                        "stock_status_all": "Todos",
+                        "stock_status_in": "Con stock",
+                        "stock_status_out": "Sin stock",
+                        "min_stock": "Stock mínimo",
+                        "max_stock": "Stock máximo",
+                        "apply": "Aplicar",
+                        "reset": "Restablecer"
+                },
+                "table": {
+                        "product": "Producto",
+                        "category": "Categoría",
+                        "price": "Precio",
+                        "stock": "Stock actual",
+                        "actions": "Acciones",
+                        "empty": "No se encontraron productos"
+                },
+                "actions": {
+                        "view_ledger": "Ver historial",
+                        "add_transaction": "Agregar movimiento"
+                },
+                "pagination": {
+                        "page": "Página {{current}} de {{total}}",
+                        "previous": "Anterior",
+                        "next": "Siguiente"
+                },
+                "ledger": {
+                        "title": "Historial de {{name}}",
+                        "current_stock": "Stock actual: {{stock}}",
+                        "filters": {
+                                "all": "Todos los movimientos",
+                                "search": "Buscar nota o referencia",
+                                "apply": "Aplicar"
+                        },
+                        "columns": {
+                                "date": "Fecha",
+                                "type": "Movimiento",
+                                "quantity": "Cantidad",
+                                "note": "Nota",
+                                "reference": "Referencia",
+                                "user": "Usuario"
+                        },
+                        "empty": "No se encontraron movimientos"
+                },
+                "transaction": {
+                        "modal_title": "Nuevo movimiento para {{name}}",
+                        "current_stock": "Stock actual: {{stock}}",
+                        "type": "Tipo de movimiento",
+                        "quantity": "Cantidad",
+                        "note": "Nota",
+                        "reference": "Referencia",
+                        "submit": "Crear movimiento",
+                        "cancel": "Cancelar",
+                        "in": "Agregar stock",
+                        "out": "Retirar stock",
+                        "adjustment": "Ajuste"
+                },
+                "validation": {
+                        "productId": "Selecciona un producto",
+                        "movementType": "Selecciona un tipo de movimiento",
+                        "quantityPositive": "La cantidad debe ser mayor que cero",
+                        "noteMax": "La nota debe tener máximo 255 caracteres",
+                        "referenceMax": "La referencia debe tener máximo 255 caracteres"
+                }
+        },
+        "experience": {
+                "suggestions": "Sugerencias",
+                "day": "Dia de la Experiencia",
 		"limit_age": "El limite de edad para esta experiencia",
 		"qty_people": "Cantidad de personas por experiencia",
 		"plural": "Experiencias",

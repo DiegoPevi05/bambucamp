@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import * as productService from '../services/productService';
 import * as notificationService from '../services/notificationServices';
 import { body, param, validationResult } from 'express-validator';
-import {CustomError} from '../middleware/errors';
+import { CustomError } from '../middleware/errors';
+import { ProductFilters } from '../dto/product';
 
 export const getAllPublicProducts = async (req: Request, res: Response) => {
   try {
@@ -20,16 +21,25 @@ export const getAllPublicProducts = async (req: Request, res: Response) => {
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
-    const { name, status, page = '1', pageSize = '10' } = req.query;
+    const { name, status, stockStatus, minStock, maxStock, page = '1', pageSize = '10' } = req.query;
 
-    const filters = {
-      name: name as string | undefined,
-      status: status as string | undefined
+    const minStockValue = minStock !== undefined ? Number(minStock) : undefined;
+    const maxStockValue = maxStock !== undefined ? Number(maxStock) : undefined;
+
+    const stockStatusFilter: ProductFilters['stockStatus'] =
+      stockStatus === 'in' || stockStatus === 'out' ? stockStatus : undefined;
+
+    const filters: ProductFilters = {
+      name: typeof name === 'string' ? name : undefined,
+      status: typeof status === 'string' ? status : undefined,
+      stockStatus: stockStatusFilter,
+      minStock: Number.isFinite(minStockValue) ? minStockValue : undefined,
+      maxStock: Number.isFinite(maxStockValue) ? maxStockValue : undefined,
     };
 
     const pagination = {
-      page: parseInt(page as string, 10),
-      pageSize: parseInt(pageSize as string, 10),
+      page: Math.max(1, parseInt(page as string, 10) || 1),
+      pageSize: Math.max(1, parseInt(pageSize as string, 10) || 10),
     };
 
     const PaginatedProducts = await productService.getAllProducts(filters, pagination);

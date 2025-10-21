@@ -2,12 +2,13 @@ import * as reserveRepository from '../repositories/ReserveRepository';
 import { PaginatedReserve, ReserveDto, ReserveEntityType, ReserveExperienceDto, ReserveExtraItemDto, ReserveFilters, ReserveFormDto, ReserveOptions, ReserveProductDto, ReserveTentDto, createReserveExperienceDto, createReserveProductDto } from "../dto/reserve";
 import *  as userRepository from '../repositories/userRepository';
 import * as productService from './productService';
+import * as inventoryService from './inventoryService';
 import * as authService from './authService';
 import * as utils from '../lib/utils';
 import { BadRequestError, NotFoundError, UnauthorizedError } from "../middleware/errors";
 import { sendNewReservationEmailUser, sendNewReservationEmailAdmin } from '../config/email/mail';
 import { PaymentStatus, Reserve, ReserveStatus, Role, User } from '@prisma/client';
-import { calculatePrice } from '../lib/utils';
+import { calculatePrice, postOuts, postIns, diffProducts } from '../lib/utils';
 import { PublicTent } from '../dto/tent';
 import { generateSalesNote } from '../config/receipt/pdf';
 
@@ -288,30 +289,52 @@ export const createReserve = async (data: ReserveFormDto, language: string): Pro
 
   const reserve = await reserveRepository.createReserve(reserveDto);
 
-  if (reserveDto.reserve_status === ReserveStatus.CONFIRMED && reserve?.id) {
-    await authService.confirmReservation(reserve.id, language);
+  if (reserve && reserve.id) {
+
+    const isConfirmed = (reserve.reserve_status !== ReserveStatus.NOT_CONFIRMED);
+
+    if (reserveDto.reserve_status === ReserveStatus.CONFIRMED && reserve?.id) {
+      await authService.confirmReservation(reserve.id, language);
+    }
+
+    // Post inventory AFTER we have the reserve id
+    if (isConfirmed && reserve.products?.length) {
+      const outs = reserve.products.map(p => ({ idProduct: p.idProduct, qty: p.quantity }));
+      await postOuts(reserve.id, outs, "Reserve confirmed on creation", reserve.external_id);
+    }
+
   }
+
 
   return reserve;
 };
 
 export const updateReserve = async (id: number, data: ReserveFormDto) => {
-  const existingReserve = await reserveRepository.getReserveById(id);
+  const existingReserve = await reserveRepository.getReserveDtoById(id);
   if (!existingReserve) throw new NotFoundError('error.noReservefoundInDB');
 
   const user = await userRepository.getUserById(data.userId);
   if (!user) throw new NotFoundError('error.noUserFoundInDB');
 
-  existingReserve.userId = user.id;
-  if (data.eta) existingReserve.eta = new Date(data.eta);
-  if (data.reserve_status) existingReserve.reserve_status = data.reserve_status;
-  if (data.payment_status) existingReserve.payment_status = data.payment_status;
-  if (data.discount_code_id) existingReserve.discount_code_id = data.discount_code_id;
-  if (data.discount_code_name) existingReserve.discount_code_name = data.discount_code_name;
-  if (data.price_is_calculated != null) existingReserve.price_is_calculated = data.price_is_calculated;
-  if (data.gross_import) existingReserve.gross_import = Number(data.gross_import);
-  if (data.discount) existingReserve.discount = Number(data.discount);
-  if (data.net_import) existingReserve.net_import = Number(data.net_import);
+  // Snapshot before-state for DIFF (products only affect inventory)
+  const beforeProducts = (existingReserve.products ?? []).map(p => ({
+    idProduct: p.idProduct,
+    quantity: p.quantity,
+  }));
+
+  // Mutate base fields on the underlying Reserve (keep your logic)
+  const baseToUpdate: any = {
+    userId: user.id,
+  };
+  if (data.eta) baseToUpdate.eta = new Date(data.eta);
+  if (data.reserve_status) baseToUpdate.reserve_status = data.reserve_status;
+  if (data.payment_status) baseToUpdate.payment_status = data.payment_status;
+  if (data.discount_code_id != null) baseToUpdate.discount_code_id = data.discount_code_id;
+  if (data.discount_code_name != null) baseToUpdate.discount_code_name = data.discount_code_name;
+  if (data.price_is_calculated != null) baseToUpdate.price_is_calculated = data.price_is_calculated;
+  if (data.gross_import != null) baseToUpdate.gross_import = Number(data.gross_import);
+  if (data.discount != null) baseToUpdate.discount = Number(data.discount);
+  if (data.net_import != null) baseToUpdate.net_import = Number(data.net_import);
 
   // Normalize times
   utils.normalizeTimesInTents(data.tents);
@@ -323,7 +346,7 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     utils.getExperiences(data.experiences),
   ]);
 
-
+  // Availability
   const tentsAvailable = await utils.checkAvailability(data.tents);
   if (!tentsAvailable) throw new BadRequestError("error.noTentsAvailable");
 
@@ -335,7 +358,6 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
       kids: t.kids,
       additional_people: t.additional_people,
     });
-
     return {
       id: t.id,
       idTent: t.idTent,
@@ -380,8 +402,9 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     };
   });
 
-  const reserve_extraItems: any[] = (data.extraItems ?? []).map(x => ({
+  const reserve_extraItems: ReserveExtraItemDto[] = (data.extraItems ?? []).map(x => ({
     id: x.id,
+    reserveId: id,
     name: x.name,
     price: x.price,
     advanced: x.advanced ?? 0,
@@ -389,6 +412,26 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     confirmed: existingReserve.reserve_status !== ReserveStatus.NOT_CONFIRMED,
   }));
 
+  // ==== INVENTORY LOGIC ====
+  const wasConfirmed = existingReserve.reserve_status !== ReserveStatus.NOT_CONFIRMED;
+  const willBeConfirmed = (data.reserve_status ?? existingReserve.reserve_status) !== ReserveStatus.NOT_CONFIRMED;
+
+  const afterProducts = reserve_products.map(p => ({ idProduct: p.idProduct, quantity: p.quantity }));
+
+  if (wasConfirmed && willBeConfirmed) {
+    // Diff old vs new and post deltas
+    const { toOut, toIn } = diffProducts(beforeProducts, afterProducts);
+    if (toOut.length) await postOuts(id, toOut, "Reserve update increase", existingReserve.external_id);
+    if (toIn.length) await postIns(id, toIn, "Reserve update decrease/ removal", existingReserve.external_id);
+  } else if (!wasConfirmed && willBeConfirmed) {
+    // Newly confirmed → OUT everything in 'after'
+    const outsAll = afterProducts.map(p => ({ idProduct: p.idProduct, qty: p.quantity }));
+    if (outsAll.length) await postOuts(id, outsAll, "Reserve confirmed on update", existingReserve.external_id);
+  } else {
+    // Staying NOT_CONFIRMED → no inventory movements now
+  }
+
+  // ==== PRICE RECOMPUTE ====
   const tentsWithQuantities = data.tents.map(t => {
     const tentDB = tentsDbMap.get(t.idTent)!;
     return {
@@ -416,39 +459,41 @@ export const updateReserve = async (id: number, data: ReserveFormDto) => {
     reserve_extraItems.map(item => ({ price: item.price, quantity: item.quantity }))
   );
 
-  if (data.price_is_calculated) {
-    existingReserve.gross_import = priceComputation.total;
+  // Apply discount & totals (your original logic, slightly tightened)
+  const priceIsCalculated = data.price_is_calculated ?? existingReserve.price_is_calculated ?? true;
 
+  if (priceIsCalculated) {
+    baseToUpdate.gross_import = priceComputation.total;
     const { netImport, discount, discount_name } = await utils.applyDiscount(
-      existingReserve.gross_import,
-      existingReserve.discount_code_id
+      baseToUpdate.gross_import,
+      baseToUpdate.discount_code_id ?? existingReserve.discount_code_id
     );
-
-    existingReserve.discount = discount;
-    existingReserve.discount_code_name = discount_name ?? "";
-    existingReserve.net_import = netImport;
+    baseToUpdate.net_import = netImport;
+    baseToUpdate.discount = discount;
+    baseToUpdate.discount_code_name = discount_name ?? "";
   } else {
+    const gross = Number(data.gross_import ?? existingReserve.gross_import ?? 0);
     const { netImport, discount, discount_name } = await utils.applyDiscount(
-      existingReserve.gross_import,
-      existingReserve.discount_code_id,
-      existingReserve.discount
+      gross,
+      baseToUpdate.discount_code_id ?? existingReserve.discount_code_id,
+      Number(data.discount ?? existingReserve.discount ?? 0)
     );
-
-    existingReserve.discount = discount;
-    existingReserve.discount_code_name = discount_name ?? "";
-    existingReserve.net_import = netImport;
+    baseToUpdate.gross_import = gross;
+    baseToUpdate.net_import = netImport;
+    baseToUpdate.discount = discount;
+    baseToUpdate.discount_code_name = discount_name ?? "";
   }
 
+  // Persist details (your existing destructive upsert is fine since we've already posted deltas)
   await reserveRepository.upsertReserveDetails(
-    existingReserve.id,
+    existingReserve.id || 0,
     reserve_tents,
     reserve_products,
     reserve_experiences,
     reserve_extraItems
   );
 
-  return await reserveRepository.updateReserve(id, existingReserve);
-
+  return await reserveRepository.updateReserve(id, baseToUpdate);
 };
 
 export const deleteReserve = async (id: number) => {
@@ -470,10 +515,12 @@ export const AddProductReserve = async (reserve: Reserve | null, data: createRes
   }
 
   const processedProducts = await Promise.all(data.map(async productData => {
-    const isStock = await productService.checkProductStock(productData.idProduct, productData.quantity);
-    if (!isStock) {
-      throw new NotFoundError('error.noProductsFoundInStock');
-    }
+    const reference = reserve ? reserve.external_id : `RESERVE-${productData.reserveId}`;
+
+    await productService.checkProductStock(productData.idProduct, productData.quantity, {
+      reference,
+      note: `Reserve allocation ${reference}`,
+    });
     if (priceIsConfirmed) {
       productData.confirmed = true;
     }
@@ -492,6 +539,14 @@ export const AddProductReserve = async (reserve: Reserve | null, data: createRes
 export const deleteProductReserve = async (id: number) => {
 
   const deleted = await reserveRepository.deleteProductReserve(id);
+
+  await inventoryService.createTransaction({
+    productId: deleted.idProduct,
+    type: 'IN',
+    quantity: deleted.quantity,
+    reference: `RESERVE-${deleted.reserveId}`,
+    note: 'Reserve product removal',
+  });
 
   await reserveRepository.recomputeAndUpdateReserveTotals(deleted.reserveId);
 
@@ -600,9 +655,16 @@ export const confirmEntity = async (entityType: ReserveEntityType, reserveId: nu
   switch (entityType) {
     case ReserveEntityType.RESERVE:
 
-      await authService.confirmReservation(reserveId, language);
+      const reserve = await reserveRepository.getReserveDtoById(reserveId);
+      if (!reserve) throw new NotFoundError('error.noReservefoundInDB');
 
-      return await reserveRepository.confirmReserve(reserveId);
+      await authService.confirmReservation(reserveId, language);
+      await reserveRepository.confirmReserve(reserveId);
+
+      if (reserve.products?.length) {
+        const outs = reserve.products.map(p => ({ idProduct: p.idProduct, qty: p.quantity }));
+        await postOuts(reserveId, outs, "Reserve confirmed via confirmEntity", reserve.external_id);
+      }
 
     case ReserveEntityType.TENT:
       if (!entityId) throw new BadRequestError('validation.idRequired');
