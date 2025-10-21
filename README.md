@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://bambucamp.com" target="_blank">
-    <img src="https://github.com/DiegoPevi05/bambucamp-monorepo/blob/main/public/logo.png" width="150">
+    <img src="https://github.com/DiegoPevi05/bambucamp/blob/main/apps/client/public/logo.png" width="150">
   </a>
 </p>
 
