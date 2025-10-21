@@ -29,3 +29,5 @@ export const getProductStock = async (productId: number) => {
 export const getStocksForProducts = async (productIds: number[]) => {
   return inventoryRepository.getStockForProductIds(productIds);
 };
+
+

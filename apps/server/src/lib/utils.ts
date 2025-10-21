@@ -8,6 +8,8 @@ import * as discountCodeRepository from '../repositories/DiscountCodeRepository'
 import * as tentRepository from '../repositories/TentRepository';
 import * as productRepository from '../repositories/ProductRepository';
 import * as experienceRepository from '../repositories/ExperienceRepository';
+import * as productService from '../services/productService';
+import * as inventoryService from '../services/inventory.service';
 import { BadRequestError, NotFoundError } from '../middleware/errors';
 import { processImage, NORMAL_VARIANT_DIR, SMALL_VARIANT_DIR } from './image';
 
@@ -596,3 +598,63 @@ export const generateRandomPassword = () => {
 
 
 
+
+type QtyMap = Map<number, number>;
+const toQtyMap = <T extends { idProduct: number; quantity: number }>(rows: T[]): QtyMap => {
+  const m = new Map<number, number>();
+  for (const r of rows) m.set(r.idProduct, (m.get(r.idProduct) ?? 0) + Number(r.quantity ?? 0));
+  return m;
+};
+
+export function diffProducts(
+  before: { idProduct: number; quantity: number }[],
+  after: { idProduct: number; quantity: number }[],
+) {
+  const a = toQtyMap(before);
+  const b = toQtyMap(after);
+
+  const allIds = new Set<number>([...a.keys(), ...b.keys()]);
+  const toOut: { idProduct: number; qty: number }[] = [];
+  const toIn: { idProduct: number; qty: number }[] = [];
+
+  for (const id of allIds) {
+    const oldQ = a.get(id) ?? 0;
+    const newQ = b.get(id) ?? 0;
+    if (newQ > oldQ) toOut.push({ idProduct: id, qty: newQ - oldQ });
+    else if (newQ < oldQ) toIn.push({ idProduct: id, qty: oldQ - newQ });
+  }
+  return { toOut, toIn };
+}
+
+export async function postOuts(
+  reserveId: number,
+  outs: { idProduct: number; qty: number }[],
+  note = "Reserve allocation",
+  createdById?: number
+) {
+  for (const o of outs) {
+    await productService.checkProductStock(o.idProduct, o.qty, {
+      reference: `RESERVE-${reserveId}`,
+      note,
+      createdById,
+    });
+  }
+}
+
+export async function postIns(
+  reserveId: number,
+  ins: { idProduct: number; qty: number }[],
+  note = "Reserve adjustment rollback",
+  createdById?: number
+) {
+  for (const i of ins) {
+    await inventoryService.createTransaction({
+      productId: i.idProduct,
+      type: "IN",
+      quantity: i.qty,
+      reference: `RESERVE-${reserveId}`,
+      note,
+      createdById,
+    });
+  }
+}
