@@ -1,7 +1,7 @@
 import Dashboard from "../components/ui/Dashboard";
 import { AnimatePresence, motion } from "framer-motion";
 import { fadeIn, fadeOnly } from "../lib/motions";
-import { BarChart, ChevronDownIcon, ChevronUpIcon, FileBarChart, LineChart } from "lucide-react";
+import { BarChart, ChevronDownIcon, ChevronUpIcon, FileBarChart, LineChart, ChevronRight, ChevronLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -73,6 +73,17 @@ const DropDownComponent = (props: PropsDropDown) => {
   );
 };
 
+type Step = "W" | "M" | "Y";
+type SeriesType = "A" | "P";
+
+type WindowedFilters = {
+  step: Step;
+  type: SeriesType;
+  anchor: string;   // YYYY-MM-DD
+  offset: number;   // e.g., 0 (current), -1 (prev page), +1 (next)
+  tz?: string;      // optional, default 'America/Lima'
+};
+
 const createDefaultSalesReportForm = (): SalesReportForm => ({
   dateFrom: "",
   dateTo: "",
@@ -83,16 +94,13 @@ const DashboardAdminStatistics = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
-  const [selectedOptions, setSelectedOptions] = useState({
-    net_amount: {
-      step: "W",
-      type: "P",
-    },
-    reserves: {
-      step: "W",
-      type: "P",
-    },
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  const [selectedOptions, setSelectedOptions] = useState<{ net_amount: WindowedFilters, reserves: WindowedFilters }>({
+    net_amount: { step: "W", type: "P", anchor: todayIso, offset: 0 },
+    reserves: { step: "W", type: "P", anchor: todayIso, offset: 0 },
   });
+
 
   const [totalValues, setTotalValues] = useState({
     net_amount: 0,
@@ -104,14 +112,24 @@ const DashboardAdminStatistics = () => {
   const [reportErrors, setReportErrors] = useState<Record<string, string>>({});
   const [reportLoading, setReportLoading] = useState(false);
 
-  const updateSelectedOption = (key: string, field: string, value: string) => {
-    setSelectedOptions((prevState: any) => ({
-      ...prevState,
+
+  const shiftRange = (key: 'net_amount' | 'reserves', delta: number) => {
+    setSelectedOptions(prev => ({
+      ...prev,
       [key]: {
-        ...prevState[key],
-        [field]: value,
-      },
+        ...prev[key],
+        offset: Math.min(0, (prev[key].offset + delta)), // prevent going into future; allow <=0
+      }
     }));
+  };
+
+  // When step changes, reset offset to 0 so the user jumps back to "current"
+  const updateSelectedOption = (key: string, field: string, value: string) => {
+    setSelectedOptions((prev: any) => {
+      const next = { ...prev, [key]: { ...prev[key], [field]: value } };
+      if (field === 'step') next[key].offset = 0;
+      return next;
+    });
   };
 
   const getNetSalesStatisticsHandler = useCallback(async () => {
@@ -121,7 +139,7 @@ const DashboardAdminStatistics = () => {
 
       if (salesData.length === 0) {
         setTotalValues((prevTotal) => ({ ...prevTotal, net_amount: 0 }));
-      } else if (selectedOptions.net_amount.step === "P") {
+      } else if (selectedOptions.net_amount.type === "P") {
         setTotalValues((prevTotal) => ({
           ...prevTotal,
           net_amount: salesData.reduce((sum, sale) => sum + sale.amount, 0),
@@ -144,7 +162,7 @@ const DashboardAdminStatistics = () => {
 
       if (reserveData.length === 0) {
         setTotalValues((prevTotal) => ({ ...prevTotal, reserves: 0 }));
-      } else if (selectedOptions.reserves.step === "P") {
+      } else if (selectedOptions.reserves.type === "P") {
         setTotalValues((prevTotal) => ({
           ...prevTotal,
           reserves: reserveData.reduce((sum, reserve) => sum + reserve.quantity, 0),
@@ -254,7 +272,6 @@ const DashboardAdminStatistics = () => {
                 variant="ghostLight"
                 onClick={handleOpenReportModal}
                 rightIcon={<FileBarChart />}
-                disabled={totalValues.net_amount === 0}
                 isRound
               >
                 {t("statistic.download_report")}
@@ -266,6 +283,14 @@ const DashboardAdminStatistics = () => {
             </h1>
             <p className="font-secondary text-sm sm:text-md max-sm:mt-2 text-tertiary">{t("statistic.select_time")}</p>
             <div className="w-full h-auto flex flex-row gap-x-2 my-4 sm:my-2">
+              <button
+                type="button"
+                className="px-3 py-1 rounded-lg border hover:bg-gray-50"
+                onClick={(e) => { e.stopPropagation(); shiftRange('net_amount', -1); }}
+                title={t('statistic.prev_period')}
+              >
+                <ChevronLeft />
+              </button>
               <DropDownComponent
                 currentStatus={{ key: "net_amount", field: "step", value: selectedOptions.net_amount.step }}
                 options={[
@@ -284,6 +309,15 @@ const DashboardAdminStatistics = () => {
                 ]}
                 handleChangeOption={updateSelectedOption}
               />
+              <button
+                type="button"
+                className="px-3 py-1 rounded-lg border hover:bg-gray-50 disabled:opacity-40"
+                onClick={(e) => { e.stopPropagation(); shiftRange('net_amount', +1); }}
+                disabled={selectedOptions.net_amount.offset >= 0}
+                title={t('statistic.next_period')}
+              >
+                <ChevronRight />
+              </button>
             </div>
             <div className="h-auto w-full flex flex-col items-end justify-end bg-white duration-800 transition-all transition-opacity rounded-b-xl">
               <p className="text-secondary text-md">{t("statistic.net_amount_chart_title")}</p>
@@ -310,7 +344,6 @@ const DashboardAdminStatistics = () => {
                 variant="ghostLight"
                 onClick={handleOpenReportModal}
                 rightIcon={<FileBarChart />}
-                disabled={totalValues.reserves === 0}
                 isRound
               >
                 {t("statistic.download_report")}
@@ -322,6 +355,14 @@ const DashboardAdminStatistics = () => {
             </h1>
             <p className="font-secondary text-sm sm:text-md max-sm:mt-2 text-tertiary">{t("statistic.select_time")}</p>
             <div className="w-full h-auto flex flex-row gap-x-2 my-4 sm:my-2">
+              <button
+                type="button"
+                className="px-3 py-1 rounded-lg border hover:bg-gray-50"
+                onClick={(e) => { e.stopPropagation(); shiftRange('reserves', -1); }}
+                title={t('statistic.prev_period')}
+              >
+                <ChevronLeft />
+              </button>
               <DropDownComponent
                 currentStatus={{ key: "reserves", field: "step", value: selectedOptions.reserves.step }}
                 options={[
@@ -340,6 +381,15 @@ const DashboardAdminStatistics = () => {
                 ]}
                 handleChangeOption={updateSelectedOption}
               />
+              <button
+                type="button"
+                className="px-3 py-1 rounded-lg border hover:bg-gray-50 disabled:opacity-40"
+                onClick={(e) => { e.stopPropagation(); shiftRange('reserves', +1); }}
+                disabled={selectedOptions.net_amount.offset >= 0}
+                title={t('statistic.next_period')}
+              >
+                <ChevronRight />
+              </button>
             </div>
             <div className="h-auto w-full flex flex-col items-end justify-end bg-white duration-800 transition-all transition-opacity rounded-b-xl">
               <p className="text-secondary text-md">{t("statistic.reserves_chart_title")}</p>

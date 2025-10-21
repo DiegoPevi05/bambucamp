@@ -80,7 +80,7 @@ export const renderInventoryReportHtml = (data: InventoryReportTemplateData): st
           </div>
         </div>
         <table class="report-table">
-          <thead>
+          <thead class="report-table__headers">
             <tr>
               <th>${escapeHtml(data.tableHeaders.date)}</th>
               <th>${escapeHtml(data.tableHeaders.type)}</th>
@@ -90,7 +90,7 @@ export const renderInventoryReportHtml = (data: InventoryReportTemplateData): st
               <th>${escapeHtml(data.tableHeaders.user)}</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="report-table__body">
             ${rows || `<tr><td colspan="6" class="text-muted">${escapeHtml(data.tableHeaders.empty)}</td></tr>`}
           </tbody>
         </table>

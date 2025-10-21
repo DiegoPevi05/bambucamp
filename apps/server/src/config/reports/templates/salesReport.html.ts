@@ -79,7 +79,7 @@ export const renderSalesReportHtml = (data: SalesReportTemplateData): string => 
           <h1 class="report-title">${escapeHtml(data.title)}</h1>
           <div class="report-subtitle">${escapeHtml(data.subtitle)}</div>
           <table class="report-table">
-            <thead>
+            <thead class="report-table__headers">
               <tr>
                 <th>${escapeHtml(data.tableHeaders.externalId)}</th>
                 <th class="text-right">${escapeHtml(data.tableHeaders.gross)}</th>
@@ -89,7 +89,7 @@ export const renderSalesReportHtml = (data: SalesReportTemplateData): string => 
                 <th>${escapeHtml(data.tableHeaders.paymentStatus)}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="report-table__body">
               ${bodyRows || `<tr><td colspan="6" class="text-muted">${escapeHtml(data.tableHeaders.empty)}</td></tr>`}
             </tbody>
           </table>
